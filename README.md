@@ -1,5 +1,13 @@
 ![image](https://github.com/Interkarma/daggerfall-unity/assets/10426244/4f176f9d-6332-47b3-a4d7-317ed8d6b38b)
 
+# Unofficial Android Port of Daggerfall Unity
+
+This is an Android port of the original DFU project found at https://github.com/Interkarma/daggerfall-unity
+
+Please visit the [releases page](https://github.com/Vwing/daggerfall-unity-android/releases) if you're looking for the APK or instructions on setting it up.
+
+Any feature requests or bugs related to Android should be opened as an [issue](https://github.com/Vwing/daggerfall-unity-android/issues) on this fork, and *not* on the main project.
+
 # What is Daggerfall Unity?
 
 Daggerfall Unity is an open source recreation of Daggerfall in the Unity engine created by [Daggerfall Workshop](http://www.dfworkshop.net).
