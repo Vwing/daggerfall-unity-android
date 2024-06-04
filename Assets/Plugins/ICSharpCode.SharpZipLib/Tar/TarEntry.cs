@@ -114,8 +114,7 @@ namespace ICSharpCode.SharpZipLib.Tar
 		public static TarEntry CreateTarEntry(string name)
 		{
 			var entry = new TarEntry();
-
-			entry.NameTarHeader(name);
+			TarEntry.NameTarHeader(entry.header, name);
 			return entry;
 		}
 
@@ -189,7 +188,10 @@ namespace ICSharpCode.SharpZipLib.Tar
 		/// </returns>
 		public TarHeader TarHeader
 		{
-			get { return header; }
+			get
+			{
+				return header;
+			}
 		}
 
 		/// <summary>
@@ -197,8 +199,14 @@ namespace ICSharpCode.SharpZipLib.Tar
 		/// </summary>
 		public string Name
 		{
-			get { return header.Name; }
-			set { header.Name = value; }
+			get
+			{
+				return header.Name;
+			}
+			set
+			{
+				header.Name = value;
+			}
 		}
 
 		/// <summary>
@@ -206,8 +214,14 @@ namespace ICSharpCode.SharpZipLib.Tar
 		/// </summary>
 		public int UserId
 		{
-			get { return header.UserId; }
-			set { header.UserId = value; }
+			get
+			{
+				return header.UserId;
+			}
+			set
+			{
+				header.UserId = value;
+			}
 		}
 
 		/// <summary>
@@ -215,8 +229,14 @@ namespace ICSharpCode.SharpZipLib.Tar
 		/// </summary>
 		public int GroupId
 		{
-			get { return header.GroupId; }
-			set { header.GroupId = value; }
+			get
+			{
+				return header.GroupId;
+			}
+			set
+			{
+				header.GroupId = value;
+			}
 		}
 
 		/// <summary>
@@ -224,8 +244,14 @@ namespace ICSharpCode.SharpZipLib.Tar
 		/// </summary>
 		public string UserName
 		{
-			get { return header.UserName; }
-			set { header.UserName = value; }
+			get
+			{
+				return header.UserName;
+			}
+			set
+			{
+				header.UserName = value;
+			}
 		}
 
 		/// <summary>
@@ -233,8 +259,14 @@ namespace ICSharpCode.SharpZipLib.Tar
 		/// </summary>
 		public string GroupName
 		{
-			get { return header.GroupName; }
-			set { header.GroupName = value; }
+			get
+			{
+				return header.GroupName;
+			}
+			set
+			{
+				header.GroupName = value;
+			}
 		}
 
 		/// <summary>
@@ -272,8 +304,14 @@ namespace ICSharpCode.SharpZipLib.Tar
 		/// </summary>
 		public DateTime ModTime
 		{
-			get { return header.ModTime; }
-			set { header.ModTime = value; }
+			get
+			{
+				return header.ModTime;
+			}
+			set
+			{
+				header.ModTime = value;
+			}
 		}
 
 		/// <summary>
@@ -284,7 +322,10 @@ namespace ICSharpCode.SharpZipLib.Tar
 		/// </returns>
 		public string File
 		{
-			get { return file; }
+			get
+			{
+				return file;
+			}
 		}
 
 		/// <summary>
@@ -292,8 +333,14 @@ namespace ICSharpCode.SharpZipLib.Tar
 		/// </summary>
 		public long Size
 		{
-			get { return header.Size; }
-			set { header.Size = value; }
+			get
+			{
+				return header.Size;
+			}
+			set
+			{
+				header.Size = value;
+			}
 		}
 
 		/// <summary>
@@ -372,10 +419,15 @@ namespace ICSharpCode.SharpZipLib.Tar
 						}
 			*/
 
+			name = name.Replace(Path.DirectorySeparatorChar, '/');
+
 			// No absolute pathnames
 			// Windows (and Posix?) paths can start with UNC style "\\NetworkDrive\",
 			// so we loop on starting /'s.
-			name = name.ToTarArchivePath();
+			while (name.StartsWith("/", StringComparison.Ordinal))
+			{
+				name = name.Substring(1);
+			}
 
 			header.LinkName = String.Empty;
 			header.Name = name;
@@ -398,8 +450,7 @@ namespace ICSharpCode.SharpZipLib.Tar
 				header.Size = new FileInfo(file.Replace('/', Path.DirectorySeparatorChar)).Length;
 			}
 
-			header.ModTime = System.IO.File.GetLastWriteTime(file.Replace('/', Path.DirectorySeparatorChar))
-				.ToUniversalTime();
+			header.ModTime = System.IO.File.GetLastWriteTime(file.Replace('/', Path.DirectorySeparatorChar)).ToUniversalTime();
 			header.DevMajor = 0;
 			header.DevMinor = 0;
 		}
@@ -492,11 +543,19 @@ namespace ICSharpCode.SharpZipLib.Tar
 		/// <summary>
 		/// Fill in a TarHeader given only the entry's name.
 		/// </summary>
+		/// <param name="header">
+		/// The TarHeader to fill in.
+		/// </param>
 		/// <param name="name">
 		/// The tar entry name.
 		/// </param>
-		public void NameTarHeader(string name)
+		static public void NameTarHeader(TarHeader header, string name)
 		{
+			if (header == null)
+			{
+				throw new ArgumentNullException(nameof(header));
+			}
+
 			if (name == null)
 			{
 				throw new ArgumentNullException(nameof(name));

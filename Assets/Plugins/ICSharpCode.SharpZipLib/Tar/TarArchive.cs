@@ -356,7 +356,8 @@ namespace ICSharpCode.SharpZipLib.Tar
 				{
 					throw new ObjectDisposedException("TarArchive");
 				}
-				rootPath = value.ToTarArchivePath().TrimEnd('/');
+				// Convert to forward slashes for matching. Trim trailing / for correct final path
+				rootPath = value.Replace('\\', '/').TrimEnd('/');
 			}
 		}
 
@@ -612,7 +613,7 @@ namespace ICSharpCode.SharpZipLib.Tar
 				throw new ObjectDisposedException("TarArchive");
 			}
 
-			var fullDistDir = Path.GetFullPath(destinationDirectory).TrimEnd('/', '\\');
+			var fullDistDir = Path.GetFullPath(destinationDirectory);
 
 			while (true)
 			{
@@ -659,9 +660,7 @@ namespace ICSharpCode.SharpZipLib.Tar
 			string destFile = Path.Combine(destDir, name);
 			var destFileDir = Path.GetDirectoryName(Path.GetFullPath(destFile)) ?? "";
 
-			var isRootDir = entry.IsDirectory && entry.Name == "";
-
-			if (!allowParentTraversal && !isRootDir && !destFileDir.StartsWith(destDir, StringComparison.InvariantCultureIgnoreCase))
+			if (!allowParentTraversal && !destFileDir.StartsWith(destDir, StringComparison.InvariantCultureIgnoreCase))
 			{
 				throw new InvalidNameException("Parent traversal in paths is not allowed");
 			}

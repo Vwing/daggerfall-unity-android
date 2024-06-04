@@ -68,7 +68,7 @@ namespace ICSharpCode.SharpZipLib.Zip
 		public ZipEntryFactory()
 		{
 			nameTransform_ = new ZipNameTransform();
-			isUnicodeText_ = true;
+			isUnicodeText_ = ZipStrings.UseUnicode;
 		}
 
 		/// <summary>
@@ -162,7 +162,7 @@ namespace ICSharpCode.SharpZipLib.Zip
 		}
 
 		/// <summary>
-		/// Get set a value indicating whether unicode text should be set on.
+		/// Get set a value indicating whether unidoce text should be set on.
 		/// </summary>
 		public bool IsUnicodeText
 		{

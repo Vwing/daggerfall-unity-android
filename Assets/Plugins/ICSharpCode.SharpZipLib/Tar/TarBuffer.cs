@@ -1,8 +1,5 @@
 using System;
-using System.Buffers;
 using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace ICSharpCode.SharpZipLib.Tar
 {
@@ -75,7 +72,10 @@ namespace ICSharpCode.SharpZipLib.Tar
 		/// This is equal to the <see cref="BlockFactor"/> multiplied by the <see cref="BlockSize"/></value>
 		public int RecordSize
 		{
-			get { return recordSize; }
+			get
+			{
+				return recordSize;
+			}
 		}
 
 		/// <summary>
@@ -95,7 +95,10 @@ namespace ICSharpCode.SharpZipLib.Tar
 		/// <value>This is the number of blocks in each record.</value>
 		public int BlockFactor
 		{
-			get { return blockFactor; }
+			get
+			{
+				return blockFactor;
+			}
 		}
 
 		/// <summary>
@@ -204,7 +207,7 @@ namespace ICSharpCode.SharpZipLib.Tar
 		{
 			blockFactor = archiveBlockFactor;
 			recordSize = archiveBlockFactor * BlockSize;
-			recordBuffer = ArrayPool<byte>.Shared.Rent(RecordSize);
+			recordBuffer = new byte[RecordSize];
 
 			if (inputStream != null)
 			{
@@ -286,14 +289,7 @@ namespace ICSharpCode.SharpZipLib.Tar
 		/// <summary>
 		/// Skip over a block on the input stream.
 		/// </summary>
-		public void SkipBlock() => SkipBlockAsync(CancellationToken.None, false).GetAwaiter().GetResult();
-
-		/// <summary>
-		/// Skip over a block on the input stream.
-		/// </summary>
-		public Task SkipBlockAsync(CancellationToken ct) => SkipBlockAsync(ct, true).AsTask();
-
-		private async ValueTask SkipBlockAsync(CancellationToken ct, bool isAsync)
+		public void SkipBlock()
 		{
 			if (inputStream == null)
 			{
@@ -302,7 +298,7 @@ namespace ICSharpCode.SharpZipLib.Tar
 
 			if (currentBlockIndex >= BlockFactor)
 			{
-				if (!await ReadRecordAsync(ct, isAsync).ConfigureAwait(false))
+				if (!ReadRecord())
 				{
 					throw new TarException("Failed to read a record");
 				}
@@ -326,7 +322,7 @@ namespace ICSharpCode.SharpZipLib.Tar
 
 			if (currentBlockIndex >= BlockFactor)
 			{
-				if (!ReadRecordAsync(CancellationToken.None, false).GetAwaiter().GetResult())
+				if (!ReadRecord())
 				{
 					throw new TarException("Failed to read a record");
 				}
@@ -339,37 +335,13 @@ namespace ICSharpCode.SharpZipLib.Tar
 			return result;
 		}
 
-		internal async ValueTask ReadBlockIntAsync(byte[] buffer, CancellationToken ct, bool isAsync)
-		{
-			if (buffer.Length != BlockSize)
-			{
-				throw new ArgumentException("BUG: buffer must have length BlockSize");
-			}
-
-			if (inputStream == null)
-			{
-				throw new TarException("TarBuffer.ReadBlock - no input stream defined");
-			}
-
-			if (currentBlockIndex >= BlockFactor)
-			{
-				if (!await ReadRecordAsync(ct, isAsync).ConfigureAwait(false))
-				{
-					throw new TarException("Failed to read a record");
-				}
-			}
-
-			recordBuffer.AsSpan().Slice(currentBlockIndex * BlockSize, BlockSize).CopyTo(buffer);
-			currentBlockIndex++;
-		}
-
 		/// <summary>
 		/// Read a record from data stream.
 		/// </summary>
 		/// <returns>
 		/// false if End-Of-File, else true.
 		/// </returns>
-		private async ValueTask<bool> ReadRecordAsync(CancellationToken ct, bool isAsync)
+		private bool ReadRecord()
 		{
 			if (inputStream == null)
 			{
@@ -383,9 +355,7 @@ namespace ICSharpCode.SharpZipLib.Tar
 
 			while (bytesNeeded > 0)
 			{
-				long numBytes = isAsync
-					? await inputStream.ReadAsync(recordBuffer, offset, bytesNeeded, ct).ConfigureAwait(false)
-					: inputStream.Read(recordBuffer, offset, bytesNeeded);
+				long numBytes = inputStream.Read(recordBuffer, offset, bytesNeeded);
 
 				//
 				// NOTE
@@ -402,11 +372,6 @@ namespace ICSharpCode.SharpZipLib.Tar
 				//
 				if (numBytes <= 0)
 				{
-					// Fill the rest of the buffer with 0 to clear any left over data in the shared buffer
-					for (; offset < RecordSize; offset++)
-					{
-						recordBuffer[offset] = 0;
-					}
 					break;
 				}
 
@@ -479,38 +444,32 @@ namespace ICSharpCode.SharpZipLib.Tar
 		/// <param name="block">
 		/// The data to write to the archive.
 		/// </param>
-		/// <param name="ct"></param>
-		public ValueTask WriteBlockAsync(byte[] block, CancellationToken ct)
-		{
-			return WriteBlockAsync(block, 0, ct);
-		}
-		
-		/// <summary>
-		/// Write a block of data to the archive.
-		/// </summary>
-		/// <param name="block">
-		/// The data to write to the archive.
-		/// </param>
 		public void WriteBlock(byte[] block)
 		{
-			WriteBlock(block, 0);
-		}
+			if (block == null)
+			{
+				throw new ArgumentNullException(nameof(block));
+			}
 
-		/// <summary>
-		/// Write an archive record to the archive, where the record may be
-		/// inside of a larger array buffer. The buffer must be "offset plus
-		/// record size" long.
-		/// </summary>
-		/// <param name="buffer">
-		/// The buffer containing the record data to write.
-		/// </param>
-		/// <param name="offset">
-		/// The offset of the record data within buffer.
-		/// </param>
-		/// <param name="ct"></param>
-		public ValueTask WriteBlockAsync(byte[] buffer, int offset, CancellationToken ct)
-		{
-			return WriteBlockAsync(buffer, offset, ct, true);
+			if (outputStream == null)
+			{
+				throw new TarException("TarBuffer.WriteBlock - no output stream defined");
+			}
+
+			if (block.Length != BlockSize)
+			{
+				string errorText = string.Format("TarBuffer.WriteBlock - block to write has length '{0}' which is not the block size of '{1}'",
+					block.Length, BlockSize);
+				throw new TarException(errorText);
+			}
+
+			if (currentBlockIndex >= BlockFactor)
+			{
+				WriteRecord();
+			}
+
+			Array.Copy(block, 0, recordBuffer, (currentBlockIndex * BlockSize), BlockSize);
+			currentBlockIndex++;
 		}
 
 		/// <summary>
@@ -525,11 +484,6 @@ namespace ICSharpCode.SharpZipLib.Tar
 		/// The offset of the record data within buffer.
 		/// </param>
 		public void WriteBlock(byte[] buffer, int offset)
-		{
-			WriteBlockAsync(buffer, offset, CancellationToken.None, false).GetAwaiter().GetResult();
-		}
-
-		internal async ValueTask WriteBlockAsync(byte[] buffer, int offset, CancellationToken ct, bool isAsync)
 		{
 			if (buffer == null)
 			{
@@ -548,15 +502,14 @@ namespace ICSharpCode.SharpZipLib.Tar
 
 			if ((offset + BlockSize) > buffer.Length)
 			{
-				string errorText = string.Format(
-					"TarBuffer.WriteBlock - record has length '{0}' with offset '{1}' which is less than the record size of '{2}'",
+				string errorText = string.Format("TarBuffer.WriteBlock - record has length '{0}' with offset '{1}' which is less than the record size of '{2}'",
 					buffer.Length, offset, recordSize);
 				throw new TarException(errorText);
 			}
 
 			if (currentBlockIndex >= BlockFactor)
 			{
-				await WriteRecordAsync(CancellationToken.None, isAsync).ConfigureAwait(false);
+				WriteRecord();
 			}
 
 			Array.Copy(buffer, offset, recordBuffer, (currentBlockIndex * BlockSize), BlockSize);
@@ -567,23 +520,15 @@ namespace ICSharpCode.SharpZipLib.Tar
 		/// <summary>
 		/// Write a TarBuffer record to the archive.
 		/// </summary>
-		private async ValueTask WriteRecordAsync(CancellationToken ct, bool isAsync)
+		private void WriteRecord()
 		{
 			if (outputStream == null)
 			{
 				throw new TarException("TarBuffer.WriteRecord no output stream defined");
 			}
 
-			if (isAsync)
-			{
-				await outputStream.WriteAsync(recordBuffer, 0, RecordSize, ct).ConfigureAwait(false);
-				await outputStream.FlushAsync(ct).ConfigureAwait(false);
-			}
-			else
-			{
-				outputStream.Write(recordBuffer, 0, RecordSize);
-				outputStream.Flush();
-			}
+			outputStream.Write(recordBuffer, 0, RecordSize);
+			outputStream.Flush();
 
 			currentBlockIndex = 0;
 			currentRecordIndex++;
@@ -594,7 +539,7 @@ namespace ICSharpCode.SharpZipLib.Tar
 		/// </summary>
 		/// <remarks>Any trailing bytes are set to zero which is by definition correct behaviour
 		/// for the end of a tar stream.</remarks>
-		private async ValueTask WriteFinalRecordAsync(CancellationToken ct, bool isAsync)
+		private void WriteFinalRecord()
 		{
 			if (outputStream == null)
 			{
@@ -605,77 +550,36 @@ namespace ICSharpCode.SharpZipLib.Tar
 			{
 				int dataBytes = currentBlockIndex * BlockSize;
 				Array.Clear(recordBuffer, dataBytes, RecordSize - dataBytes);
-				await WriteRecordAsync(ct, isAsync).ConfigureAwait(false);
+				WriteRecord();
 			}
 
-			if (isAsync)
-			{
-				await outputStream.FlushAsync(ct).ConfigureAwait(false);
-			}
-			else
-			{
-				outputStream.Flush();
-			}
+			outputStream.Flush();
 		}
 
 		/// <summary>
 		/// Close the TarBuffer. If this is an output buffer, also flush the
 		/// current block before closing.
 		/// </summary>
-		public void Close() => CloseAsync(CancellationToken.None, false).GetAwaiter().GetResult();
-		
-		/// <summary>
-		/// Close the TarBuffer. If this is an output buffer, also flush the
-		/// current block before closing.
-		/// </summary>
-		public Task CloseAsync(CancellationToken ct) => CloseAsync(ct, true).AsTask();
-
-		private async ValueTask CloseAsync(CancellationToken ct, bool isAsync)
+		public void Close()
 		{
 			if (outputStream != null)
 			{
-				await WriteFinalRecordAsync(ct, isAsync).ConfigureAwait(false);
+				WriteFinalRecord();
 
 				if (IsStreamOwner)
 				{
-					if (isAsync)
-					{
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-						await outputStream.DisposeAsync().ConfigureAwait(false);
-#else
-						outputStream.Dispose();
-#endif
-					}
-					else
-					{
-						outputStream.Dispose();
-					}
+					outputStream.Dispose();
 				}
-
 				outputStream = null;
 			}
 			else if (inputStream != null)
 			{
 				if (IsStreamOwner)
 				{
-					if (isAsync)
-					{
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-						await inputStream.DisposeAsync().ConfigureAwait(false);
-#else
-						inputStream.Dispose();
-#endif
-					}
-					else
-					{
-						inputStream.Dispose();
-					}
+					inputStream.Dispose();
 				}
-
 				inputStream = null;
 			}
-
-			ArrayPool<byte>.Shared.Return(recordBuffer);
 		}
 
 		#region Instance Fields

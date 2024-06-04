@@ -198,7 +198,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             string cachePath = Path.Combine(Application.temporaryCachePath, "DaggerfallArena2Unzipped");
             Unzip.UnzipFile(filePath, cachePath);
             bool foundValidFolder = false;
-            IEnumerable<string> dirs = Directory.EnumerateDirectories(cachePath, "*", new EnumerationOptions() { RecurseSubdirectories = true });
+            IEnumerable<string> dirs = Directory.EnumerateDirectories(cachePath, "*", SearchOption.AllDirectories);
             dirs = dirs.Prepend(cachePath);
             foreach (string subdirectory in dirs)
             {

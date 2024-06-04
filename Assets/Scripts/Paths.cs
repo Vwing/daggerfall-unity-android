@@ -14,6 +14,7 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using ICSharpCode.SharpZipLib.Zip;
+
 namespace DaggerfallWorkshop
 {
     public sealed class Paths

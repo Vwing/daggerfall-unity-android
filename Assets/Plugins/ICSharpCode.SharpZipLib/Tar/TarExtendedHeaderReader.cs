@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 
 namespace ICSharpCode.SharpZipLib.Tar
@@ -27,10 +26,7 @@ namespace ICSharpCode.SharpZipLib.Tar
 
 		private int state = LENGTH;
 
-		private int currHeaderLength;
-		private int currHeaderRead;
-
-		private static readonly byte[] StateNext = { (byte)' ', (byte)'=', (byte)'\n' };
+		private static readonly byte[] StateNext = new[] { (byte)' ', (byte)'=', (byte)'\n' };
 
 		/// <summary>
 		/// Creates a new <see cref="TarExtendedHeaderReader"/>.
@@ -50,46 +46,23 @@ namespace ICSharpCode.SharpZipLib.Tar
 			for (int i = 0; i < length; i++)
 			{
 				byte next = buffer[i];
-				
-				var foundStateEnd = state == VALUE 
-					? currHeaderRead == currHeaderLength -1
-					: next == StateNext[state];
 
-				if (foundStateEnd)
+				if (next == StateNext[state])
 				{
 					Flush();
 					headerParts[state] = sb.ToString();
 					sb.Clear();
-					
+
 					if (++state == END)
 					{
-						if (!headers.ContainsKey(headerParts[KEY]))
-						{
-							headers.Add(headerParts[KEY], headerParts[VALUE]);
-						}
-
+						headers.Add(headerParts[KEY], headerParts[VALUE]);
 						headerParts = new string[3];
-						currHeaderLength = 0;
-						currHeaderRead = 0;
 						state = LENGTH;
-					}
-					else
-					{
-						currHeaderRead++;
-					}
-					
-
-					if (state != VALUE) continue;
-
-					if (int.TryParse(headerParts[LENGTH], out var vl))
-					{
-						currHeaderLength = vl;
 					}
 				}
 				else
 				{
 					byteBuffer[bbIndex++] = next;
-					currHeaderRead++;
 					if (bbIndex == 4)
 						Flush();
 				}

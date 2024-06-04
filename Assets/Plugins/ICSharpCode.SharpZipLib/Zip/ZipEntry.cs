@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Text;
 
 namespace ICSharpCode.SharpZipLib.Zip
 {
@@ -151,7 +150,7 @@ namespace ICSharpCode.SharpZipLib.Zip
 		/// The name passed is null
 		/// </exception>
 		public ZipEntry(string name)
-			: this(name, 0, ZipConstants.VersionMadeBy, CompressionMethod.Deflated, true)
+			: this(name, 0, ZipConstants.VersionMadeBy, CompressionMethod.Deflated)
 		{
 		}
 
@@ -172,7 +171,7 @@ namespace ICSharpCode.SharpZipLib.Zip
 		/// </exception>
 		internal ZipEntry(string name, int versionRequiredToExtract)
 			: this(name, versionRequiredToExtract, ZipConstants.VersionMadeBy,
-			CompressionMethod.Deflated, true)
+			CompressionMethod.Deflated)
 		{
 		}
 
@@ -183,7 +182,6 @@ namespace ICSharpCode.SharpZipLib.Zip
 		/// <param name="madeByInfo">Version and HostSystem Information</param>
 		/// <param name="versionRequiredToExtract">Minimum required zip feature version required to extract this entry</param>
 		/// <param name="method">Compression method for this entry.</param>
-		/// <param name="unicode">Whether the entry uses unicode for name and comment</param>
 		/// <exception cref="ArgumentNullException">
 		/// The name passed is null
 		/// </exception>
@@ -195,7 +193,7 @@ namespace ICSharpCode.SharpZipLib.Zip
 		/// It is not generally useful, use the constructor specifying the name only.
 		/// </remarks>
 		internal ZipEntry(string name, int versionRequiredToExtract, int madeByInfo,
-			CompressionMethod method, bool unicode)
+			CompressionMethod method)
 		{
 			if (name == null)
 			{
@@ -218,7 +216,7 @@ namespace ICSharpCode.SharpZipLib.Zip
 			this.versionToExtract = (ushort)versionRequiredToExtract;
 			this.method = method;
 
-			IsUnicodeText = unicode;
+			IsUnicodeText = ZipStrings.UseUnicode;
 		}
 
 		/// <summary>
@@ -1091,7 +1089,7 @@ namespace ICSharpCode.SharpZipLib.Zip
 		/// <summary>
 		/// Cleans a name making it conform to Zip file conventions.
 		/// Devices names ('c:\') and UNC share names ('\\server\share') are removed
-		/// and back slashes ('\') are converted to forward slashes ('/').
+		/// and forward slashes ('\') are converted to back slashes ('/').
 		/// Names are made relative by trimming leading slashes which is compatible
 		/// with the ZIP naming convention.
 		/// </summary>
