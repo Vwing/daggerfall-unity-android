@@ -128,8 +128,11 @@ namespace DaggerfallWorkshop.Game.UserInterface
         {
             uiManager.PopWindow();
             RaiseOnCloseHandler();
-            if(!DaggerfallUnity.Settings.DisableGarbageCollectionDuringMenuing)
-                DaggerfallGC.ThrottledUnloadUnusedAssets();
+            //if (!DaggerfallUnity.Settings.DisableGarbageCollectionDuringMenuing)
+            //    DaggerfallGC.ThrottledUnloadUnusedAssets();
+
+            // Return this window to its pool
+            UIWindowFactory.ReturnWindowToPool(this);
         }
 
         public void PopWindow()

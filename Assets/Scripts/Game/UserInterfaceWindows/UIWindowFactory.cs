@@ -65,6 +65,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
     public static class UIWindowFactory
     {
+        static Dictionary<UIWindowType, UIWindowPool> windowPools = new Dictionary<UIWindowType, UIWindowPool>();
         static Dictionary<UIWindowType, Type> uiWindowImplementations = new Dictionary<UIWindowType, Type>()
         {
             { UIWindowType.Automap, typeof(DaggerfallAutomapWindow) },
@@ -151,14 +152,30 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             return null;
         }
 
-        private static IUserInterfaceWindow GetInstance(UIWindowType windowType, object[] args)
+        public static IUserInterfaceWindow GetInstance(UIWindowType windowType, object[] args)
         {
-            Type windowClassType;
-            if (uiWindowImplementations.TryGetValue(windowType, out windowClassType))
+            if (!windowPools.TryGetValue(windowType, out UIWindowPool pool))
             {
-                return (IUserInterfaceWindow)Activator.CreateInstance(windowClassType, args);
+                pool = new UIWindowPool(() =>
+                {
+                    if (uiWindowImplementations.TryGetValue(windowType, out Type windowClassType))
+                    {
+                        return (IUserInterfaceWindow)Activator.CreateInstance(windowClassType, args);
+                    }
+                    throw new InvalidOperationException($"No implementation registered for window type {windowType}");
+                });
+                windowPools[windowType] = pool;
             }
-            return null;
+            IUserInterfaceWindow windowFromPool = pool.Get();
+            return windowFromPool;
+        }
+        public static void ReturnWindowToPool(IUserInterfaceWindow window)
+        {
+            UIWindowType? windowType = UIWindowFactory.GetWindowType(window.GetType());
+            if (windowType.HasValue)
+            {
+                windowPools[windowType.Value].Return(window);
+            }
         }
     }
 }
