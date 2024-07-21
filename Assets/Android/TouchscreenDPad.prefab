@@ -224,6 +224,7 @@ MonoBehaviour:
   horizontalAxisAction: 0
   verticalAxisAction: 1
   deadzone: 0.4
+  isDPad: 1
 --- !u!1 &4360135740458956416
 GameObject:
   m_ObjectHideFlags: 0

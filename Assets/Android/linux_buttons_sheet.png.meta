@@ -403,6 +403,27 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: joystick_left_knob
+      rect:
+        serializedVersion: 2
+        x: 23
+        y: 9
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9489148dde89e44f08f0859b7eff2b1e
+      internalID: 1208766975
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     physicsShape: []
     bones: []
@@ -427,6 +448,7 @@ TextureImporter:
       button_zr: -525889725
       dpad: 136484422
       joystick_left: -986790513
+      joystick_left_knob: 1208766975
       joystick_right: 1996604764
       linux_buttons_sheet_1: 111818585
       linux_buttons_sheet_10: 1023164867

@@ -18,7 +18,10 @@ using System.Linq;
 
 namespace DaggerfallWorkshop.Game
 {
-    public class TouchscreenDPad : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDragHandler
+    /// <summary>
+    /// A joystick (or dpad) that can be added to the screen similarly to other buttons
+    /// </summary>
+    public class StaticTouchscreenJoystickOrDPad : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDragHandler
     {
         public RectTransform background;
         public RectTransform knob;
@@ -27,6 +30,7 @@ namespace DaggerfallWorkshop.Game
         public InputManager.AxisActions horizontalAxisAction = InputManager.AxisActions.MovementHorizontal;
         public InputManager.AxisActions verticalAxisAction = InputManager.AxisActions.MovementVertical;
         public float deadzone = 0.08f;
+        public bool isDPad;
 
         public Vector2 TouchStartPos {get; private set;}
 
@@ -102,7 +106,8 @@ namespace DaggerfallWorkshop.Game
             Vector2 backgroundPosScreenSpace = RectTransformUtility.WorldToScreenPoint(myCam, background.position);
             Vector2 direction = eventData.position - backgroundPosScreenSpace;
             inputVector = Vector2.ClampMagnitude(direction / joystickRadius, 1f);
-            inputVector = SnapTo8Directions(inputVector);
+            if(isDPad)
+                inputVector = SnapTo8Directions(inputVector);
             Vector2 knobPosScreenSpace = backgroundPosScreenSpace + inputVector * joystickRadius;
             if (RectTransformUtility.ScreenPointToLocalPointInRectangle(knob.parent as RectTransform, knobPosScreenSpace, myCam, out Vector2 knobPos))
                 knob.localPosition = knobPos;
