@@ -92,7 +92,7 @@ namespace DaggerfallWorkshop
                     newMaterial.SetTexture(Uniforms.EmissionMap, curMaterial.GetTexture(Uniforms.EmissionMap));
                 if (curMaterial.HasProperty(Uniforms.EmissionColor))
                     newMaterial.SetColor(Uniforms.EmissionColor, curMaterial.GetColor(Uniforms.EmissionColor));
-                Vector4 playerPosition = new Vector4(playerAdvancedPos.x, playerAdvancedPos.y + Camera.main.transform.localPosition.y, playerAdvancedPos.z, 0.0f);
+                Vector4 playerPosition = new Vector4(playerAdvancedPos.x, playerAdvancedPos.y + GameManager.Instance.MainCamera.transform.localPosition.y, playerAdvancedPos.z, 0.0f);
                 newMaterial.SetVector("_PlayerPosition", playerPosition);
                 if (visitedInThisEntering == true)
                     newMaterial.DisableKeyword("RENDER_IN_GRAYSCALE");

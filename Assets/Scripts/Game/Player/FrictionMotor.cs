@@ -99,7 +99,7 @@ namespace DaggerfallWorkshop.Game
             sliding = false;
             // See if surface immediately below should be slid down. We use this normally rather than a ControllerColliderHit point,
             // because that interferes with step climbing amongst other annoyances
-            if (Physics.Raycast(myTransform.position, -Vector3.up, out hit, rayDistance))
+            if (Physics.Raycast(myTransform.position, -Vector3.up, out hit, rayDistance, DFULayerMasks.CorporealMask))
             {
                 if (Vector3.Angle(hit.normal, Vector3.up) > slideLimit)
                     sliding = true;
@@ -108,7 +108,7 @@ namespace DaggerfallWorkshop.Game
             // So if the above raycast didn't catch anything, raycast down from the stored ControllerColliderHit point instead
             else
             {
-                Physics.Raycast(contactPoint + Vector3.up, -Vector3.up, out hit);
+                Physics.Raycast(contactPoint + Vector3.up, -Vector3.up, out hit, 1000000, DFULayerMasks.CorporealMask);
                 if (Vector3.Angle(hit.normal, Vector3.up) > slideLimit)
                     sliding = true;
             }

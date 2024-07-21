@@ -78,6 +78,7 @@ namespace DaggerfallWorkshop.Game
         public event System.Action Resized;
 
         public InputManager.Actions myAction = InputManager.Actions.Unknown;
+        public KeyCode myKey = KeyCode.None;
         public bool WasDragging { get; private set; }
         public bool CanActionBeEdited{get{return canActionBeEdited;}}
         public bool CanButtonBeRemoved{get{return canButtonBeRemoved;}}
@@ -96,6 +97,7 @@ namespace DaggerfallWorkshop.Game
         private Camera RenderCam => TouchscreenInputManager.Instance.RenderCamera;
 
         private InputManager.Actions myLastAction;
+        private KeyCode myLastKey;
 
         private Vector2 defaultButtonSizeDelta;
         private Vector2 defaultButtonPosition;
@@ -123,8 +125,10 @@ namespace DaggerfallWorkshop.Game
                 rectTransform.anchoredPosition = GetSavedPosition();
                 rectTransform.sizeDelta = GetSavedSizeDelta();
                 myAction = GetSavedAction();
+                myKey = GetSavedKey();
 
                 myLastAction = myAction;
+                myLastKey = myKey;
                 UpdateLabelText();
                 resizeButton.gameObject.SetActive(false);
 
@@ -158,6 +162,11 @@ namespace DaggerfallWorkshop.Game
                     myLastAction = myAction;
                     SetSavedAction(myAction);
                 }
+                if (myLastKey != myKey)
+                {
+                    myLastKey = myKey;
+                    SetSavedKey(myKey);
+                }
 
                 UpdateButtonTransform();
             }
@@ -171,7 +180,12 @@ namespace DaggerfallWorkshop.Game
             else if (!Application.isPlaying || TouchscreenInputManager.Instance.IsEditingControls && s_shouldShowLabels)
             {
                 label.enabled = true;
-                label.text = myAction.ToString();
+                if(myKey == KeyCode.None)
+                    label.text = myAction.ToString();
+                else if (myAction == InputManager.Actions.Unknown)
+                    label.text = myKey.ToString();
+                else
+                    label.text = $"{myAction} + {myKey}";
             }
             else
                 label.enabled = false;
@@ -304,9 +318,11 @@ namespace DaggerfallWorkshop.Game
                 }
                 else // else use our touchscreen input manager normally
                 {
-                    KeyCode myKey = InputManager.Instance.GetBinding(myAction);
-                    TouchscreenInputManager.SetKey(myKey, true);
+                    KeyCode actionKey = InputManager.Instance.GetBinding(myAction);
+                    TouchscreenInputManager.SetKey(actionKey, true);
                 }
+                if (myKey != KeyCode.None)
+                    TouchscreenInputManager.SetKey(myKey, true);
             }
 
         }
@@ -323,8 +339,10 @@ namespace DaggerfallWorkshop.Game
             }
             else
             {
-                KeyCode myKey = InputManager.Instance.GetBinding(myAction);
-                TouchscreenInputManager.SetKey(myKey, false);
+                KeyCode actionKey = InputManager.Instance.GetBinding(myAction);
+                TouchscreenInputManager.SetKey(actionKey, false);
+                if(myKey != KeyCode.None)
+                    TouchscreenInputManager.SetKey(myKey, false);
             }
             pointerDownWasTouchingResizeButton = false;
         }
@@ -343,6 +361,17 @@ namespace DaggerfallWorkshop.Game
         private void SetSavedAction(InputManager.Actions action)
         {
             PlayerPrefs.SetInt("TouchscreenButtonAction_" + gameObject.name, (int)action);
+        }
+        private KeyCode GetSavedKey()
+        {
+            int savedActionInt = PlayerPrefs.GetInt("TouchscreenButtonKeyCode_" + gameObject.name, (int)KeyCode.None);
+            if (savedActionInt < 0)
+                return myKey;
+            return (KeyCode)savedActionInt;
+        }
+        private void SetSavedKey(KeyCode key)
+        {
+            PlayerPrefs.SetInt("TouchscreenButtonKeyCode_" + gameObject.name, (int)key);
         }
         private void SetSavedPosition(Vector2 pos)
         {
@@ -396,7 +425,9 @@ namespace DaggerfallWorkshop.Game
         private void Instance_onResetButtonActionsToDefaultValues()
         {
             myAction = defaultAction;
+            myKey = KeyCode.None;
             SetSavedAction(defaultAction);
+            SetSavedKey(KeyCode.None);
         }
 
         #endregion

@@ -1,4 +1,4 @@
-﻿// Project:         Daggerfall Unity
+// Project:         Daggerfall Unity
 // Copyright:       Copyright (C) 2009-2023 Daggerfall Workshop
 // Web Site:        http://www.dfworkshop.net
 // License:         MIT License (http://www.opensource.org/licenses/mit-license.php)
@@ -244,11 +244,27 @@ namespace DaggerfallWorkshop.Game
         /// <returns>Text if found, otherwise return an error string instead.</returns>
         public string GetText(string databaseName, string key)
         {
-            // Show an error if text not found
+            // Show an error (or fallback text) if text not found
             if (!HasText(databaseName, key))
-                return "<TextError-NotFound>";
+            {
+                return GetAndroidFallbackTextOrError(databaseName, key);
+            }
 
             return textDatabases[databaseName].GetValue(textColumn, key);
+        }
+        private string GetAndroidFallbackTextOrError(string databaseName, string key)
+        {
+            switch (key)
+            {
+                case "removeMod":
+                    return "Remove Mod";
+                case "removeModInfo":
+                    return "Uninstall the mod";
+                case "removeModConfirmation":
+                    return "Are you sure you want to remove {0}? This will restart the app.";
+                default:
+                    return "<TextError-NotFound>";
+            }
         }
 
         /// <summary>

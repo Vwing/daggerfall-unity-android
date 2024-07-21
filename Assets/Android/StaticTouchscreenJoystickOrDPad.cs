@@ -83,7 +83,6 @@ namespace DaggerfallWorkshop.Game
             {
                 if (Vector2.Distance(Input.GetTouch(i).position, TouchStartPos) < 3f)
                 {
-                    Debug.Log("Set touch to " + i);
                     myTouchFingerID = Input.GetTouch(i).fingerId;
                     break;
                 }

@@ -395,7 +395,7 @@ namespace DaggerfallWorkshop.Game
             RaycastHit hit;
             aimPosition -= aimDirection * 0.1f;
             Ray ray = new Ray(aimPosition, aimDirection);
-            if (Physics.SphereCast(ray, SphereCastRadius, out hit, TouchRange))
+            if (Physics.SphereCast(ray, SphereCastRadius, out hit, TouchRange, DFULayerMasks.CorporealMask))
                 return hit.transform.GetComponent<DaggerfallEntityBehaviour>();
             else
                 return null;

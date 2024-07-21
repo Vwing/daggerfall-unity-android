@@ -61,7 +61,6 @@ namespace DaggerfallWorkshop.Game
         PlayerGPS playerGPS;
         PlayerEnterExit playerEnterExit;        // Example component to enter/exit buildings
         Camera mainCamera;
-        int playerLayerMask = 0;
 
         Transform deferredInteriorDoorOwner;    // Used to defer interior transition after popup message
         StaticDoor deferredInteriorDoor;
@@ -208,7 +207,6 @@ namespace DaggerfallWorkshop.Game
             playerGPS = GetComponent<PlayerGPS>();
             playerEnterExit = GetComponent<PlayerEnterExit>();
             mainCamera = GameManager.Instance.MainCamera;
-            playerLayerMask = ~(1 << LayerMask.NameToLayer("Player"));
         }
 
         void Update()
@@ -310,7 +308,8 @@ namespace DaggerfallWorkshop.Game
 
                 // Test ray against scene
                 RaycastHit hit;
-                bool hitSomething = Physics.Raycast(ray, out hit, RayDistance, playerLayerMask);
+                bool hitSomething = Physics.Raycast(ray, out hit, RayDistance,
+                    DFULayerMasks.CorporealMaskWithPlayerExcluded | (1 << LayerMask.NameToLayer("Ignore Raycast"))); // why are loot containers "Ignore Raycast" when we absolutely use a raycast to interact with them???
                 if (hitSomething)
                 {
                     bool hitBuilding = false;

@@ -161,7 +161,7 @@ namespace DaggerfallWorkshop.Game
 
             RaycastHit hit;
 
-            if (!acrobatMotor.Jumping && Physics.SphereCast(checkStepRay, 0.1f, out hit, maxRange))
+            if (!acrobatMotor.Jumping && Physics.SphereCast(checkStepRay, 0.1f, out hit, maxRange, DFULayerMasks.CorporealMask))
                 StepHitDistance = hit.distance;
             else
                 StepHitDistance = 0f;
@@ -171,7 +171,7 @@ namespace DaggerfallWorkshop.Game
         {
             //Ray ray = new Ray(controller.transform.position, Vector3.up);
             RaycastHit hit = new RaycastHit();
-            if (Physics.SphereCast(ray, HeadHitRadius, out hit, 2f))
+            if (Physics.SphereCast(ray, HeadHitRadius, out hit, 2f, DFULayerMasks.CorporealMask))
             {
                 if (hit.collider.GetComponent<MeshCollider>())
                 {
@@ -223,7 +223,7 @@ namespace DaggerfallWorkshop.Game
 
             // use recursion to raycast vectors to find the adjacent wall
             Debug.DrawRay(origin, direction, Color.green, Time.deltaTime);
-            if (Physics.Raycast(origin, direction, out hit, distance)
+            if (Physics.Raycast(origin, direction, out hit, distance, DFULayerMasks.CorporealMask)
                 && (hit.collider.gameObject.GetComponent<MeshCollider>() != null))
             {
                 // normal vector of raycasthit
@@ -314,7 +314,7 @@ namespace DaggerfallWorkshop.Game
             else
                 inFrontDirection = controller.transform.forward;
                
-            HitSomethingInFront = (Physics.Raycast(controller.transform.position, inFrontDirection, out hit, controller.radius + 0.1f));
+            HitSomethingInFront = (Physics.Raycast(controller.transform.position, inFrontDirection, out hit, controller.radius + 0.1f, DFULayerMasks.CorporealMask));
         }
 
         public void ResetAdjacentSurfaces()

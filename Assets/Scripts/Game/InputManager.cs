@@ -52,7 +52,7 @@ namespace DaggerfallWorkshop.Game
         const float controllerCursorVerticalSpeed = 900.0f;
 
         // Use 'int' because Unity creates overhead for hashed lookups of enums
-        static readonly HashSet<int> unacceptedAnyKeys = new HashSet<int>()
+        public static readonly HashSet<int> unacceptedAnyKeys = new HashSet<int>()
         {
             (int)KeyCode.LeftShift,
             (int)KeyCode.RightShift,

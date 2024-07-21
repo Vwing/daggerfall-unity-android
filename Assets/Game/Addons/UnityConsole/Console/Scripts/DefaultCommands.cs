@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Wenzil.Console.Commands;
 using DaggerfallWorkshop.Game;
 using System.Linq;
@@ -1521,7 +1521,7 @@ namespace Wenzil.Console
                     DaggerfallActionDoor door;
                     RaycastHit hitInfo;
                     Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-                    if (!(Physics.Raycast(ray, out hitInfo)))
+                    if (!(Physics.Raycast(ray, out hitInfo, 1000, DFULayerMasks.CorporealMask)))
                         return error;
                     else
                     {
@@ -1550,7 +1550,7 @@ namespace Wenzil.Console
                 DaggerfallAction action;
                 RaycastHit hitInfo;
                 Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-                if (!(Physics.Raycast(ray, out hitInfo)))
+                if (!(Physics.Raycast(ray, out hitInfo, 10000, DFULayerMasks.CorporealMask)))
                     return error;
                 else
                 {
@@ -1672,7 +1672,7 @@ namespace Wenzil.Console
                 Vector3 origin = Camera.main.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, 0));
                 Ray ray = new Ray(origin + Camera.main.transform.forward * .2f, Camera.main.transform.forward);
                 GameManager.Instance.AcrobatMotor.ClearFallingDamage();
-                if (!(Physics.Raycast(ray, out hitInfo, maxDistance)))
+                if (!(Physics.Raycast(ray, out hitInfo, maxDistance, DFULayerMasks.CorporealMask)))
                 {
                     Console.Log("Didn't hit anything...");
                     if (forceTeleOnNoHit)
@@ -2171,7 +2171,7 @@ namespace Wenzil.Console
                 Vector3 origin = frictionMotor.ContactPoint;
                 origin.y += cc.height;
                 Ray ray = new Ray(origin, Vector3.down);
-                if (!(Physics.Raycast(ray, out hitInfo, cc.height * 2)))
+                if (!(Physics.Raycast(ray, out hitInfo, cc.height * 2, DFULayerMasks.CorporealMask)))
                 {
                     return "Failed to reposition - try Teleport or if inside tele2exit";
                 }

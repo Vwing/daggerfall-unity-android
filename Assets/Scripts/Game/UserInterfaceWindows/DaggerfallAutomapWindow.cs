@@ -12,6 +12,7 @@
 using UnityEngine;
 using System;
 using DaggerfallWorkshop.Game.UserInterface;
+using System.Linq;
 
 namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 {
@@ -64,6 +65,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         protected Button rotateRightButton;
         protected Button upstairsButton;
         protected Button downstairsButton;
+        protected Button goToNextRenderingModeButton;
+        protected TextLabel goToNextRenderingModeLabel;
 
         // hover text label in status bar
         protected TextLabel labelHoverText;
@@ -154,6 +157,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         bool leftMouseDownOnDownstairsButton = false;
         bool rightMouseDownOnUpstairsButton = false;
         bool rightMouseDownOnDownstairsButton = false;
+        bool leftMouseDownOnNextRenderingModeButton = false;
         bool alreadyInMouseDown = false;
         bool alreadyInRightMouseDown = false;
         bool alreadyInMiddleMouseDown = false;
@@ -269,6 +273,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             upstairsButton.ToolTipText = String.Format(TextManager.Instance.GetLocalizedText("automapToolTipUpstairsButton"), HotkeySequence_Upstairs, HotkeySequence_IncreaseSliceLevel, HotkeySequence_SwitchToAutomapRenderModeCutout, HotkeySequence_SwitchToAutomapRenderModeWireframe, HotkeySequence_SwitchToAutomapRenderModeTransparent);
             downstairsButton.ToolTipText = String.Format(TextManager.Instance.GetLocalizedText("automapToolTipDownstairsButton"), HotkeySequence_Downstairs, HotkeySequence_DecreaseSliceLevel, HotkeySequence_SwitchToAutomapRenderModeCutout, HotkeySequence_SwitchToAutomapRenderModeWireframe, HotkeySequence_SwitchToAutomapRenderModeTransparent);
             dummyPanelCompass.ToolTipText = String.Format(TextManager.Instance.GetLocalizedText("automapToolTipPanelCompass"), HotkeySequence_SwitchFocusToNextBeaconObject, HotkeySequence_ResetView);
+            goToNextRenderingModeButton.ToolTipText = "Toggles the rendering mode between Culled, Transparent, and Wireframe";
         }
 
         /// <summary>
@@ -291,7 +296,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             nativeTextureGrid3D = DaggerfallUI.GetTextureFromImg(nativeImgNameGrid3D, TextureFormat.ARGB32, false);
             nativeTextureGrid3D.filterMode = DaggerfallUI.Instance.GlobalFilterMode;
             if (!nativeTextureGrid3D)
-                throw new Exception("DaggerfallAutomapWindow: Could not load native texture (AMAP01I0.IMG).");            
+                throw new Exception("DaggerfallAutomapWindow: Could not load native texture (AMAP01I0.IMG).");
             //pixelsGrid3D = nativeTextureGrid3D.GetPixels((int)(0), (int)((200 - 0 - 19) * (nativeTextureGrid3D.height / 200f)), (int)(27 * (nativeTextureGrid3D.width / 320f)), (int)(19 * (nativeTextureGrid3D.height / 200f)));
 
             // Cut out 2D View Grid graphics from background image            
@@ -464,6 +469,14 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             downstairsButton.OnRightMouseDown += DownstairsButton_OnRightMouseDown;
             downstairsButton.OnRightMouseUp += DownstairsButton_OnRightMouseUp;
             downstairsButton.ToolTip = defaultToolTip;
+
+            // go to next rendering mode button
+            goToNextRenderingModeLabel = DaggerfallUI.AddDefaultShadowedTextLabel(new Vector2(237, 193), NativePanel);
+            goToNextRenderingModeLabel.Text = "Next Rendering Mode";
+            goToNextRenderingModeLabel.BackgroundColor = Color.black*.66f;
+            goToNextRenderingModeButton = DaggerfallUI.AddButton(new Rect(goToNextRenderingModeLabel.Position.x, goToNextRenderingModeLabel.Position.y, goToNextRenderingModeLabel.Size.x, goToNextRenderingModeLabel.Size.y), NativePanel);
+            goToNextRenderingModeButton.OnMouseClick += GoToNextRenderingMode_OnMouseDown;
+            goToNextRenderingModeButton.ToolTip = defaultToolTip;
 
             // Exit button
             Button exitButton = DaggerfallUI.AddButton(new Rect(281, 171, 28, 19), NativePanel);
@@ -870,66 +883,14 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 ActionDecreaseCameraFieldOfView();
             }
 
-            // check mouse input and assign actions
-            if (leftMouseDownOnPanelAutomap)
+            if((Application.isMobilePlatform || AndroidUtils.IsRunningInSimulator) && inDragMode() && !Input.mousePresent)
             {
-                Vector2 mousePosition = new Vector2(InputManager.Instance.MousePosition.x, Screen.height - InputManager.Instance.MousePosition.y);
-
-                float dragSpeedCompensated;
-                switch (automapViewMode)
-                {
-                    case AutomapViewMode.View2D:
-                    default:
-                        dragSpeedCompensated = dragSpeedInTopView * Vector3.Magnitude(Camera.main.transform.position - cameraAutomap.transform.position);
-                        break;
-                    case AutomapViewMode.View3D:
-                        dragSpeedCompensated = dragSpeedInView3D * Vector3.Magnitude(Camera.main.transform.position - cameraAutomap.transform.position);
-                        break;
-                }
-
-                Vector2 bias = mousePosition - oldMousePosition;
-                Vector3 translation = -cameraAutomap.transform.right * dragSpeedCompensated * bias.x + cameraAutomap.transform.up * dragSpeedCompensated * bias.y;
-                cameraAutomap.transform.position += translation;
-                UpdateAutomapView();
-                oldMousePosition = mousePosition;
+                HandleTouchControls();
             }
-
-            if (rightMouseDownOnPanelAutomap)
+            else
             {
-                Vector2 mousePosition = new Vector2(InputManager.Instance.MousePosition.x, Screen.height - InputManager.Instance.MousePosition.y);
-
-                Vector2 bias = mousePosition - oldMousePosition;
-
-                if (bias != Vector2.zero)
-                {
-                    switch (automapViewMode)
-                    {
-                        case AutomapViewMode.View2D:
-                        default:
-                            ActionRotateCamera(+dragRotateSpeedInTopView * bias.x, false);
-                            break;
-                        case AutomapViewMode.View3D:
-                            ActionRotate(dragRotateSpeedInView3D * bias.x, false);
-                            ActionrotateCameraOnCameraYZplaneAroundObject(-dragRotateCameraOnCameraYZplaneAroundObjectSpeedInView3D * bias.y, false);
-                            break;
-                    }
-                    UpdateAutomapView();
-                }
-                oldMousePosition = mousePosition;
+                HandleMouseControls();
             }
-
-            if (middleMouseDownOnPanelAutomap)
-            {
-                Vector2 mousePosition = new Vector2(InputManager.Instance.MousePosition.x, Screen.height - InputManager.Instance.MousePosition.y);
-
-                Vector2 bias = mousePosition - oldMousePosition;
-
-                ActionMoveSliceLevel(bias.y);
-
-                UpdateAutomapView();
-                oldMousePosition = mousePosition;
-            }
-
             if (leftMouseDownOnForwardButton)
             {
                 ActionMoveForward();
@@ -1016,7 +977,197 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         }
 
         #region Private Methods
+        private float lastTouchDistance;
+        private void HandleMouseControls()
+        {
+            // check mouse input and assign actions
+            if (leftMouseDownOnPanelAutomap)
+            {
+                Vector2 mousePosition = new Vector2(InputManager.Instance.MousePosition.x, Screen.height - InputManager.Instance.MousePosition.y);
 
+                float dragSpeedCompensated;
+                switch (automapViewMode)
+                {
+                    case AutomapViewMode.View2D:
+                    default:
+                        dragSpeedCompensated = dragSpeedInTopView * Vector3.Magnitude(GameManager.Instance.MainCamera.transform.position - cameraAutomap.transform.position);
+                        break;
+                    case AutomapViewMode.View3D:
+                        dragSpeedCompensated = dragSpeedInView3D * Vector3.Magnitude(GameManager.Instance.MainCamera.transform.position - cameraAutomap.transform.position);
+                        break;
+                }
+
+                Vector2 bias = mousePosition - oldMousePosition;
+                Vector3 translation = -cameraAutomap.transform.right * dragSpeedCompensated * bias.x + cameraAutomap.transform.up * dragSpeedCompensated * bias.y;
+                cameraAutomap.transform.position += translation;
+                UpdateAutomapView();
+                oldMousePosition = mousePosition;
+            }
+
+            if (rightMouseDownOnPanelAutomap)
+            {
+                Vector2 mousePosition = new Vector2(InputManager.Instance.MousePosition.x, Screen.height - InputManager.Instance.MousePosition.y);
+
+                Vector2 bias = mousePosition - oldMousePosition;
+
+                if (bias != Vector2.zero)
+                {
+                    switch (automapViewMode)
+                    {
+                        case AutomapViewMode.View2D:
+                        default:
+                            ActionRotateCamera(+dragRotateSpeedInTopView * bias.x, false);
+                            break;
+                        case AutomapViewMode.View3D:
+                            ActionRotate(dragRotateSpeedInView3D * bias.x, false);
+                            ActionrotateCameraOnCameraYZplaneAroundObject(-dragRotateCameraOnCameraYZplaneAroundObjectSpeedInView3D * bias.y, false);
+                            break;
+                    }
+                    UpdateAutomapView();
+                }
+                oldMousePosition = mousePosition;
+            }
+
+            if (middleMouseDownOnPanelAutomap)
+            {
+                Vector2 mousePosition = new Vector2(InputManager.Instance.MousePosition.x, Screen.height - InputManager.Instance.MousePosition.y);
+
+                Vector2 bias = mousePosition - oldMousePosition;
+
+                ActionMoveSliceLevel(bias.y);
+
+                UpdateAutomapView();
+                oldMousePosition = mousePosition;
+            }
+
+        }
+
+        private Vector3 Get3DPivotPointForTouchControls()
+        {
+            // raycast for the 3D point
+            RaycastHit[] hits = Physics.SphereCastAll(cameraAutomap.transform.position, 1f, cameraAutomap.transform.forward, 10000f, (1 << LayerMask.NameToLayer("Automap")));
+            hits.OrderBy(k => k.distance);
+            foreach (var hit in hits)
+            {
+                var rend = hit.transform.GetComponent<MeshRenderer>();
+                if (rend && rend.enabled && (automap.CurrentRenderingMode != Automap.AutomapRenderMode.Cutout || hit.point.y < automap.SlicingWorldPositionY))
+                {
+                    return hit.point;
+                }
+            }
+
+            // raycast didn't hit anything, so try projecting camera's viewpoint to player's plane or minimum y of dungeon or 20 meters below camera
+            try
+            {
+                float planeY = gameObjectPlayerAdvanced.transform.position.y;
+                float minDungeonY = automap.GameObjectGeometry.GetComponentsInChildren<MeshRenderer>().Min(s => s.transform.position.y);
+                if (minDungeonY >= cameraAutomap.transform.position.y)
+                    planeY = cameraAutomap.transform.position.y - 20f;
+                else if (gameObjectPlayerAdvanced.transform.position.y >= cameraAutomap.transform.position.y)
+                    planeY = minDungeonY;
+                else
+                    planeY = gameObjectPlayerAdvanced.transform.position.y;
+
+                Vector3 cameraForward = cameraAutomap.transform.forward;
+                Vector3 cameraPosition = cameraAutomap.transform.position;
+                float distanceToPlane = (planeY - cameraPosition.y) / cameraForward.y;
+                Vector3 intersectionPoint = cameraPosition + cameraForward * distanceToPlane;
+                intersectionPoint.y = planeY;
+                return intersectionPoint;
+            }
+            catch
+            {
+                return gameObjectPlayerAdvanced.transform.position;
+            }
+        }
+
+        private void HandleTouchControls()
+        {
+            // Panning with one touch
+            if (Input.touchCount == 1)
+            {
+                Touch touch = Input.GetTouch(0);
+                if (touch.phase == TouchPhase.Moved)
+                {
+                    Vector2 touchDeltaPosition = touch.deltaPosition;
+
+                    float dragSpeedCompensated;
+                    switch (automapViewMode)
+                    {
+                        case AutomapViewMode.View2D:
+                        default:
+                            dragSpeedCompensated = dragSpeedInTopView * Vector3.Magnitude(GameManager.Instance.MainCamera.transform.position - cameraAutomap.transform.position);
+                            break;
+                        case AutomapViewMode.View3D:
+                            dragSpeedCompensated = dragSpeedInView3D * Vector3.Magnitude(GameManager.Instance.MainCamera.transform.position - cameraAutomap.transform.position);
+                            break;
+                    }
+
+                    Vector3 translation = -cameraAutomap.transform.right * dragSpeedCompensated * touchDeltaPosition.x + -cameraAutomap.transform.up * dragSpeedCompensated * touchDeltaPosition.y;
+                    cameraAutomap.transform.position += translation;
+                    UpdateAutomapView();
+                }
+                ResetRotationPivotAxisPositionView3D();
+            }
+            // Zooming and rotating with two touches
+            else if (Input.touchCount == 2)
+            {
+                Touch touchZero = Input.GetTouch(0);
+                Touch touchOne = Input.GetTouch(1);
+
+                if (touchZero.phase == TouchPhase.Began || touchOne.phase == TouchPhase.Began)
+                {
+                    lastTouchDistance = Vector2.Distance(touchZero.position, touchOne.position);
+                    rotationPivotAxisPositionView3D = Get3DPivotPointForTouchControls();
+                    automap.RotationPivotAxisPosition = rotationPivotAxisPositionView3D;
+                }
+                else if(touchZero.phase == TouchPhase.Ended || touchOne.phase == TouchPhase.Ended)
+                {
+                    ResetRotationPivotAxisPositionView3D();
+                }
+                else if (touchZero.phase == TouchPhase.Moved || touchOne.phase == TouchPhase.Moved)
+                {
+                    // Zooming
+                    float currentTouchDistance = Vector2.Distance(touchZero.position, touchOne.position);
+                    float distanceChange = currentTouchDistance - lastTouchDistance;
+
+                    // Apply zooming effect based on the distance change between touches
+                    Vector3 zoomDirection = cameraAutomap.transform.forward;
+                    float zoomFactor = distanceChange * 0.05f; // Adjust zoom sensitivity
+                    cameraAutomap.transform.position += zoomDirection * zoomFactor * (automapViewMode == AutomapViewMode.View2D ? 2f : 1f);
+
+                    // Rotating
+                    Vector2 touchZeroPrevPos = touchZero.position - touchZero.deltaPosition;
+                    Vector2 touchOnePrevPos = touchOne.position - touchOne.deltaPosition;
+
+                    Vector2 prevDir = touchZeroPrevPos - touchOnePrevPos;
+                    Vector2 currentDir = touchZero.position - touchOne.position;
+                    float angle = Vector2.SignedAngle(prevDir, currentDir);
+
+                    switch (automapViewMode)
+                    {
+                        case AutomapViewMode.View2D:
+                        default:
+                            ActionRotateCamera(-dragRotateSpeedInTopView * angle * 20f, false);
+                            break;
+                        case AutomapViewMode.View3D:
+                            ActionRotate(dragRotateSpeedInView3D * angle * 20f, false);
+                            break;
+                    }
+
+                    lastTouchDistance = currentTouchDistance;
+                    UpdateAutomapView();
+                }
+            }
+            else if(Input.touchCount == 3)
+            {
+                ResetRotationPivotAxisPositionView3D();
+                if (Input.touches.All(p => p.deltaPosition.y > Time.deltaTime))
+                    ActionIncreaseSliceLevel();
+                else if (Input.touches.All(p => p.deltaPosition.y < -Time.deltaTime))
+                    ActionDecreaseSliceLevel();
+            }
+        }
         /// <summary>
         /// updates the mouse hover over text in the status bar in the bottom of the automap window
         /// </summary>
@@ -1159,8 +1310,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         /// </summary>
         private void ResetCameraTransformViewFromTop()
         {
-            cameraAutomap.transform.position = Camera.main.transform.position + Vector3.up * cameraHeightViewFromTop;
-            cameraAutomap.transform.LookAt(Camera.main.transform.position);
+            cameraAutomap.transform.position = GameManager.Instance.MainCamera.transform.position + Vector3.up * cameraHeightViewFromTop;
+            cameraAutomap.transform.LookAt(GameManager.Instance.MainCamera.transform.position);
             SaveCameraTransformViewFromTop();
         }
 
@@ -1170,8 +1321,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         private void ResetCameraTransformView3D()
         {
             Vector3 viewDirectionInXZ = Vector3.forward;
-            cameraAutomap.transform.position = Camera.main.transform.position - viewDirectionInXZ * cameraBackwardDistance + Vector3.up * cameraHeightView3D;
-            cameraAutomap.transform.LookAt(Camera.main.transform.position);
+            cameraAutomap.transform.position = GameManager.Instance.MainCamera.transform.position - viewDirectionInXZ * cameraBackwardDistance + Vector3.up * cameraHeightView3D;
+            cameraAutomap.transform.LookAt(GameManager.Instance.MainCamera.transform.position);
             SaveCameraTransformView3D();
         }
 
@@ -1615,7 +1766,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         /// </summary>
         private void ActionZoomIn(float zoomSpeed)
         {
-            float zoomSpeedCompensated = zoomSpeed * Vector3.Magnitude(Camera.main.transform.position - cameraAutomap.transform.position);
+            float zoomSpeedCompensated = zoomSpeed * Vector3.Magnitude(GameManager.Instance.MainCamera.transform.position - cameraAutomap.transform.position);
             Vector3 translation = cameraAutomap.transform.forward * zoomSpeedCompensated;
             cameraAutomap.transform.position += translation;
             UpdateAutomapView();
@@ -1626,7 +1777,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         /// </summary>
         private void ActionZoomOut(float zoomSpeed)
         {
-            float zoomSpeedCompensated = zoomSpeed * Vector3.Magnitude(Camera.main.transform.position - cameraAutomap.transform.position);
+            float zoomSpeedCompensated = zoomSpeed * Vector3.Magnitude(GameManager.Instance.MainCamera.transform.position - cameraAutomap.transform.position);
             Vector3 translation = -cameraAutomap.transform.forward * zoomSpeedCompensated;
             cameraAutomap.transform.position += translation;
             UpdateAutomapView();
@@ -1673,6 +1824,15 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         /// action for switching to automap render mode "transparent"
         /// </summary>
         private void ActionSwitchToAutomapRenderModeTransparent()
+        {
+            automap.SwitchToAutomapRenderModeTransparent();
+            UpdateAutomapView();
+        }
+
+        /// <summary>
+        /// action for switching to automap render mode "solid"
+        /// </summary>
+        private void ActionSwitchToAutomapRenderModeSolid()
         {
             automap.SwitchToAutomapRenderModeTransparent();
             UpdateAutomapView();
@@ -2264,6 +2424,14 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             alreadyInMouseDown = false;
         }
 
+        private void GoToNextRenderingMode_OnMouseDown(BaseScreenComponent sender, Vector2 position)
+        {
+            if (inDragMode() || alreadyInMouseDown)
+                return;
+
+            DaggerfallUI.Instance.PlayOneShot(SoundClips.ButtonClick);
+            ActionSwitchToNextAutomapRenderMode();
+        }
 
         private void DownstairsButton_OnMouseDown(BaseScreenComponent sender, Vector2 position)
         {

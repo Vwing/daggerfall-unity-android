@@ -288,7 +288,7 @@ namespace DaggerfallWorkshop.Game.Questing
             // Check for a hit
             Vector3 currentPoint;
             RaycastHit initialHit;
-            if (Physics.Raycast(ray, out initialHit, maxDistance))
+            if (Physics.Raycast(ray, out initialHit, maxDistance, DFULayerMasks.CorporealMask))
             {
                 float cos_normal = Vector3.Dot(- spawnDirection, initialHit.normal.normalized);
                 if (cos_normal < 1e-6)
@@ -313,7 +313,7 @@ namespace DaggerfallWorkshop.Game.Questing
             // Must be able to find a surface below
             RaycastHit floorHit;
             ray = new Ray(currentPoint, Vector3.down);
-            if (!Physics.Raycast(ray, out floorHit, maxFloorDistance))
+            if (!Physics.Raycast(ray, out floorHit, maxFloorDistance, DFULayerMasks.CorporealMask))
                 return;
 
             // Ensure this is open space

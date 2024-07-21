@@ -27,6 +27,7 @@ namespace DaggerfallWorkshop.Game
     {
         public static readonly Vector3 ResetPlayerPos = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
 
+
         public float SightRadius = 4096 * MeshReader.GlobalScale;       // Range of enemy sight
         public float HearingRadius = 25f;                               // Range of enemy hearing
         public float FieldOfView = 180f;                                // Enemy field of view
@@ -189,8 +190,6 @@ namespace DaggerfallWorkshop.Game
             get { return lastHadLOSTimer; }
             set { lastHadLOSTimer = value; }
         }
-
-
 
         //Delegates to allow mods to replace or extend senses logic.
         //Mods can potentially save the original value before replacing it, if access to default behaviour is still desired.
@@ -550,7 +549,7 @@ namespace DaggerfallWorkshop.Game
 
             // If aware of target, if distance is too far or can see nothing is there, use last known position as assumed current position
             if (targetInSight || targetInEarshot || (predictedTargetPos - transform.position).magnitude > SightRadius + mobile.Enemy.SightModifier
-                || !Physics.Raycast(transform.position, (predictedTargetPosWithoutLead - transform.position).normalized, out tempHit, SightRadius + mobile.Enemy.SightModifier))
+                || !Physics.Raycast(transform.position, (predictedTargetPosWithoutLead - transform.position).normalized, out tempHit, SightRadius + mobile.Enemy.SightModifier, DFULayerMasks.CorporealMask))
             {
                 assumedCurrentPosition = lastKnownTargetPos;
             }
@@ -605,7 +604,7 @@ namespace DaggerfallWorkshop.Game
                 // Don't predict target will move through obstacles (prevent predicting movement through walls)
                 RaycastHit hit;
                 Ray ray = new Ray(assumedCurrentPosition, (prediction - assumedCurrentPosition).normalized);
-                if (Physics.Raycast(ray, out hit, (prediction - assumedCurrentPosition).magnitude))
+                if (Physics.Raycast(ray, out hit, (prediction - assumedCurrentPosition).magnitude, DFULayerMasks.CorporealMask))
                     prediction = assumedCurrentPosition;
             }
 
@@ -902,7 +901,7 @@ namespace DaggerfallWorkshop.Game
                     Vector3 eyeDirectionToTarget = eyeToTarget.normalized;
                     Ray ray = new Ray(eyePos, eyeDirectionToTarget);
 
-                    if (Physics.Raycast(ray, out hit, SightRadius))
+                    if (Physics.Raycast(ray, out hit, SightRadius, DFULayerMasks.CorporealMask))
                     {
                         // Check if hit was target
                         DaggerfallEntityBehaviour entity = hit.transform.gameObject.GetComponent<DaggerfallEntityBehaviour>();
@@ -932,7 +931,7 @@ namespace DaggerfallWorkshop.Game
             // Hearing is not impeded by doors or other non-static objects
             RaycastHit hit;
             Ray ray = new Ray(transform.position, directionToTarget);
-            if (Physics.Raycast(ray, out hit))
+            if (Physics.Raycast(ray, out hit, 100000, DFULayerMasks.CorporealMask))
             {
                 //DaggerfallEntityBehaviour entity = hit.transform.gameObject.GetComponent<DaggerfallEntityBehaviour>();
                 if (GameObjectHelper.IsStaticGeometry(hit.transform.gameObject))

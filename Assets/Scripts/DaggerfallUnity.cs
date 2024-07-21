@@ -501,13 +501,17 @@ namespace DaggerfallWorkshop
         /// Removes from cache all assets that have not been accessed from the time in minutes defined by
         /// <see cref="SettingsManager.AssetCacheThreshold"/>. If equals to <c>0</c> assets are never removed from cache.
         /// </summary>
-        internal void PruneCache()
+        /// <param name="overridenThreshold">
+        /// An override SettingsManager.AssetCacheThreshold. If equals to <c>0</c> the SettingsManager.AssetCacheThreshold is used instead.
+        /// </param>
+        internal void PruneCache(float overridenThreshold = 0)
         {
-            if (Settings.AssetCacheThreshold == 0)
+            float assetCacheThreshold = overridenThreshold == 0 ? overridenThreshold : Settings.AssetCacheThreshold;
+            if (assetCacheThreshold == 0)
                 return;
 
             float time = Time.realtimeSinceStartup;
-            float threshold = Settings.AssetCacheThreshold * 60;
+            float threshold = assetCacheThreshold * 60;
 
             MaterialReader.PruneCache(time, threshold);
             if (ModManager.Instance)

@@ -191,7 +191,7 @@ namespace DaggerfallWorkshop.Game
         private void HangMoveDirection()
         {
             RaycastHit hit;
-            if (Physics.SphereCast(controller.transform.position, scanner.HeadHitRadius, controller.transform.up,  out hit, 2f))
+            if (Physics.SphereCast(controller.transform.position, scanner.HeadHitRadius, controller.transform.up,  out hit, 2f, DFULayerMasks.CorporealMask))
             {
                 float playerspeed = speedChanger.GetClimbingSpeed(playerMotor.Speed);
                 Vector3 moveVector = Vector3.zero;

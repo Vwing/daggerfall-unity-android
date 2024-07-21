@@ -198,7 +198,8 @@ namespace DaggerfallWorkshop.Game
         {
             Cutout = 0,
             Wireframe = 1,
-            Transparent = 2
+            Transparent = 2,
+            Solid = 3
         };
 
         AutomapRenderMode currentAutomapRenderMode = AutomapRenderMode.Cutout; // currently selected automap render mode (default value: cutout)        
@@ -292,6 +293,14 @@ namespace DaggerfallWorkshop.Game
         }
 
         /// <summary>
+        /// DaggerfallAutomapWindow script will use this to get gameobject geometry (may be null if destroyed or not yet created)
+        /// </summary>
+        public GameObject GameObjectGeometry
+        {
+            get { return gameobjectGeometry; }
+        }
+
+        /// <summary>
         /// DaggerfallAutomapWindow script will use this to check if it should reset automap settings (and if it does it will erase flag)
         /// </summary>
         public bool ResetAutomapSettingsSignalForExternalScript
@@ -307,6 +316,11 @@ namespace DaggerfallWorkshop.Game
         {
             get { return (slicingBiasY); }
             set { slicingBiasY = value; }
+        }
+
+        public float SlicingWorldPositionY
+        {
+            get { return Shader.GetGlobalFloat("_SclicingPositionY"); }
         }
 
         /// <summary>
@@ -326,7 +340,12 @@ namespace DaggerfallWorkshop.Game
         {
             get { return (gameobjectBeaconRotationPivotAxis.transform.rotation); }
             set { gameobjectBeaconRotationPivotAxis.transform.rotation = value; }
-        }        
+        }
+
+        public AutomapRenderMode CurrentRenderingMode
+        {
+            get { return currentAutomapRenderMode; }
+        }
 
         /// <summary>
         /// DaggerfallAutomapWindow script will use this to propagate if the automap window is open or not
@@ -406,7 +425,7 @@ namespace DaggerfallWorkshop.Game
             // since new teleporters could have been discovered by pc since last time map was open this must be checked here       
             CreateTeleporterMarkers();
 
-            SetActivationStateOfMapObjects(true);
+            //SetActivationStateOfMapObjects(true);
 
             gameobjectPlayerMarkerArrow.transform.position = gameObjectPlayerAdvanced.transform.position;
             gameobjectPlayerMarkerArrow.transform.rotation = gameObjectPlayerAdvanced.transform.rotation;
@@ -429,12 +448,6 @@ namespace DaggerfallWorkshop.Game
         /// </summary>
         public void UpdateAutomapStateOnWindowPop()
         {
-            // about SetActivationStateOfMapObjects(false):
-            // this will not be enough if we will eventually allow gui windows to be opened while exploring the world
-            // then it will be necessary to either only disable the colliders on the automap level geometry or
-            // make player collision ignore colliders of objects in automap layer - I would clearly prefer this option
-            SetActivationStateOfMapObjects(false);
-
             if ((GameManager.Instance.PlayerEnterExit.IsPlayerInside) && ((GameManager.Instance.PlayerEnterExit.IsPlayerInsideBuilding) || (GameManager.Instance.PlayerEnterExit.IsPlayerInsideDungeon) || (GameManager.Instance.PlayerEnterExit.IsPlayerInsideDungeonCastle)))
             {
                 // and get rid of lights used to light the automap level geometry
@@ -470,6 +483,7 @@ namespace DaggerfallWorkshop.Game
             switch (currentAutomapRenderMode)
             {
                 default:
+                case AutomapRenderMode.Solid:
                 case AutomapRenderMode.Transparent:
                     Shader.DisableKeyword("AUTOMAP_RENDER_MODE_WIREFRAME");
                     Shader.EnableKeyword("AUTOMAP_RENDER_MODE_TRANSPARENT");
@@ -491,6 +505,15 @@ namespace DaggerfallWorkshop.Game
         public void SwitchToAutomapRenderModeTransparent()
         {
             currentAutomapRenderMode = AutomapRenderMode.Transparent;
+            Shader.DisableKeyword("AUTOMAP_RENDER_MODE_WIREFRAME");
+            Shader.EnableKeyword("AUTOMAP_RENDER_MODE_TRANSPARENT");
+        }
+        /// <summary>
+        /// DaggerfallAutomapWindow script will use this to signal this script to switch to automap rendering mode "solid"
+        /// </summary>
+        public void SwitchToAutomapRenderModeSolid()
+        {
+            currentAutomapRenderMode = AutomapRenderMode.Solid;
             Shader.DisableKeyword("AUTOMAP_RENDER_MODE_WIREFRAME");
             Shader.EnableKeyword("AUTOMAP_RENDER_MODE_TRANSPARENT");
         }
@@ -1154,20 +1177,17 @@ namespace DaggerfallWorkshop.Game
 
             if ((gameobjectGeometry != null) && ((GameManager.Instance.IsPlayerInsideBuilding) || (GameManager.Instance.IsPlayerInsideDungeon) || (GameManager.Instance.IsPlayerInsideCastle)))
             {
-                // enable automap level geometry for revealing (so raycasts can hit colliders of automap level geometry)
-                gameobjectGeometry.SetActive(true);
-
                 // reveal geometry right below player - raycast down from player head position
-                Vector3 rayStartPos = gameObjectPlayerAdvanced.transform.position + Camera.main.transform.localPosition;
+                Vector3 rayStartPos = gameObjectPlayerAdvanced.transform.position + GameManager.Instance.MainCamera.transform.localPosition;
                 Vector3 rayDirection = Vector3.down;
                 float rayDistance = raycastDistanceDown;
                 Vector3 offsetSecondProtectionRaycast = Vector3.left * 0.1f; // will be used for protection raycast with slight offset of 10cm (protection against hole in daggerfall geometry prevention)            
                 ScanWithRaycastInDirectionAndUpdateMeshesAndMaterials(rayStartPos, rayDirection, rayDistance, offsetSecondProtectionRaycast);
 
                 // reveal geometry which player is looking at (and which is near enough)
-                rayDirection = Camera.main.transform.rotation * Vector3.forward;
+                rayDirection = GameManager.Instance.MainCamera.transform.rotation * Vector3.forward;
                 // shift 10cm to the side (computed by normalized cross product of forward vector of view direction and down vector of view direction)
-                offsetSecondProtectionRaycast = Vector3.Normalize(Vector3.Cross(Camera.main.transform.rotation * Vector3.down, rayDirection)) * 0.1f;
+                offsetSecondProtectionRaycast = Vector3.Normalize(Vector3.Cross(GameManager.Instance.MainCamera.transform.rotation * Vector3.down, rayDirection)) * 0.1f;
                 rayDistance = raycastDistanceViewDirection;
                 RaycastHit? hitForward = ScanWithRaycastInDirectionAndUpdateMeshesAndMaterials(rayStartPos, rayDirection, rayDistance, offsetSecondProtectionRaycast);
 
@@ -1177,21 +1197,18 @@ namespace DaggerfallWorkshop.Game
                     Vector3 stepVector = Vector3.zero;
                     while (true)
                     {
-                        stepVector += Vector3.Normalize(Camera.main.transform.rotation * Vector3.forward) * 1.0f; // go 1 meters forward                        
+                        stepVector += Vector3.Normalize(GameManager.Instance.MainCamera.transform.rotation * Vector3.forward) * 1.0f; // go 1 meters forward                        
                         if (Vector3.Magnitude(stepVector) >= hitForward.Value.distance)
                         {
                             break;
                         }
                         rayDirection = Vector3.down;
                         // shift 10cm to the side (computed by normalized cross product of forward vector of view direction and down vector of view direction)
-                        offsetSecondProtectionRaycast = Vector3.Normalize(Vector3.Cross(Camera.main.transform.rotation * Vector3.down, rayDirection)) * 0.1f;
+                        offsetSecondProtectionRaycast = Vector3.Normalize(Vector3.Cross(GameManager.Instance.MainCamera.transform.rotation * Vector3.down, rayDirection)) * 0.1f;
                         rayDistance = raycastDistanceDown;
                         ScanWithRaycastInDirectionAndUpdateMeshesAndMaterials(rayStartPos + stepVector, rayDirection, rayDistance, offsetSecondProtectionRaycast);
                     }
                 }
-
-                // disable gameobjectGeometry so player movement won't be affected by geometry colliders of automap level geometry
-                gameobjectGeometry.SetActive(false);
             }
 
             // entrance marker discovery check - only do as long as undiscovered
@@ -1212,7 +1229,7 @@ namespace DaggerfallWorkshop.Game
                 int layerMask = (1 << layerPlayer) + 1; // test against player and level geometry (+1... == 1 << 1 == "Default" layer == level geometry)
 
                 Vector3 entranceMarkerPos = gameObjectEntrancePositionCubeMarker.transform.position;
-                Vector3 playerColliderPos = playerCollider.transform.position; //GameManager.Instance.PlayerGPS.transform.position; //Camera.main.transform.position;
+                Vector3 playerColliderPos = playerCollider.transform.position; //GameManager.Instance.PlayerGPS.transform.position; //GameManager.Instance.MainCamera.transform.position;
                 // raycast 1
                 Vector3 rayStartPos = entranceMarkerPos;
                 Vector3 rayToPlayer = playerColliderPos - rayStartPos;                
@@ -1296,10 +1313,10 @@ namespace DaggerfallWorkshop.Game
         private void UpdateSlicingPositionY()
         {
             float slicingPositionY;
-            if (!DaggerfallUnity.Settings.AutomapAlwaysMaxOutSliceLevel)
-                slicingPositionY = gameObjectPlayerAdvanced.transform.position.y + Camera.main.transform.localPosition.y + slicingBiasY;
-            else
+            if (currentAutomapRenderMode == AutomapRenderMode.Solid || DaggerfallUnity.Settings.AutomapAlwaysMaxOutSliceLevel)
                 slicingPositionY = float.MaxValue;
+            else
+                slicingPositionY = gameObjectPlayerAdvanced.transform.position.y + GameManager.Instance.MainCamera.transform.localPosition.y + slicingBiasY;
             Shader.SetGlobalFloat("_SclicingPositionY", slicingPositionY);
         }
 
@@ -1315,24 +1332,6 @@ namespace DaggerfallWorkshop.Game
         //    material.renderQueue = 3000;
         //}
 
-        /// <summary>
-        /// sets active state of map GameObjects like geometry, beacons, user note markers and teleporter markers
-        /// used on automap open to enable (show) objects and hide them on automap close
-        /// it is important to set them inactive when closing the map - so that ingame raycasts won't hit colliders of map objects
-        /// </summary>
-        /// <param name="active">the desired activation state for the map objects to be set</param>
-        private void SetActivationStateOfMapObjects(bool active)
-        {          
-            gameobjectGeometry.SetActive(active);
-
-            gameobjectBeacons.SetActive(active);
-
-            if (gameObjectUserNoteMarkers != null)
-                gameObjectUserNoteMarkers.SetActive(active);
-
-            if (gameobjectTeleporterMarkers != null)
-                gameobjectTeleporterMarkers.SetActive(active);
-        }
 
         /// <summary>
         /// setup beacons: lazy creation of player marker arrow and beacons including
@@ -1621,8 +1620,6 @@ namespace DaggerfallWorkshop.Game
                 gameobjectTeleporterMarkers.transform.SetParent(gameobjectAutomap.transform);
                 gameobjectTeleporterMarkers.layer = layerAutomap;
             }
-
-            gameobjectTeleporterMarkers.SetActive(false);
 
             string teleporterEntranceName = NameGameobjectTeleporterSubStringStart + dictkey + NameGameobjectTeleporterEntranceSubStringEnd;
             if (gameobjectTeleporterMarkers.transform.Find(teleporterEntranceName) == null)
@@ -2484,16 +2481,12 @@ namespace DaggerfallWorkshop.Game
                 CreateIndoorGeometryForAutomap(door.Value);
                 RestoreStateAutomapDungeon(true);
                 resetAutomapSettingsFromExternalScript = true; // set flag so external script (DaggerfallAutomapWindow) can pull flag and reset automap values on next window push
-
-                SetActivationStateOfMapObjects(false);
             }
             else if ((GameManager.Instance.IsPlayerInsideDungeon) || (GameManager.Instance.IsPlayerInsideCastle))
             {
                 CreateDungeonGeometryForAutomap();
                 RestoreStateAutomapDungeon(!initFromLoadingSave); // if a save game was loaded, do not reset the revisited state (don't set parameter forceNotVisitedInThisRun to true)
                 resetAutomapSettingsFromExternalScript = true; // set flag so external script (DaggerfallAutomapWindow) can pull flag and reset automap values on next window push
-
-                SetActivationStateOfMapObjects(false);
             }
             else
             {
@@ -2525,12 +2518,22 @@ namespace DaggerfallWorkshop.Game
         {
             SaveStateAutomapInterior();
             DestroyBeacons();
+            if (gameobjectGeometry != null)
+            {
+                UnityEngine.Object.Destroy(gameobjectGeometry);
+                gameobjectGeometry = null;
+            }
         }
 
         private void OnTransitionToDungeonExterior(PlayerEnterExit.TransitionEventArgs args)
         {
             SaveStateAutomapDungeon(true);
             DestroyBeacons();
+            if (gameobjectGeometry != null)
+            {
+                UnityEngine.Object.Destroy(gameobjectGeometry);
+                gameobjectGeometry = null;
+            }
         }
 
         void OnLoadEvent(SaveData_v1 saveData)

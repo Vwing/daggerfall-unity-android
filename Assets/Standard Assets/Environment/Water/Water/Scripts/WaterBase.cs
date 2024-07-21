@@ -45,9 +45,10 @@ namespace UnityStandardAssets.Water
                 Shader.EnableKeyword("WATER_EDGEBLEND_ON");
                 Shader.DisableKeyword("WATER_EDGEBLEND_OFF");
                 // just to make sure (some peeps might forget to add a water tile to the patches)
-                if (Camera.main)
+                var mainCam = Camera.main;
+                if (mainCam)
                 {
-                    Camera.main.depthTextureMode |= DepthTextureMode.Depth;
+                    mainCam.depthTextureMode |= DepthTextureMode.Depth;
                 }
             }
             else

@@ -201,13 +201,25 @@ namespace DaggerfallWorkshop
         static GameObjectCache staticNpcCache = new GameObjectCache("Static NPC");
         static GameObjectCache actionDoorCache = new GameObjectCache("Action Door");
         static GameObjectCache rdbCache = new GameObjectCache("RDB");
+        static GameObjectCache billboardCache = new GameObjectCache("Billboard");
 
+        public static IEnumerable<GameObject> GetActiveBillboardObjects(bool includeInactive = false)
+        {
+            return billboardCache.GetActiveObjects(includeInactive);
+        }
+        public static IEnumerable<DaggerfallBillboard> GetActiveBillboards(bool includeInactive = false)
+        {
+            return billboardCache.GetActiveComponents<DaggerfallBillboard>(includeInactive);
+        }
+        public static void RegisterBillboard(GameObject billboard)
+        {
+            billboardCache.AddObject(billboard);
+        }
         // Gets all the active enemy GameObjects. Must be registered as Enemy (see below)
         public static IEnumerable<GameObject> GetActiveEnemyObjects(bool includeInactive = false)
         {
             return enemyCache.GetActiveObjects(includeInactive);
         }
-
         // Gets all the enabled DaggerfallEntityBehaviour components from active registered enemies
         public static IEnumerable<DaggerfallEntityBehaviour> GetActiveEnemyBehaviours(bool includeInactive = false)
         {
@@ -363,6 +375,7 @@ namespace DaggerfallWorkshop
             yield return staticNpcCache.GetDebugString();
             yield return actionDoorCache.GetDebugString();
             yield return rdbCache.GetDebugString();
+            yield return billboardCache.GetDebugString();
         }
     }
 }

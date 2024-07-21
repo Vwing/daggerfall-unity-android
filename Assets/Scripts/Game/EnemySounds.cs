@@ -235,7 +235,7 @@ namespace DaggerfallWorkshop.Game
             // Only checks when enemy plays attract sound, so not very expensive.
             RaycastHit hit;
             Ray ray = new Ray(transform.position, directionToPlayer);
-            if (Physics.Raycast(ray, out hit))
+            if (Physics.Raycast(ray, out hit, 100000, DFULayerMasks.CorporealMask))
             {
                 // Ignore player hit
                 if (hit.transform.gameObject == player)

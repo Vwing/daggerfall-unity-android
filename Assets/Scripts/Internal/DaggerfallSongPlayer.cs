@@ -1,4 +1,4 @@
-﻿// Project:         Daggerfall Unity
+// Project:         Daggerfall Unity
 // Copyright:       Copyright (C) 2009-2023 Daggerfall Workshop
 // Web Site:        http://www.dfworkshop.net
 // License:         MIT License (http://www.opensource.org/licenses/mit-license.php)
@@ -20,6 +20,7 @@ using DaggerfallWorkshop.AudioSynthesis.Synthesis;
 using DaggerfallWorkshop.AudioSynthesis.Midi;
 using DaggerfallWorkshop.Utility.AssetInjection;
 using DaggerfallWorkshop.Game.UserInterfaceWindows;
+using UnityEngine.Audio;
 
 namespace DaggerfallWorkshop
 {
@@ -30,6 +31,8 @@ namespace DaggerfallWorkshop
         const string defaultSoundFontFilename = "TimGM6mb.sf2";
         const int sampleRate = 48000;
         const int polyphony = 100;
+
+        private static AudioMixerGroup _defaultAudioMixerGroup;
 
         [NonSerialized, HideInInspector]
         public bool IsPlaying = false;
@@ -104,6 +107,12 @@ namespace DaggerfallWorkshop
                 EndTime = audioSource.clip.samples;
             }
             audioSource.volume = IsMuted ? 0f : DaggerfallUnity.Settings.MusicVolume;
+            if (!audioSource.outputAudioMixerGroup)
+            {
+                if (!_defaultAudioMixerGroup)
+                    _defaultAudioMixerGroup = Resources.Load<AudioMixer>("MainMixer").FindMatchingGroups("Music")[0];
+                audioSource.outputAudioMixerGroup = _defaultAudioMixerGroup;
+            }
         }
 
         void LateUpdate()

@@ -118,7 +118,7 @@ EnableQuestDebugger=False
 QuestRumorWeight = 50
 DisableEnemyDeathAlert=False
 HideLoginName=False
-DisableButtonClickSound = False
+DisableGarbageCollectionDuringMenuing = False
 
 [Spells]
 EnableSpellLighting=True

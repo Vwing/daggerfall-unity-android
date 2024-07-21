@@ -11,6 +11,7 @@
 
 // #define TEST_TRANSLATION
 
+using DaggerfallWorkshop.Game;
 using UnityEngine;
 
 namespace DaggerfallWorkshop.Utility.AssetInjection
@@ -128,7 +129,7 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
             Ray ray = new Ray(bounds.center, transform.TransformDirection(direction));
 
             RaycastHit hitInfo;
-            if (!Physics.Raycast(ray, out hitInfo, maxDistance))
+            if (!Physics.Raycast(ray, out hitInfo, maxDistance, DFULayerMasks.CorporealMask))
                 return;
 
             // Get the bound extent on the direction of the ray axis

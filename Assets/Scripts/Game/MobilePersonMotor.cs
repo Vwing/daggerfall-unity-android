@@ -416,7 +416,9 @@ namespace DaggerfallWorkshop.Game
             // Aim low to better detect stairs
             tempTargetScenePosition.y += 0.1f;
             Ray ray = new Ray(transform.position, tempTargetScenePosition - transform.position);
-            bool collision = Physics.Raycast(transform.position, tempTargetScenePosition - transform.position, Vector3.Distance(transform.position, tempTargetScenePosition), ~mobileAsset.GetLayerMask());
+            // Create mask containing everything but uncorporeal layers and the layer of the mobileAsset gameObject
+            LayerMask mask = ~LayerMask.GetMask(DFULayerMasks.CorporealIgnoredLayers.Append(LayerMask.LayerToName(mobileAsset.gameObject.layer)).ToArray()); 
+            bool collision = Physics.Raycast(transform.position, tempTargetScenePosition - transform.position, Vector3.Distance(transform.position, tempTargetScenePosition), mask);
             // Debug.DrawRay(transform.position, tempTargetScenePosition - transform.position, collision ? Color.red : Color.green, 1f);
             return !collision;
         }

@@ -17,6 +17,7 @@ using System.IO;
 using DaggerfallConnect;
 using DaggerfallConnect.Utility;
 using DaggerfallConnect.Arena2;
+using UnityEngine.Audio;
 
 namespace DaggerfallWorkshop
 {
@@ -33,6 +34,8 @@ namespace DaggerfallWorkshop
 
         public AudioPresets Preset = AudioPresets.OnDemand;
         public int SoundIndex = -1;
+
+        private static AudioMixerGroup _defaultAudioMixerGroup;
 
 #if UNITY_EDITOR
         [HideInInspector]
@@ -75,6 +78,12 @@ namespace DaggerfallWorkshop
         {
             audioSource = GetComponent<AudioSource>();
             player = GameObject.FindGameObjectWithTag("Player");
+            if (!audioSource.outputAudioMixerGroup)
+            {
+                if (!_defaultAudioMixerGroup)
+                    _defaultAudioMixerGroup = Resources.Load<AudioMixer>("MainMixer").FindMatchingGroups("Master")[0];
+                audioSource.outputAudioMixerGroup = _defaultAudioMixerGroup;
+            }
         }
 
         void FixedUpdate()

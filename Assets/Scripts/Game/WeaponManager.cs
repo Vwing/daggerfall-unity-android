@@ -49,7 +49,6 @@ namespace DaggerfallWorkshop.Game
         public FPSWeapon ScreenWeapon;              // Weapon displayed in FPS view
         public bool Sheathed;                       // Weapon is sheathed
         public float SphereCastRadius = 0.25f;      // Radius of SphereCast used to target attacks
-        int playerLayerMask = 0;
         [Range(0, 1)]
         public float AttackThreshold = 0.05f;       // Minimum mouse gesture travel distance for an attack. % of screen
         public float ChanceToBeParried = 0.1f;      // Example: Chance for player hit to be parried
@@ -196,7 +195,6 @@ namespace DaggerfallWorkshop.Game
             //weaponSensitivity = DaggerfallUnity.Settings.WeaponSensitivity;
             mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
             player = transform.gameObject;
-            playerLayerMask = ~(1 << LayerMask.NameToLayer("Player"));
             _gesture = new Gesture();
             _longestDim = Math.Max(Screen.width, Screen.height);
             SetMelee(ScreenWeapon);
@@ -902,12 +900,12 @@ namespace DaggerfallWorkshop.Game
             // Fire ray along player facing using weapon range
             RaycastHit hit;
             Ray ray = new Ray(mainCamera.transform.position, mainCamera.transform.forward);
-            if (Physics.SphereCast(ray, SphereCastRadius, out hit, weapon.Reach, playerLayerMask))
+            if (Physics.SphereCast(ray, SphereCastRadius, out hit, weapon.Reach, DFULayerMasks.CorporealMaskWithPlayerExcluded))
             {
                 DaggerfallUnityItem strikingWeapon = usingRightHand ? currentRightHandWeapon : currentLeftHandWeapon;
                 if(!WeaponEnvDamage(strikingWeapon, hit)
                    // Fall back to simple ray for narrow cages https://forums.dfworkshop.net/viewtopic.php?f=5&t=2195#p39524
-                   || Physics.Raycast(ray, out hit, weapon.Reach, playerLayerMask))
+                   || Physics.Raycast(ray, out hit, weapon.Reach, DFULayerMasks.CorporealMaskWithPlayerExcluded))
                 {
                     hitEnemy = WeaponDamage(strikingWeapon, false, false, hit.transform, hit.point, mainCamera.transform.forward);
                 }

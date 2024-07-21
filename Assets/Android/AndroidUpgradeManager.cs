@@ -14,7 +14,6 @@ namespace DaggerfallWorkshop.Game
     public class AndroidUpgradeManager : MonoBehaviour
     {
         public string LastInstalledVersion { get { return PlayerPrefs.GetString("LastInstalledVersion", "0.0.0.0"); } private set { PlayerPrefs.SetString("LastInstalledVersion", value); } }
-
         private IEnumerator Start()
         {
             yield return new WaitForSeconds(1);

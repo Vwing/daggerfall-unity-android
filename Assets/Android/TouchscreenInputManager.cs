@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UI;
 using System.Collections;
+using System.Linq;
 
 namespace DaggerfallWorkshop.Game
 {
@@ -32,6 +33,7 @@ namespace DaggerfallWorkshop.Game
         [SerializeField] private Canvas selectedButtonOptionsPanel;
         [SerializeField] private Button editControlsBackgroundButton;
         [SerializeField] private TMPro.TMP_Dropdown editButtonMappingDropdown;
+        [SerializeField] private TMPro.TMP_Dropdown editButtonKeyCodeDropdown;
         [SerializeField] private TouchscreenButton editTouchscreenControlsButton;
         [SerializeField] private Button resetButtonTransformsButton, resetButtonMappingsButton;
         [SerializeField] private Slider alphaSlider;
@@ -52,6 +54,8 @@ namespace DaggerfallWorkshop.Game
         private RenderTexture renderTex;
         private TouchscreenButton currentlyEditingButton;
 
+        private Dictionary<string, int> acceptedKeyCodes = new Dictionary<string, int>();
+
         private void Awake()
         {
             #region singleton
@@ -66,16 +70,26 @@ namespace DaggerfallWorkshop.Game
 
             Setup();
         }
+        public void SetupUIRenderTexture()
+        {
+            if(renderCamera.targetTexture != null)
+            {
+                Destroy(renderCamera.targetTexture);
+                renderCamera.targetTexture = null;
+            }
+            renderCamera.aspect = Camera.main.aspect;
+            renderTex = new RenderTexture(Screen.width, Screen.height, 0, RenderTextureFormat.ARGB32);
+            renderTex.depthStencilFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.D24_UNorm_S8_UInt;
+            renderTex.isPowerOfTwo = false;
+            renderCamera.targetTexture = renderTex;
 
+        }
         private void Setup()
         {
             editControlsCanvas.enabled = false;
             selectedButtonOptionsPanel.enabled = false;
 
-            renderCamera.aspect = Camera.main.aspect;
-            renderTex = new RenderTexture(Screen.width, Screen.height, 0, RenderTextureFormat.ARGB32);
-            renderTex.isPowerOfTwo = false;
-            renderCamera.targetTexture = renderTex;
+            SetupUIRenderTexture();
 
             _debugInEditor = debugInEditor;
             if (!isMobilePlatform)
@@ -85,12 +99,25 @@ namespace DaggerfallWorkshop.Game
             }
 
             // edit controls canvas setup
+
+            // Add button action mapping options
             editButtonMappingDropdown.ClearOptions();
             List<string> options = new List<string>();
             for (int i = 0; i <= (int)InputManager.Actions.Custom10; ++i)
                 options.Add(((InputManager.Actions)i).ToString());
             editButtonMappingDropdown.AddOptions(options);
             editButtonMappingDropdown.onValueChanged.AddListener(OnEditControlsDropdownValueChanged);
+
+            // Add button key mapping options
+            IEnumerable<int> allKeyCodes = ((KeyCode[])System.Enum.GetValues(typeof(KeyCode))).Select(s => (int)s);
+            editButtonKeyCodeDropdown.ClearOptions();
+            List<string> options2 = new List<string>();
+            foreach (var key in allKeyCodes)
+                if (key < (int)KeyCode.Joystick1Button0 && !InputManager.unacceptedAnyKeys.Contains(key))
+                    acceptedKeyCodes[((KeyCode)key).ToString()] = key;
+            editButtonKeyCodeDropdown.AddOptions(acceptedKeyCodes.Select(s => s.Key).ToList());
+            editButtonKeyCodeDropdown.onValueChanged.AddListener(OnEditControlsKeyCodeDropdownValueChanged);
+
             editControlsBackgroundButton.gameObject.SetActive(false);
 
             alphaSlider.maxValue = 1;
@@ -132,6 +159,8 @@ namespace DaggerfallWorkshop.Game
             if (touchscreenButton){
                 editButtonMappingDropdown.interactable = touchscreenButton.CanActionBeEdited;
                 editButtonMappingDropdown.value = (int)touchscreenButton.myAction;
+                editButtonKeyCodeDropdown.interactable = touchscreenButton.CanActionBeEdited;
+                editButtonKeyCodeDropdown.value = editButtonKeyCodeDropdown.options.FindIndex(p => p.text == touchscreenButton.myKey.ToString());
             }
             currentlyEditingButton = touchscreenButton;
             onCurrentlyEditingButtonChanged?.Invoke(touchscreenButton);
@@ -147,6 +176,14 @@ namespace DaggerfallWorkshop.Game
             if (currentlyEditingButton)
             {
                 currentlyEditingButton.myAction = (InputManager.Actions)newVal;
+            }
+        }
+        private void OnEditControlsKeyCodeDropdownValueChanged(int newVal)
+        {
+            if (currentlyEditingButton)
+            {
+                KeyCode newKey = (KeyCode)acceptedKeyCodes[editButtonKeyCodeDropdown.options[newVal].text];
+                currentlyEditingButton.myKey = newKey;
             }
         }
 

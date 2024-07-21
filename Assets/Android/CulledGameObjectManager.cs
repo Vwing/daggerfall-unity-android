@@ -1,4 +1,5 @@
 using DaggerfallWorkshop.Game.Entity;
+using DaggerfallWorkshop.Game.Serialization;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -13,6 +14,15 @@ namespace DaggerfallWorkshop.Game
         public Quaternion originalLocalRotation;
         public bool wasOriginalParentNull;
         public bool wasObjectInside;
+        public CulledGameObject(GameObject objectToCull)
+        {
+            gameObject = objectToCull;
+            originalParent = objectToCull.transform.parent;
+            originalLocalPosition = objectToCull.transform.localPosition;
+            originalLocalRotation = objectToCull.transform.localRotation;
+            wasOriginalParentNull = objectToCull.transform.parent == null;
+            wasObjectInside = GameManager.Instance.IsPlayerInside;
+        }
     }
 
     public class CulledGameObjectManager : MonoBehaviour
@@ -29,6 +39,8 @@ namespace DaggerfallWorkshop.Game
         private List<int> keysToRemove = new List<int>();
         private int cullIteration = 0;
 
+        private int lastFrameCulledAndUnculledAllObjects = -1;
+
         private Vector3 lastPlayerPosition = new Vector3(0, 0, 0);
         private bool wasPlayerInside = false;
 
@@ -37,95 +49,67 @@ namespace DaggerfallWorkshop.Game
             if (Instance == null)
             {
                 Instance = this;
-                DontDestroyOnLoad(gameObject);
             }
             else
             {
                 Destroy(gameObject);
+                return;
             }
 
             if (culledObjectsParent == null)
             {
                 culledObjectsParent = new GameObject("CulledObjectsParent");
+                culledObjectsParent.transform.parent = transform;
                 culledObjectsParent.SetActive(false);
             }
         }
         private void Start()
         {
             lastPlayerPosition = GameManager.Instance.PlayerMotor.transform.position;
+            SaveLoadManager.OnLoad += OnLoadEvent;
+        }
+        private void OnDestroy()
+        {
+            SaveLoadManager.OnLoad -= OnLoadEvent;
         }
         private void Update()
         {
             Vector3 playerPosition = GameManager.Instance.PlayerMotor.transform.position;
-            if (GameManager.Instance.IsPlayerInside != wasPlayerInside)
-            {
-                cullIteration = 0;
-                lastPlayerPosition = playerPosition;
-                wasPlayerInside = GameManager.Instance.IsPlayerInside;
-            }
             // Remove any deleted gameObjects from the culled objects
             RemoveAnyDeletedObjectsFromCulledDictionary();
-            if ((playerPosition - lastPlayerPosition).sqrMagnitude > ScaledBlockRangeSquared / 4) // make sure everything is updated instantly upon teleport
+            if (GameManager.Instance.IsPlayerInside != wasPlayerInside
+                || (playerPosition - lastPlayerPosition).sqrMagnitude > ScaledBlockRangeSquared / 4
+                || culledObjects.Count == 0) // make sure everything is updated instantly upon teleport/transition
+            {
                 UpdateAllCullableObjects(playerPosition);
+            }
             else
                 UpdateCullableObjectsBasedOnIteration(cullIteration, playerPosition); // otherwise do a new batch of objects every other frame.
             cullIteration++;
             cullIteration %= 12;
             lastPlayerPosition = playerPosition;
-        }
-
-        public bool CullObject(GameObject objectToCull)
-        {
-            int objectToCullID = objectToCull.GetInstanceID();
-            if (objectToCull == null || culledObjects.ContainsKey(objectToCullID))
-                return false;
-
-            CulledGameObject culledObject = new CulledGameObject
-            {
-                gameObject = objectToCull,
-                originalParent = objectToCull.transform.parent,
-                originalLocalPosition = objectToCull.transform.localPosition,
-                originalLocalRotation = objectToCull.transform.localRotation,
-                wasOriginalParentNull = objectToCull.transform.parent == null,
-                wasObjectInside = GameManager.Instance.IsPlayerInside
-            };
-
-            objectToCull.transform.SetParent(culledObjectsParent.transform, true);
-            culledObjects[objectToCullID] = culledObject;
-            return true;
-        }
-
-        public bool UnCullObject(GameObject objectToUnCull)
-        {
-            int objectToUncullID = objectToUnCull.GetInstanceID();
-            if (!culledObjects.ContainsKey(objectToUncullID))
-                return false;
-            CulledGameObject culledObject = culledObjects[objectToUncullID];
-
-            if (culledObject.gameObject != null)
-            {
-                if (!culledObject.wasOriginalParentNull && !culledObject.originalParent) // If the original parent was destroyed
-                {
-                    Destroy(culledObject.gameObject); // Destroy the object, since it would have been destroyed along with the parent
-                }
-                else // Parent exists or it didn't have one in the first place. Restore the original parent and transform
-                {
-                    culledObject.gameObject.transform.SetParent(culledObject.originalParent, true);
-                    culledObject.gameObject.transform.SetLocalPositionAndRotation(culledObject.originalLocalPosition, culledObject.originalLocalRotation);
-                }
-            }
-            culledObjects.Remove(objectToUncullID);
-            return true;
+            wasPlayerInside = GameManager.Instance.IsPlayerInside;
         }
 
         public bool IsObjectCulled(GameObject obj)
         {
             return obj && culledObjects.ContainsKey(obj.GetInstanceID());
         }
-        private void UpdateAllCullableObjects(Vector3 playerPosition)
+        private void UpdateAllCullableObjects(Vector3 playerPosition, bool skipDoors = true)
         {
-            for (int i = 0; i <= 10; i+=2)
+            // prevent multiple calls updating all cullable objects in the same frame
+            if (Time.frameCount == lastFrameCulledAndUnculledAllObjects)
+                return;
+            lastFrameCulledAndUnculledAllObjects = Time.frameCount;
+
+            // now iterate through and cull/uncull all objects
+            for (int i = 0; i <= 10; i += 2)
+            {
+                if (skipDoors && i == 4)
+                    continue; // skip doors if asked to do so
                 UpdateCullableObjectsBasedOnIteration(i, playerPosition);
+            }
+            cullIteration = 10; // jump to iteration 10 so it's a couple frames and then it starts over
         }
         private void UpdateCullableObjectsBasedOnIteration(int cullIteration, Vector3 playerPosition)
         {
@@ -133,20 +117,22 @@ namespace DaggerfallWorkshop.Game
             switch (cullIteration)
             {
                 case 0:
-                    CullAndUncullDistantObjects(playerPosition, ActiveGameObjectDatabase.GetActiveFoeSpawnerObjects(true)); Debug.Log("Culling foe spawners");
+                    if (!GameManager.Instance.IsPlayerInside)
+                        CullAndUncullDistantObjects(playerPosition, ActiveGameObjectDatabase.GetActiveBillboardObjects(true), 150 * 150);
+                    CullAndUncullDistantObjects(playerPosition, ActiveGameObjectDatabase.GetActiveFoeSpawnerObjects(true));
                     break;
                 case 2:
-                    CullAndUncullDistantObjects(playerPosition, ActiveGameObjectDatabase.GetActiveEnemyObjects(true)); Debug.Log("Culling enemies");
+                    CullAndUncullDistantObjects(playerPosition, ActiveGameObjectDatabase.GetActiveEnemyObjects(true));
                     CullAndUncullDistantDungeonBlocks(playerPosition, ActiveGameObjectDatabase.GetActiveRDBObjects(true).Where(p => !p.transform.root || p.transform.root.gameObject.name != "Automap"));
                     break;
                 case 4:
-                    CullAndUncullDistantObjects(playerPosition, ActiveGameObjectDatabase.GetActiveActionDoorObjects(true)); Debug.Log("Culling doors");
+                    CullAndUncullDistantObjects(playerPosition, ActiveGameObjectDatabase.GetActiveActionDoorObjects(true));
                     break;
                 case 6:
-                    CullAndUncullDistantObjects(playerPosition, ActiveGameObjectDatabase.GetActiveStaticNPCObjects(true)); Debug.Log("Culling static npcs");
+                    CullAndUncullDistantObjects(playerPosition, ActiveGameObjectDatabase.GetActiveStaticNPCObjects(true));
                     break;
                 case 8:
-                    CullAndUncullDistantObjects(playerPosition, ActiveGameObjectDatabase.GetActiveLootObjects(true)); Debug.Log("Culling loot");
+                    CullAndUncullDistantObjects(playerPosition, ActiveGameObjectDatabase.GetActiveLootObjects(true));
                     break;
                 case 10:
                     break;
@@ -173,12 +159,12 @@ namespace DaggerfallWorkshop.Game
             }
             keysToRemove.Clear();
         }
-        private void CullAndUncullDistantObjects(Vector3 playerPosition, IEnumerable<GameObject> cullableObjects)
+        private void CullAndUncullDistantObjects(Vector3 playerPosition, IEnumerable<GameObject> cullableObjects, float maxSquaredDistance = ScaledBlockRangeSquared)
         {
             foreach (GameObject obj in cullableObjects)
             {
                 float sqrDistance = (playerPosition - obj.transform.position).sqrMagnitude;
-                if (sqrDistance > ScaledBlockRangeSquared)
+                if (sqrDistance > maxSquaredDistance)
                 {
                     if (!IsObjectCulled(obj))
                     {
@@ -209,17 +195,102 @@ namespace DaggerfallWorkshop.Game
                 {
                     if (!IsObjectCulled(block))
                     {
-                        CullObject(block);
+                        CullDungeonBlock(block);
                     }
                 }
                 else
                 {
                     if (IsObjectCulled(block))
                     {
-                        UnCullObject(block);
+                        UnCullDungeonBlock(block);
                     }
                 }
             }
+        }
+
+        private bool CullObject(GameObject objectToCull)
+        {
+            if (!objectToCull)
+                return false;
+            int objectToCullID = objectToCull.GetInstanceID();
+            if (objectToCull == null || culledObjects.ContainsKey(objectToCullID))
+                return false;
+
+            CulledGameObject culledObject = new CulledGameObject(objectToCull);
+
+            objectToCull.transform.SetParent(culledObjectsParent.transform, true);
+            culledObjects[objectToCullID] = culledObject;
+            return true;
+        }
+
+        private bool UnCullObject(GameObject objectToUnCull)
+        {
+            if (!objectToUnCull)
+                return false;
+            int objectToUncullID = objectToUnCull.GetInstanceID();
+            if (!culledObjects.ContainsKey(objectToUncullID))
+                return false;
+            CulledGameObject culledObject = culledObjects[objectToUncullID];
+
+            if (culledObject.gameObject != null)
+            {
+                if (!culledObject.wasOriginalParentNull && !culledObject.originalParent) // If the original parent was destroyed
+                {
+                    Destroy(culledObject.gameObject); // Destroy the object, since it would have been destroyed along with the parent
+                }
+                else // Parent exists or it didn't have one in the first place. Restore the original parent and transform
+                {
+                    culledObject.gameObject.transform.SetParent(culledObject.originalParent, true);
+                    culledObject.gameObject.transform.SetLocalPositionAndRotation(culledObject.originalLocalPosition, culledObject.originalLocalRotation);
+                }
+            }
+            culledObjects.Remove(objectToUncullID);
+            return true;
+        }
+
+        private bool CullDungeonBlock(GameObject dungeonBlock)
+        {
+            if (!dungeonBlock)
+                return false;
+            int objectToCullID = dungeonBlock.GetInstanceID();
+            if (dungeonBlock == null || culledObjects.ContainsKey(objectToCullID))
+                return false;
+
+            CulledGameObject culledObject = new CulledGameObject(dungeonBlock);
+
+            SetDungeonBlockCulled(culledObject.gameObject, true);
+            culledObjects[objectToCullID] = culledObject;
+            return true;
+        }
+
+        private bool UnCullDungeonBlock(GameObject dungeonBlock)
+        {
+            if (!dungeonBlock)
+                return false;
+            int objectToUncullID = dungeonBlock.GetInstanceID();
+            if (!culledObjects.ContainsKey(objectToUncullID))
+                return false;
+            CulledGameObject culledObject = culledObjects[objectToUncullID];
+            SetDungeonBlockCulled(culledObject.gameObject, false);
+            culledObjects.Remove(objectToUncullID);
+            return true;
+        }
+        private void SetDungeonBlockCulled(GameObject block, bool culled)
+        {
+            if (!block)
+                return;
+            for (int i = 0; i < block.transform.childCount; ++i)
+            {
+                GameObject blockChild = block.transform.GetChild(i).gameObject;
+                blockChild.SetActive(!culled ? true : blockChild.name == "Models" || blockChild.name == "Action Models");
+            }
+            block.transform.Find("Models").GetComponentsInChildren<MeshRenderer>().ToList().ForEach(p => p.enabled = !culled);
+            block.transform.Find("Action Models").GetComponentsInChildren<MeshRenderer>().ToList().ForEach(p => p.enabled = !culled);
+        }
+
+        private void OnLoadEvent(SaveData_v1 saveData)
+        {
+            UpdateAllCullableObjects(GameManager.Instance.PlayerMotor.transform.position);
         }
     }
 }

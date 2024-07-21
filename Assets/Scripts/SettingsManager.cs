@@ -269,7 +269,7 @@ namespace DaggerfallWorkshop
         public int QuestRumorWeight { get; set; }
         public bool DisableEnemyDeathAlert { get; set; }
         public bool HideLoginName { get; set; }
-        public bool DisableButtonClickSound { get; set; }
+        public bool DisableGarbageCollectionDuringMenuing { get; set; }
 
         // [Spells]
         public bool EnableSpellLighting { get; set; }
@@ -521,7 +521,7 @@ namespace DaggerfallWorkshop
             QuestRumorWeight = GetInt(sectionGUI, "QuestRumorWeight", 1, 100);
             DisableEnemyDeathAlert = GetBool(sectionGUI, "DisableEnemyDeathAlert");
             HideLoginName = GetBool(sectionGUI, "HideLoginName");
-            DisableButtonClickSound = GetBool(sectionGUI, "DisableButtonClickSound");
+            DisableGarbageCollectionDuringMenuing = GetBool(sectionGUI, "DisableGarbageCollectionDuringMenuing");
 
             EnableSpellLighting = GetBool(sectionSpells, "EnableSpellLighting");
             EnableSpellShadows = GetBool(sectionSpells, "EnableSpellShadows");
@@ -719,7 +719,7 @@ namespace DaggerfallWorkshop
             SetInt(sectionGUI, "QuestRumorWeight", QuestRumorWeight);
             SetBool(sectionGUI, "DisableEnemyDeathAlert", DisableEnemyDeathAlert);
             SetBool(sectionGUI, "HideLoginName", HideLoginName);
-            SetBool(sectionGUI, "DisableButtonClickSound", DisableButtonClickSound);
+            SetBool(sectionGUI, "DisableGarbageCollectionDuringMenuing", DisableGarbageCollectionDuringMenuing);
 
             SetBool(sectionSpells, "EnableSpellLighting", EnableSpellLighting);
             SetBool(sectionSpells, "EnableSpellShadows", EnableSpellShadows);

@@ -137,10 +137,10 @@ namespace DaggerfallWorkshop.Game
                 (mobile.Enemy.HasRangedAttack1 && (!mobile.Enemy.CastsMagic || mobile.Enemy.HasRangedAttack2));
 
             // Add things AI should ignore when checking for a clear path to shoot.
-            ignoreMaskForShooting = ~(1 << LayerMask.NameToLayer("SpellMissiles") | 1 << LayerMask.NameToLayer("Ignore Raycast"));
+            ignoreMaskForShooting = ~(1 << LayerMask.NameToLayer("SpellMissiles") | 1 << LayerMask.NameToLayer("Ignore Raycast") | 1 << LayerMask.NameToLayer("Automap"));
 
             // Also ignore arrows and "Ignore Raycast" layer for obstacles
-            ignoreMaskForObstacles = ~(1 << LayerMask.NameToLayer("SpellMissiles") | 1 << LayerMask.NameToLayer("Ignore Raycast"));
+            ignoreMaskForObstacles = ~(1 << LayerMask.NameToLayer("SpellMissiles") | 1 << LayerMask.NameToLayer("Ignore Raycast") | 1 << LayerMask.NameToLayer("Automap"));
 
             LastGroundedY = transform.position.y;
 
@@ -222,7 +222,7 @@ namespace DaggerfallWorkshop.Game
         {
             RaycastHit hit;
             Ray ray = new Ray(transform.position, Vector3.down);
-            if (Physics.Raycast(ray, out hit, distance))
+            if (Physics.Raycast(ray, out hit, distance, DFULayerMasks.CorporealMask))
                 return hit.point;
 
             return transform.position;
@@ -1216,7 +1216,7 @@ namespace DaggerfallWorkshop.Game
             Ray ray = new Ray(rayOrigin + direction, Vector3.down);
             RaycastHit hit;
 
-            fallDetected = !Physics.Raycast(ray, out hit, (originalHeight * 0.5f) + 1.5f);
+            fallDetected = !Physics.Raycast(ray, out hit, (originalHeight * 0.5f) + 1.5f, DFULayerMasks.CorporealMask);
         }
 
         /// <summary>

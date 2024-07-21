@@ -678,8 +678,7 @@ namespace DaggerfallWorkshop
             // Keeps memory usage much lower over time
             if (init)
             {
-                DaggerfallUnity.Instance.PruneCache();
-                DaggerfallGC.ThrottledUnloadUnusedAssets();
+                DaggerfallGC.ThrottledUnloadUnusedAssets(true, true, 1);
             }
 
             // Set terrain neighbours
@@ -1598,7 +1597,7 @@ namespace DaggerfallWorkshop
         {
             RaycastHit hit;
             Ray ray = new Ray(playerTransform.position + (Vector3.up * extraHeight), Vector3.down);
-            if (Physics.Raycast(ray, out hit, (playerHeight * 2) + extraHeight + extraDistance))
+            if (Physics.Raycast(ray, out hit, (playerHeight * 2) + extraHeight + extraDistance, DFULayerMasks.CorporealMask))
             {
                 // Position player at hit position plus just over half controller height up
                 playerTransform.position = hit.point + Vector3.up * (playerHeight * 0.6f);

@@ -279,7 +279,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 {
                     // Arrow count label position is offset to left of compass and centred relative to compass height
                     // This is done every frame to handle adaptive resolutions
-                    Vector2 arrowLabelPos = new Vector2(screenRect.width, screenRect.height);
+                    Vector2 arrowLabelPos = new Vector2(screenRect.width, compass.Position.y + compass.Size.y);
                     arrowLabelPos.x -= compass.Size.x + arrowCountTextLabel.TextWidth + 8;
                     arrowLabelPos.y -= compass.Size.y / 2 + arrowCountTextLabel.TextHeight / 2;
 

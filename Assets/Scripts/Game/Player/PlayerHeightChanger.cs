@@ -527,7 +527,7 @@ namespace DaggerfallWorkshop.Game
             float distance = camCrouchToStandDist;
 
             Ray ray = new Ray(controller.transform.position, Vector3.up);
-            return !Physics.SphereCast(ray, controller.radius, distance);
+            return !Physics.SphereCast(ray, controller.radius, distance, DFULayerMasks.CorporealMask);
         }
         #endregion
 

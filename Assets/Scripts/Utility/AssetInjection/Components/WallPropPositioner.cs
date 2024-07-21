@@ -9,6 +9,7 @@
 // Notes:
 //
 
+using DaggerfallWorkshop.Game;
 using UnityEngine;
 
 namespace DaggerfallWorkshop.Utility.AssetInjection
@@ -78,14 +79,14 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
             Vector3 bottomPoint = gameObject.transform.position;
             bottomPoint.y = bounds.min.y;
             RaycastHit hitInfoBottom;
-            if (!Physics.Raycast(new Ray(bottomPoint, worldSpaceDirection), out hitInfoBottom, maxDistance))
+            if (!Physics.Raycast(new Ray(bottomPoint, worldSpaceDirection), out hitInfoBottom, maxDistance, DFULayerMasks.CorporealMask))
                 return;
 
             // Top point on bounds
             Vector3 topPoint = gameObject.transform.position;
             topPoint.y = bounds.max.y;
             RaycastHit hitInfoTop;
-            if (!Physics.Raycast(new Ray(topPoint, worldSpaceDirection), out hitInfoTop, maxDistance))
+            if (!Physics.Raycast(new Ray(topPoint, worldSpaceDirection), out hitInfoTop, maxDistance, DFULayerMasks.CorporealMask))
                 return;
 
             // Calculate delta
