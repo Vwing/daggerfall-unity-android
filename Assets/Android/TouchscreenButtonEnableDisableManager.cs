@@ -98,6 +98,23 @@ namespace DaggerfallWorkshop.Game
             if (TouchscreenInputManager.Instance)
                 TouchscreenInputManager.Instance.onResetButtonTransformsToDefaultValues -= ResetAllButtonsToDefault;
         }
+        public List<TouchscreenButton> GetAllEnabledButtons()
+        {
+            return allButtons.Where(p => p.gameObject.activeSelf).ToList();
+        }
+        public List<TouchscreenButton> GetAllButtons()
+        {
+            return allButtons;
+        }
+        public TouchscreenButton GetButtonBehaviour(string buttonName)
+        {
+            TouchscreenButton theButton = allButtons.FirstOrDefault(p => p.gameObject.name == buttonName);
+            if(theButton && theButton != default(TouchscreenButton))
+                return theButton;
+            else
+                return null;
+        }
+
         /// <summary>
         /// Deletes all saved enabled/disabled statuses for buttons.
         /// Sets all buttons enabled or disabled depending on their default value

@@ -31,6 +31,7 @@ namespace DaggerfallWorkshop.Game
         public InputManager.AxisActions verticalAxisAction = InputManager.AxisActions.MovementVertical;
         public float deadzone = 0.08f;
         public bool isDPad;
+        public bool hideKnobWhenUntouched = true;
 
         public Vector2 TouchStartPos {get; private set;}
 
@@ -51,7 +52,8 @@ namespace DaggerfallWorkshop.Game
             
             // set vars
             SetJoystickRadius();
-            knob.gameObject.SetActive(false);
+            if(hideKnobWhenUntouched)
+                knob.gameObject.SetActive(false);
         }
         void OnDestroy()
         {
@@ -91,7 +93,9 @@ namespace DaggerfallWorkshop.Game
         
         public void OnPointerUp(PointerEventData eventData)
         {
-            knob.gameObject.SetActive(false);
+            if(hideKnobWhenUntouched)
+                knob.gameObject.SetActive(false);
+            knob.transform.localPosition = Vector3.zero;
             inputVector = Vector2.zero;
             UpdateVirtualAxes(Vector2.zero);
             isTouching = false;
@@ -104,13 +108,20 @@ namespace DaggerfallWorkshop.Game
                 return;
             Vector2 backgroundPosScreenSpace = RectTransformUtility.WorldToScreenPoint(myCam, background.position);
             Vector2 direction = eventData.position - backgroundPosScreenSpace;
-            inputVector = Vector2.ClampMagnitude(direction / joystickRadius, 1f);
-            if(isDPad)
-                inputVector = SnapTo8Directions(inputVector);
-            Vector2 knobPosScreenSpace = backgroundPosScreenSpace + inputVector * joystickRadius;
+            Vector2 touchVector = Vector2.ClampMagnitude(direction / joystickRadius, 1f);
+            inputVector = isDPad ? SnapTo8Directions(touchVector) : SnapSoftlyTo8Directions(touchVector);
+            Vector2 knobPosScreenSpace =  backgroundPosScreenSpace + (isDPad ? inputVector : touchVector) * joystickRadius;
             if (RectTransformUtility.ScreenPointToLocalPointInRectangle(knob.parent as RectTransform, knobPosScreenSpace, myCam, out Vector2 knobPos))
                 knob.localPosition = knobPos;
             UpdateVirtualAxes(inputVector);
+        }
+        private Vector2 SnapSoftlyTo8Directions(Vector2 input)
+        {
+            if (Mathf.Abs(input.x) / Mathf.Abs(input.y) > 2.4142f)
+                input.y = 0;
+            else if (Mathf.Abs(input.y) / Mathf.Abs(input.x) > 2.4142f)
+                input.x = 0;
+            return input;
         }
         private Vector2 SnapTo8Directions(Vector2 input)
         {
@@ -129,6 +140,7 @@ namespace DaggerfallWorkshop.Game
             return toReturn;
         }
         private void SetJoystickRadius(){
+            knob.sizeDelta = background.sizeDelta * 0.6f;
             Rect joystickRect = UnityUIUtils.GetScreenspaceRect(background, myCam);
             Rect knobRect = UnityUIUtils.GetScreenspaceRect(knob, myCam);
             joystickRadius = joystickRect.width / 2f - knobRect.width/2f;

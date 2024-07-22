@@ -12,71 +12,28 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
+
 namespace DaggerfallWorkshop.Game
 {
-    public static class UnityUIUtils
-    {
-        // gotten from sildeflask in https://forum.unity.com/threads/how-to-get-a-rect-in-screen-space-from-a-recttransform.1490806/
-        public static Rect GetScreenspaceRect(RectTransform rtf, Camera cam)
-        {
-            // Get the corners of the RectTransform in world space
-            Vector3[] corners = new Vector3[4];
-            rtf.GetWorldCorners(corners);
-
-            // Convert world space to screen space in pixel values and round to integers
-            for (int i = 0; i < corners.Length; i++)
-            {
-                corners[i] = cam.WorldToScreenPoint(corners[i]);
-                corners[i] = new Vector3(Mathf.RoundToInt(corners[i].x), Mathf.RoundToInt(corners[i].y), corners[i].z);
-            }
-
-            // Calculate the screen space rectangle
-            float minX = Mathf.Min(corners[0].x, corners[1].x, corners[2].x, corners[3].x);
-            float minY = Mathf.Min(corners[0].y, corners[1].y, corners[2].y, corners[3].y);
-            float width = Mathf.Max(corners[0].x, corners[1].x, corners[2].x, corners[3].x) - minX;
-            float height = Mathf.Max(corners[0].y, corners[1].y, corners[2].y, corners[3].y) - minY;
-
-            // Display the screen space rectangle
-            Rect screenRect = new Rect(minX, minY, width, height);
-
-            return screenRect;
-        }
-        public static void MatchRectTFToScreenspaceRect(RectTransform rtf, Rect rect, Camera cam)
-        {
-            if (!rtf.parent || rtf.parent is not RectTransform)
-                return;
-
-            Vector2 localPoint, rectMin, rectMax;
-            // Set the position of the RectTransform
-            if (RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)rtf.parent, rect.position, cam, out localPoint))
-            {
-                rtf.anchoredPosition = localPoint;
-            }
-            // Set the sizeDelta of the RectTransform
-            if (RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)rtf.parent, rect.min, cam, out rectMin)
-                && RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)rtf.parent, rect.max, cam, out rectMax))
-            {
-                rtf.sizeDelta = rectMax - rectMin;
-            }
-        }
-        public static bool Approximately(this Vector2 v1, Vector2 v2)
-        {
-            return Mathf.Approximately(v1.x, v2.x) && Mathf.Approximately(v1.y, v2.y);
-        }
-    }
     public class TouchscreenButton : Button
     {
         public enum ResizeButtonPosition { TopLeft, TopRight, BottomLeft, BottomRight }
         private const int k_defaultSnapScaleAt1080p = 20;
 
         private static bool s_shouldShowLabels = true;
+        private static bool s_hasShownAddToDrawerPopup = false;
+        private static bool s_hasShownRemoveFromDrawerPopup = false;
+        private static TouchscreenButton s_drawerCurrentlyAddingTo = null;
+        private static TouchscreenButton s_drawerCurrentlyRemovingFrom = null;
 
         public event System.Action Resized;
 
+        public bool isButtonDrawer = false;
         public InputManager.Actions myAction = InputManager.Actions.Unknown;
         public KeyCode myKey = KeyCode.None;
         public bool WasDragging { get; private set; }
@@ -89,12 +46,16 @@ namespace DaggerfallWorkshop.Game
         [SerializeField] private ResizeButtonPosition resizeButtonPos = ResizeButtonPosition.TopLeft;
         [SerializeField] private TMPro.TMP_Text label;
         [SerializeField] private RectTransform resizeButton;
+        [SerializeField] private Button addToDrawerButton;
+        [SerializeField] private Button removeFromDrawerButton;
+        [SerializeField] private RectTransform buttonDrawerParent;
 
         private RectTransform rectTransform
         {
             get { return transform as RectTransform; }
         }
         private Camera RenderCam => TouchscreenInputManager.Instance.RenderCamera;
+        private List<GameObject> buttonsInDrawer = new List<GameObject>();
 
         private InputManager.Actions myLastAction;
         private KeyCode myLastKey;
@@ -110,6 +71,7 @@ namespace DaggerfallWorkshop.Game
         private bool pointerDownWasTouchingResizeButton;
         private bool isPointerDown;
         private int snapScale = 20;
+        private bool isDrawerOpen = true;
 
         protected override void Start()
         {
@@ -132,11 +94,54 @@ namespace DaggerfallWorkshop.Game
                 UpdateLabelText();
                 resizeButton.gameObject.SetActive(false);
 
+                if(isButtonDrawer){
+                    addToDrawerButton.onClick.AddListener(OnAddToDrawerButtonClicked);
+                    removeFromDrawerButton.onClick.AddListener(OnRemoveFromDrawerButtonClicked);
+                    buttonsInDrawer.AddRange(GetSavedButtonsInMyDrawer().Select(s => TouchscreenButtonEnableDisableManager.Instance.GetButtonBehaviour(s).gameObject));
+                    buttonsInDrawer.ForEach( delegate(GameObject but)
+                    {
+                        but.transform.SetParent(buttonDrawerParent, true); 
+                        but.GetComponent<RectTransform>().anchoredPosition = but.GetComponent<TouchscreenButton>().GetSavedPosition();
+                    });
+                    CloseDrawer();
+                }
+
                 TouchscreenInputManager.Instance.onEditControlsToggled += Instance_onEditControlsToggled;
                 TouchscreenInputManager.Instance.onCurrentlyEditingButtonChanged += Instance_onCurrentlyEditingButtonChanged;
                 TouchscreenInputManager.Instance.onResetButtonActionsToDefaultValues += Instance_onResetButtonActionsToDefaultValues;
                 TouchscreenInputManager.Instance.onResetButtonTransformsToDefaultValues += Instance_onResetButtonTransformsToDefaultValues;
             }
+        }
+
+        private void OnAddToDrawerButtonClicked()
+        {
+            void AddToDrawerOnConfirmation()
+            {
+                s_drawerCurrentlyAddingTo = this;
+                s_drawerCurrentlyRemovingFrom = null;
+                s_hasShownAddToDrawerPopup = true;
+                // fade out all buttons that aren't in the drawer
+                TouchscreenButtonEnableDisableManager.Instance.GetAllEnabledButtons().Where(p => !buttonsInDrawer.Contains(p.gameObject) || p == this).ToList().ForEach(p => p.image.color = new Color(1, 1, 1, 0.5f));
+            }
+            if(!s_hasShownAddToDrawerPopup)
+                TouchscreenInputManager.Instance.ConfirmChangePopup.Open("Tap on the button you would like to add to the drawer.", AddToDrawerOnConfirmation, null, "Okay", "Cancel");
+            else
+                AddToDrawerOnConfirmation();
+        }
+        private void OnRemoveFromDrawerButtonClicked()
+        {
+            void RemoveFromDrawerOnConfirmation()
+            {
+                s_drawerCurrentlyAddingTo = null;
+                s_drawerCurrentlyRemovingFrom = this;
+                s_hasShownRemoveFromDrawerPopup = true;
+                // fade out all buttons that aren't in the drawer
+                TouchscreenButtonEnableDisableManager.Instance.GetAllEnabledButtons().Where(p => !buttonsInDrawer.Contains(p.gameObject) || p == this).ToList().ForEach(p => p.image.color = new Color(1, 1, 1, 0.5f));
+            }
+            if(!s_hasShownRemoveFromDrawerPopup)
+                TouchscreenInputManager.Instance.ConfirmChangePopup.Open("Tap on the button you would like to remove from the drawer.", RemoveFromDrawerOnConfirmation, null, "Okay", "Cancel");
+            else
+                RemoveFromDrawerOnConfirmation();
         }
 
         protected override void OnDestroy()
@@ -171,6 +176,48 @@ namespace DaggerfallWorkshop.Game
                 UpdateButtonTransform();
             }
         }
+        public void CloseDrawer(){
+            isDrawerOpen = false;
+            buttonDrawerParent.gameObject.SetActive(false);
+            // foreach(var button in buttonsInDrawer){
+            //     button.gameObject.SetActive(false);
+            // }
+        }
+        public void OpenDrawer(){
+            isDrawerOpen = true;
+            buttonDrawerParent.gameObject.SetActive(true);
+            // foreach(var button in buttonsInDrawer){
+            //     button.gameObject.SetActive(true);
+            // }
+        }
+
+        public void AddButtonToDrawer(GameObject buttonGO)
+        {
+            if(buttonsInDrawer.Any(p => p.name == buttonGO.name))
+                return;
+            // GameObject buttonGO = TouchscreenButtonEnableDisableManager.Instance.GetButtonBehaviour(buttonName).gameObject;
+            buttonsInDrawer.Add(buttonGO);
+            buttonGO.GetComponent<RectTransform>().SetParent(buttonDrawerParent, true);
+            buttonGO.GetComponent<RectTransform>().ForceUpdateRectTransforms();
+            buttonGO.GetComponent<TouchscreenButton>().SetSavedPosition(buttonGO.GetComponent<RectTransform>().anchoredPosition);
+            AddToSavedButtonsInMyDrawer(buttonGO.name);
+        }
+        public void RemoveButtonFromDrawer(GameObject buttonGO)
+        {
+            if(!buttonsInDrawer.Any(p => p.name == buttonGO.name) || buttonGO == gameObject)
+                return;
+            // int buttonInDrawerIndex = buttonsInDrawer.FindIndex(p => p.name == buttonName);
+            Transform buttonsParent = transform.parent;
+            while(buttonsParent.TryGetComponent(out TouchscreenButton b))
+                buttonsParent = buttonsParent.parent;
+            buttonGO.GetComponent<RectTransform>().SetParent(buttonsParent, true);
+            buttonGO.GetComponent<RectTransform>().ForceUpdateRectTransforms();
+            buttonGO.GetComponent<TouchscreenButton>().SetSavedPosition(buttonGO.GetComponent<RectTransform>().anchoredPosition);
+            
+            buttonsInDrawer.Remove(buttonGO);
+            RemoveFromSavedButtonsInMyDrawer(buttonGO.name);
+        }
+
         private void UpdateLabelText()
         {
             if (!label)
@@ -291,38 +338,83 @@ namespace DaggerfallWorkshop.Game
             return UnityUIUtils.GetScreenspaceRect(resizeButton, RenderCam).Contains(pointerData.position);
         }
 
-        #region overrides
+        private void OnPointerDownDuringEditMode(PointerEventData eventData)
+        {
+            s_shouldShowLabels = !canActionBeEdited;
+            transform.SetAsLastSibling();
+            pointerDownWasTouchingResizeButton = IsPointerTouchingResizeButton(eventData);
 
+            if (!pointerDownWasTouchingResizeButton)
+                TouchscreenInputManager.Instance.EditTouchscreenButton(this);
+        }
+        private void OnPointerUpDuringEditMode(PointerEventData eventData)
+        {
+            if(!rectTransform.anchoredPosition.Approximately(pointerDownButtonAnchoredPos))
+                SetSavedPosition(rectTransform.anchoredPosition);
+            if (!rectTransform.sizeDelta.Approximately(pointerDownButtonSizeDelta))
+                SetSavedSizeDelta(rectTransform.sizeDelta);
+        }
+        private void OnPointerDownDuringGameplay(PointerEventData eventData)
+        {
+            if(isButtonDrawer){
+                if(isDrawerOpen)
+                    CloseDrawer();
+                else
+                    OpenDrawer();
+            }
+            if (myAction > InputManager.Actions.Unknown) // if I have a custom action, add the action to the input manager manually
+            {
+                InputManager.Instance.AddAction(myAction);
+            }
+            else // else use our touchscreen input manager normally
+            {
+                KeyCode actionKey = InputManager.Instance.GetBinding(myAction);
+                TouchscreenInputManager.SetKey(actionKey, true);
+            }
+            if (myKey != KeyCode.None)
+                TouchscreenInputManager.SetKey(myKey, true);
+        }
+        private void OnPointerUpDuringGameplay(PointerEventData eventData)
+        {
+            KeyCode actionKey = InputManager.Instance.GetBinding(myAction);
+            TouchscreenInputManager.SetKey(actionKey, false);
+            if(myKey != KeyCode.None)
+                TouchscreenInputManager.SetKey(myKey, false);
+        }
+
+        #region overrides
+        
         public override void OnPointerDown(PointerEventData eventData)
         {
-            isPointerDown = true;
-            WasDragging = false;
-            pointerDownPos = eventData.position;
-            pointerDownButtonSizeDelta = rectTransform.sizeDelta;
-            pointerDownButtonAnchoredPos = rectTransform.anchoredPosition;
             Debug.Log("OnPointerDown " + gameObject.name);
-            if (TouchscreenInputManager.Instance.IsEditingControls)
+            if(s_drawerCurrentlyAddingTo)
             {
-                s_shouldShowLabels = !canActionBeEdited;
-                transform.SetAsLastSibling();
-                pointerDownWasTouchingResizeButton = IsPointerTouchingResizeButton(eventData);
-
-                if (!pointerDownWasTouchingResizeButton)
-                    TouchscreenInputManager.Instance.EditTouchscreenButton(this);
+                // add this button to the drawer
+                if(this != s_drawerCurrentlyAddingTo)
+                    s_drawerCurrentlyAddingTo.AddButtonToDrawer(gameObject);
+                s_drawerCurrentlyAddingTo = null;
+                // restore fade of all buttons
+                TouchscreenButtonEnableDisableManager.Instance.GetAllButtons().ForEach(p => p.image.color = new Color(1, 1, 1, 1));
             }
-            else
+            else if(s_drawerCurrentlyRemovingFrom)
             {
-                if (myAction > InputManager.Actions.Unknown) // if I have a custom action, add the action to the input manager manually
-                {
-                    InputManager.Instance.AddAction(myAction);
-                }
-                else // else use our touchscreen input manager normally
-                {
-                    KeyCode actionKey = InputManager.Instance.GetBinding(myAction);
-                    TouchscreenInputManager.SetKey(actionKey, true);
-                }
-                if (myKey != KeyCode.None)
-                    TouchscreenInputManager.SetKey(myKey, true);
+                // remove this button from the drawer
+                if(this != s_drawerCurrentlyRemovingFrom)
+                    s_drawerCurrentlyRemovingFrom.RemoveButtonFromDrawer(gameObject);
+                s_drawerCurrentlyRemovingFrom = null;
+                // restore fade of all buttons
+                TouchscreenButtonEnableDisableManager.Instance.GetAllButtons().ForEach(p => p.image.color = new Color(1, 1, 1, 1));
+            }
+            else{
+                isPointerDown = true;
+                WasDragging = false;
+                pointerDownPos = eventData.position;
+                pointerDownButtonSizeDelta = rectTransform.sizeDelta;
+                pointerDownButtonAnchoredPos = rectTransform.anchoredPosition;
+                if (TouchscreenInputManager.Instance.IsEditingControls)
+                    OnPointerDownDuringEditMode(eventData);
+                else
+                    OnPointerDownDuringGameplay(eventData);
             }
 
         }
@@ -332,17 +424,11 @@ namespace DaggerfallWorkshop.Game
             s_shouldShowLabels = true;
             if (TouchscreenInputManager.Instance.IsEditingControls)
             {
-                if(!rectTransform.anchoredPosition.Approximately(pointerDownButtonAnchoredPos))
-                    SetSavedPosition(rectTransform.anchoredPosition);
-                if (!rectTransform.sizeDelta.Approximately(pointerDownButtonSizeDelta))
-                    SetSavedSizeDelta(rectTransform.sizeDelta);
+                OnPointerUpDuringEditMode(eventData);
             }
             else
             {
-                KeyCode actionKey = InputManager.Instance.GetBinding(myAction);
-                TouchscreenInputManager.SetKey(actionKey, false);
-                if(myKey != KeyCode.None)
-                    TouchscreenInputManager.SetKey(myKey, false);
+                OnPointerUpDuringGameplay(eventData);
             }
             pointerDownWasTouchingResizeButton = false;
         }
@@ -396,6 +482,37 @@ namespace DaggerfallWorkshop.Game
             return new Vector2(x, y);
         }
 
+        private List<string> GetSavedButtonsInMyDrawer()
+        {
+            List<string> savedButtonsInDrawer = PlayerPrefs.GetString("TouchscreenButtonDrawerContents_" + gameObject.name, "").Split(',').Where(p => !string.IsNullOrEmpty(p)).ToList();
+            return savedButtonsInDrawer;
+        }
+        private void SetSavedButtonsInMyDrawer(List<string> buttons)
+        {
+            string savedButtonsInDrawerString = "";
+            foreach(string b in buttons)
+                savedButtonsInDrawerString += $"{b},";
+            savedButtonsInDrawerString = savedButtonsInDrawerString.TrimEnd(',');
+            PlayerPrefs.SetString("TouchscreenButtonDrawerContents_" + gameObject.name, savedButtonsInDrawerString);
+        }
+        private void AddToSavedButtonsInMyDrawer(string button)
+        {
+            List<string> savedButtonsInDrawer = GetSavedButtonsInMyDrawer();
+            savedButtonsInDrawer.Add(button);
+            SetSavedButtonsInMyDrawer(savedButtonsInDrawer);
+        }
+        private void RemoveFromSavedButtonsInMyDrawer(string button)
+        {
+            List<string> savedButtonsInDrawer = GetSavedButtonsInMyDrawer();
+            if(savedButtonsInDrawer.Contains(button))
+                savedButtonsInDrawer.Remove(button);
+            SetSavedButtonsInMyDrawer(savedButtonsInDrawer);
+        }
+        private void ClearSavedButtonsInMyDrawer()
+        {
+            SetSavedButtonsInMyDrawer(new List<string>());
+        }
+
         #endregion
 
         #region event listeners
@@ -404,18 +521,34 @@ namespace DaggerfallWorkshop.Game
         {
             if (resizeButton && !isEditingControls)
                 resizeButton.gameObject.SetActive(false);
+            if (isButtonDrawer)
+            {
+                if(isEditingControls)
+                    OpenDrawer();
+                else
+                    CloseDrawer();
+            }
         }
 
         private void Instance_onCurrentlyEditingButtonChanged(TouchscreenButton currentlyEditingButton)
         {
             if(resizeButton)
                 resizeButton.gameObject.SetActive(currentlyEditingButton == this && currentlyEditingButton.canButtonBeResized);
+
+            if(isButtonDrawer){
+                addToDrawerButton.gameObject.SetActive(currentlyEditingButton == this);
+                removeFromDrawerButton.gameObject.SetActive(currentlyEditingButton == this);
+            }
+
             if(currentlyEditingButton != this)
                 WasDragging = false;
         }
 
         private void Instance_onResetButtonTransformsToDefaultValues()
         {
+            if(transform.parent && transform.parent.parent && transform.parent.parent.TryGetComponent(out TouchscreenButton myDrawer)){
+                myDrawer.RemoveButtonFromDrawer(gameObject);
+            }
             rectTransform.anchoredPosition = defaultButtonPosition;
             rectTransform.sizeDelta = defaultButtonSizeDelta;
             SetSavedPosition(defaultButtonPosition);
