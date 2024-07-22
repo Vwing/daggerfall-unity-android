@@ -4,7 +4,7 @@
 
 This is an Android port of the original DFU project found at https://github.com/Interkarma/daggerfall-unity
 
-Please visit the [releases page](https://github.com/Vwing/daggerfall-unity-android/releases) if you're looking for the APK or instructions on setting it up.
+Please visit the [releases page](https://github.com/Vwing/daggerfall-unity-android/releases) if you're looking for the APK or instructions on setting it up. Join the #dfu-android channel of [Lysandus' Tomb Discord](https://discord.gg/rn95kxPGpg) if you have any questions or feedback.
 
 Any feature requests or bugs related to Android should be opened as an [issue](https://github.com/Vwing/daggerfall-unity-android/issues) on this fork, and *not* on the main project.
 
