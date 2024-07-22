@@ -7,25 +7,6 @@ using Newtonsoft.Json;
 
 namespace DaggerfallWorkshop.Game
 {
-    public enum TouchscreenButtonType
-    {
-        Button,
-        Drawer,
-        Joystick,
-        DPad
-    }
-    public enum TouchscreenButtonAnchor
-    { 
-        TopLeft,
-        TopMiddle,
-        TopRight,
-        MiddleLeft,
-        MiddleMiddle,
-        MiddleRight,
-        BottomLeft, 
-        BottomMiddle,
-        BottomRight,
-    }
     [System.Serializable]
     public class TouchscreenButtonSerializable
     {

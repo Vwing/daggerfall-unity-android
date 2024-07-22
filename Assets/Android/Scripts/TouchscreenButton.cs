@@ -20,6 +20,25 @@ using UnityEngine.UI;
 
 namespace DaggerfallWorkshop.Game
 {
+    public enum TouchscreenButtonType
+    {
+        Button,
+        Drawer,
+        Joystick,
+        DPad
+    }
+    public enum TouchscreenButtonAnchor
+    { 
+        TopLeft,
+        TopMiddle,
+        TopRight,
+        MiddleLeft,
+        MiddleMiddle,
+        MiddleRight,
+        BottomLeft, 
+        BottomMiddle,
+        BottomRight,
+    }
     public class TouchscreenButton : Button
     {
         public enum ResizeButtonPosition { TopLeft, TopRight, BottomLeft, BottomRight }
@@ -303,9 +322,115 @@ namespace DaggerfallWorkshop.Game
             }
         }
 
+        public void SetButtonAnchor(TouchscreenButtonAnchor anchor, bool positionStays = true)
+        {
+            Vector2 oldPivot = rectTransform.pivot;
+            Vector3 oldWorldPosition = rectTransform.position;
+
+            switch(anchor)
+            {
+                case TouchscreenButtonAnchor.TopLeft:
+                    rectTransform.anchorMin = rectTransform.anchorMax = rectTransform.pivot = new Vector2(0, 1);
+                    break;
+                case TouchscreenButtonAnchor.TopMiddle:
+                    rectTransform.anchorMin = rectTransform.anchorMax = rectTransform.pivot = new Vector2(.5f, 1);
+                    break;
+                case TouchscreenButtonAnchor.TopRight:
+                    rectTransform.anchorMin = rectTransform.anchorMax = rectTransform.pivot = new Vector2(1, 1);
+                    break;
+                case TouchscreenButtonAnchor.MiddleLeft:
+                    rectTransform.anchorMin = rectTransform.anchorMax = rectTransform.pivot = new Vector2(0, .5f);
+                    break;
+                case TouchscreenButtonAnchor.MiddleMiddle:
+                    rectTransform.anchorMin = rectTransform.anchorMax = rectTransform.pivot = new Vector2(.5f, .5f);
+                    break;
+                case TouchscreenButtonAnchor.MiddleRight:
+                    rectTransform.anchorMin = rectTransform.anchorMax = rectTransform.pivot = new Vector2(1, .5f);
+                    break;
+                case TouchscreenButtonAnchor.BottomLeft:
+                    rectTransform.anchorMin = rectTransform.anchorMax = rectTransform.pivot = new Vector2(0, 0);
+                    break;
+                case TouchscreenButtonAnchor.BottomMiddle:
+                    rectTransform.anchorMin = rectTransform.anchorMax = rectTransform.pivot = new Vector2(.5f, 0);
+                    break;
+                case TouchscreenButtonAnchor.BottomRight:
+                    rectTransform.anchorMin = rectTransform.anchorMax = rectTransform.pivot = new Vector2(1, 0);
+                    break;
+                default:
+                    break;
+            }
+
+            if (positionStays)
+            {
+                // change position of the button so that it returns to the same spot as before
+                Vector2 newPivot = rectTransform.pivot;
+                Vector2 size = rectTransform.rect.size;
+                Vector2 pivotDelta = newPivot - oldPivot;
+                Vector2 pivotDeltaPixels = new Vector2(pivotDelta.x * size.x, pivotDelta.y * size.y);
+                
+                LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransform);
+                rectTransform.position = oldWorldPosition;
+                LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransform);
+                rectTransform.anchoredPosition += pivotDeltaPixels;
+            }
+        }
+
+        public void SetLabelAnchor(TouchscreenButtonAnchor anchor)
+        {
+            switch(anchor)
+            {
+                case TouchscreenButtonAnchor.TopLeft:
+                    label.rectTransform.anchorMin = label.rectTransform.anchorMax = new Vector2(0, 1);
+                    label.rectTransform.pivot = new Vector2(0, 0);
+                    label.alignment = TMPro.TextAlignmentOptions.BottomLeft;
+                    break;
+                case TouchscreenButtonAnchor.TopMiddle:
+                    label.rectTransform.anchorMin = label.rectTransform.anchorMax = new Vector2(.5f, 1);
+                    label.rectTransform.pivot = new Vector2(.5f, 0);
+                    label.alignment = TMPro.TextAlignmentOptions.Bottom;
+                    break;
+                case TouchscreenButtonAnchor.TopRight:
+                    label.rectTransform.anchorMin = label.rectTransform.anchorMax = new Vector2(1, 1);
+                    label.rectTransform.pivot = new Vector2(1, 0);
+                    label.alignment = TMPro.TextAlignmentOptions.BottomRight;
+                    break;
+                case TouchscreenButtonAnchor.MiddleLeft:
+                    label.rectTransform.anchorMin = label.rectTransform.anchorMax = new Vector2(0, .5f);
+                    label.rectTransform.pivot = new Vector2(1, .5f);
+                    label.alignment = TMPro.TextAlignmentOptions.Right;
+                    break;
+                case TouchscreenButtonAnchor.MiddleMiddle:
+                    label.rectTransform.anchorMin = label.rectTransform.anchorMax = new Vector2(.5f, .5f);
+                    label.rectTransform.pivot = new Vector2(.5f, .5f);
+                    label.alignment = TMPro.TextAlignmentOptions.Center;
+                    break;
+                case TouchscreenButtonAnchor.MiddleRight:
+                    label.rectTransform.anchorMin = label.rectTransform.anchorMax = new Vector2(1, .5f);
+                    label.rectTransform.pivot = new Vector2(0, .5f);
+                    label.alignment = TMPro.TextAlignmentOptions.Left;
+                    break;
+                case TouchscreenButtonAnchor.BottomLeft:
+                    label.rectTransform.anchorMin = label.rectTransform.anchorMax = new Vector2(0, 0);
+                    label.rectTransform.pivot = new Vector2(0, 1);
+                    label.alignment = TMPro.TextAlignmentOptions.TopLeft;
+                    break;
+                case TouchscreenButtonAnchor.BottomMiddle:
+                    label.rectTransform.anchorMin = label.rectTransform.anchorMax = new Vector2(.5f, 0);
+                    label.rectTransform.pivot = new Vector2(.5f, 1);
+                    label.alignment = TMPro.TextAlignmentOptions.Top;
+                    break;
+                case TouchscreenButtonAnchor.BottomRight:
+                    label.rectTransform.anchorMin = label.rectTransform.anchorMax = new Vector2(1, 0);
+                    label.rectTransform.pivot = new Vector2(1, 1);
+                    label.alignment = TMPro.TextAlignmentOptions.TopRight;
+                    break;
+                default:
+                    break;
+            }
+        }
         private void UpdateResizeButtonPosition()
         {
-            if (resizeButton)
+            if (resizeButton && resizeButton.gameObject.activeSelf)
             {
                 switch (resizeButtonPos)
                 {
