@@ -30,9 +30,11 @@ namespace DaggerfallWorkshop.Game
         [SerializeField] private string defaultKeyCodeMapping;
         [SerializeField] private string actionMapping;
         [SerializeField] private string keyCodeMapping;
-        [SerializeField] private bool usesBuiltInTexture;
+        [SerializeField] private bool usesBuiltInTextures;
         [SerializeField] private string texturePath;
         [SerializeField] private string spriteName;
+        [SerializeField] private string knobTexturePath;
+        [SerializeField] private string knobSpriteName;
         [SerializeField] private string buttonsInDrawer;
 
         public string Name {get{return name;} set{name = value;}}
@@ -72,9 +74,11 @@ namespace DaggerfallWorkshop.Game
             get { return (KeyCode)Enum.Parse(typeof(KeyCode), keyCodeMapping); } 
             set { keyCodeMapping = value.ToString(); } 
         }
-        public bool UsesBuiltInTexture {get{return usesBuiltInTexture;} set{usesBuiltInTexture = value;}}
+        public bool UsesBuiltInTextures {get{return usesBuiltInTextures;} set{usesBuiltInTextures = value;}}
         public string TexturePath {get{return texturePath;} set{texturePath = value;}}
         public string SpriteName {get{return spriteName;} set{ spriteName = value;}}
+        public string KnobTexturePath {get{return knobTexturePath;} set{knobTexturePath = value;}}
+        public string KnobSpriteName {get{return knobSpriteName;} set{ knobSpriteName = value;}}
         public List<string> ButtonsInDrawer {
             get { return buttonsInDrawer.Split(new char[]{',', ' '}).ToList(); } 
             set { buttonsInDrawer = value == null ? "" : string.Join(',', value); }
@@ -82,9 +86,9 @@ namespace DaggerfallWorkshop.Game
 
         public TouchscreenButtonConfiguration(string name, Vector2 defaultPosition, Vector2 defaultScale, 
             TouchscreenButtonType buttonType = TouchscreenButtonType.Button, bool usesBuiltInTexture = true, string texturePath = "knob", 
-            string spriteName = "", InputManager.Actions defaultActionMapping = InputManager.Actions.Unknown, 
-            KeyCode defaultKeyCodeMapping = KeyCode.None, TouchscreenButtonAnchor anchor = TouchscreenButtonAnchor.MiddleMiddle, 
-            TouchscreenButtonAnchor labelAnchor = TouchscreenButtonAnchor.TopMiddle, 
+            string spriteName = "", string knobTexturePath = "", string knobSpriteName = "",
+            InputManager.Actions defaultActionMapping = InputManager.Actions.Unknown, KeyCode defaultKeyCodeMapping = KeyCode.None, 
+            TouchscreenButtonAnchor anchor = TouchscreenButtonAnchor.MiddleMiddle, TouchscreenButtonAnchor labelAnchor = TouchscreenButtonAnchor.TopMiddle, 
             bool canButtonBeEdited = true, bool canButtonBeRemoved = true, bool canButtonBeResized = true, List<string> buttonsInDrawer = null)
         {
             this.Name = name;
@@ -98,10 +102,44 @@ namespace DaggerfallWorkshop.Game
             this.LabelAnchor = labelAnchor;
             this.DefaultActionMapping = this.ActionMapping = defaultActionMapping;
             this.DefaultKeyCodeMapping = this.KeyCodeMapping = defaultKeyCodeMapping;
-            this.UsesBuiltInTexture = usesBuiltInTexture;
+            this.UsesBuiltInTextures = usesBuiltInTexture;
             this.TexturePath = texturePath;
             this.SpriteName = spriteName;
+            this.KnobTexturePath = knobTexturePath;
+            this.KnobSpriteName = knobSpriteName;
             this.ButtonsInDrawer = buttonsInDrawer;
+        }
+        public Sprite LoadSprite(bool isKnob = false)
+        {
+            string texPath = isKnob ? KnobTexturePath : TexturePath;
+            string spriteName = isKnob ? KnobSpriteName : SpriteName;
+            if(UsesBuiltInTextures){
+                if(!string.IsNullOrEmpty(spriteName)){
+                    return Resources.LoadAll<Sprite>(texPath).FirstOrDefault(p => p.name == spriteName);
+                } else {
+                    return Resources.Load<Sprite>(texPath);
+                }
+            } else {
+                if (File.Exists(texPath))
+                {
+                    byte[] fileData = File.ReadAllBytes(texPath);
+                    Texture2D texture = new Texture2D(0, 0);
+                    if (texture.LoadImage(fileData))
+                    {
+                        return Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+                    }
+                    else
+                    {
+                        Debug.LogError($"Failed to load image from path: {texPath}");
+                        return null;
+                    }
+                }
+                else
+                {
+                    Debug.LogError($"Texture file not found at path: {texPath}");
+                    return null;
+                }
+            }
         }
         public static TouchscreenButtonConfiguration ReadFromPath(string path)
         {
