@@ -9,7 +9,7 @@ using System.Linq;
 namespace DaggerfallWorkshop.Game
 {
     [System.Serializable]
-    public class TouchscreenButtonSerializable
+    public class TouchscreenButtonConfiguration
     {
         [SerializeField] private string name;
         [SerializeField] private string buttonType;
@@ -80,7 +80,7 @@ namespace DaggerfallWorkshop.Game
             set { buttonsInDrawer = value == null ? "" : string.Join(',', value); }
         }
 
-        public TouchscreenButtonSerializable(string name, Vector2 defaultPosition, Vector2 defaultScale, 
+        public TouchscreenButtonConfiguration(string name, Vector2 defaultPosition, Vector2 defaultScale, 
             TouchscreenButtonType buttonType = TouchscreenButtonType.Button, bool usesBuiltInTexture = true, string texturePath = "knob", 
             string spriteName = "", InputManager.Actions defaultActionMapping = InputManager.Actions.Unknown, 
             KeyCode defaultKeyCodeMapping = KeyCode.None, TouchscreenButtonAnchor anchor = TouchscreenButtonAnchor.MiddleMiddle, 
@@ -103,7 +103,7 @@ namespace DaggerfallWorkshop.Game
             this.SpriteName = spriteName;
             this.ButtonsInDrawer = buttonsInDrawer;
         }
-        public static TouchscreenButtonSerializable ReadFromPath(string path)
+        public static TouchscreenButtonConfiguration ReadFromPath(string path)
         {
             if(!File.Exists(path))
             {
@@ -112,7 +112,7 @@ namespace DaggerfallWorkshop.Game
             }
             return Deserialize(File.ReadAllText(path));
         }
-        public static void WriteToPath(TouchscreenButtonSerializable button, string path)
+        public static void WriteToPath(TouchscreenButtonConfiguration button, string path)
         {
             try{
                 File.WriteAllText(path, Serialize(button));
@@ -120,16 +120,16 @@ namespace DaggerfallWorkshop.Game
                 Debug.LogError($"Failed to write button {button} to path {path} due to error {e}");
             }
         }
-        public static TouchscreenButtonSerializable Deserialize(string json)
+        public static TouchscreenButtonConfiguration Deserialize(string json)
         {
             try {
-                return JsonConvert.DeserializeObject<TouchscreenButtonSerializable>(json);
+                return JsonConvert.DeserializeObject<TouchscreenButtonConfiguration>(json);
             } catch (Exception e) {
                 Debug.LogError($"Failed to deserialize json string into a TouchscreenButtonSerializable object due to error {e}\n\nJSON contents:\n{json}");
                 return null;
             }
         }
-        public static string Serialize(TouchscreenButtonSerializable button)
+        public static string Serialize(TouchscreenButtonConfiguration button)
         {
             try{
                 return JsonConvert.SerializeObject(button);
