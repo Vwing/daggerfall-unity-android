@@ -104,9 +104,13 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
         {
             get
             {
+#if UNITY_ANDROID && !UNITY_EDITOR
+                return TextureFormat.ARGB32;
+#else
                 return DaggerfallUnity.Instance.MaterialReader.CompressModdedTextures ?
                     TextureFormat.DXT5 :
                     TextureFormat.ARGB32;
+#endif
             }
         }
 
