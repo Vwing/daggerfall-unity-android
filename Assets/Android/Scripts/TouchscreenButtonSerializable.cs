@@ -4,6 +4,7 @@ using UnityEngine;
 using System;
 using System.IO;
 using Newtonsoft.Json;
+using System.Linq;
 
 namespace DaggerfallWorkshop.Game
 {
@@ -32,6 +33,7 @@ namespace DaggerfallWorkshop.Game
         [SerializeField] private bool usesBuiltInTexture;
         [SerializeField] private string texturePath;
         [SerializeField] private string spriteName;
+        [SerializeField] private string buttonsInDrawer;
 
         public string Name {get{return name;} set{name = value;}}
         public TouchscreenButtonType ButtonType 
@@ -73,13 +75,17 @@ namespace DaggerfallWorkshop.Game
         public bool UsesBuiltInTexture {get{return usesBuiltInTexture;} set{usesBuiltInTexture = value;}}
         public string TexturePath {get{return texturePath;} set{texturePath = value;}}
         public string SpriteName {get{return spriteName;} set{ spriteName = value;}}
+        public List<string> ButtonsInDrawer {
+            get { return buttonsInDrawer.Split(new char[]{',', ' '}).ToList(); } 
+            set { buttonsInDrawer = value == null ? "" : string.Join(',', value); }
+        }
 
         public TouchscreenButtonSerializable(string name, Vector2 defaultPosition, Vector2 defaultScale, 
             TouchscreenButtonType buttonType = TouchscreenButtonType.Button, bool usesBuiltInTexture = true, string texturePath = "knob", 
             string spriteName = "", InputManager.Actions defaultActionMapping = InputManager.Actions.Unknown, 
             KeyCode defaultKeyCodeMapping = KeyCode.None, TouchscreenButtonAnchor anchor = TouchscreenButtonAnchor.MiddleMiddle, 
             TouchscreenButtonAnchor labelAnchor = TouchscreenButtonAnchor.TopMiddle, 
-            bool canButtonBeEdited = true, bool canButtonBeRemoved = true, bool canButtonBeResized = true)
+            bool canButtonBeEdited = true, bool canButtonBeRemoved = true, bool canButtonBeResized = true, List<string> buttonsInDrawer = null)
         {
             this.Name = name;
             this.ButtonType = buttonType;
@@ -95,6 +101,7 @@ namespace DaggerfallWorkshop.Game
             this.UsesBuiltInTexture = usesBuiltInTexture;
             this.TexturePath = texturePath;
             this.SpriteName = spriteName;
+            this.ButtonsInDrawer = buttonsInDrawer;
         }
         public static TouchscreenButtonSerializable ReadFromPath(string path)
         {
