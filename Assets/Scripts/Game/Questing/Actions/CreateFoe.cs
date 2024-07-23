@@ -156,8 +156,8 @@ namespace DaggerfallWorkshop.Game.Questing
             // Try to deploy a pending spawns
             if (spawnInProgress)
             {
-                TryPlacement();
-                GameManager.Instance.RaiseOnEncounterEvent();
+                if(TryPlacement())
+                    GameManager.Instance.RaiseOnEncounterEvent();
             }
         }
 
@@ -180,7 +180,7 @@ namespace DaggerfallWorkshop.Game.Questing
             pendingFoesSpawned = 0;
         }
 
-        void TryPlacement()
+        bool TryPlacement()
         {
             PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
 
@@ -189,25 +189,25 @@ namespace DaggerfallWorkshop.Game.Questing
             if (isSendAction)
             {
                 if (!GameManager.Instance.PlayerGPS.IsPlayerInLocationRect)
-                    return;
+                    return false;
             }
 
             // Place in world near player depending on local area
             if (playerEnterExit.IsPlayerInsideBuilding)
             {
-                PlaceFoeBuildingInterior(pendingFoeGameObjects, playerEnterExit.Interior);
+                return PlaceFoeBuildingInterior(pendingFoeGameObjects, playerEnterExit.Interior);
             }
             else if (playerEnterExit.IsPlayerInsideDungeon)
             {
-                PlaceFoeDungeonInterior(pendingFoeGameObjects, playerEnterExit.Dungeon);
+                return PlaceFoeDungeonInterior(pendingFoeGameObjects, playerEnterExit.Dungeon);
             }
             else if (!playerEnterExit.IsPlayerInside && GameManager.Instance.PlayerGPS.IsPlayerInLocationRect)
             {
-                PlaceFoeExteriorLocation(pendingFoeGameObjects, GameManager.Instance.StreamingWorld.CurrentPlayerLocationObject);
+                return PlaceFoeExteriorLocation(pendingFoeGameObjects, GameManager.Instance.StreamingWorld.CurrentPlayerLocationObject);
             }
             else
             {
-                PlaceFoeWilderness(pendingFoeGameObjects);
+                return PlaceFoeWilderness(pendingFoeGameObjects);
             }
         }
 
@@ -217,7 +217,7 @@ namespace DaggerfallWorkshop.Game.Questing
 
         // Place foe somewhere near player when inside a building
         // Building interiors have spawn nodes for this placement so we can roll out foes all at once
-        void PlaceFoeBuildingInterior(GameObject[] gameObjects, DaggerfallInterior interiorParent)
+        bool PlaceFoeBuildingInterior(GameObject[] gameObjects, DaggerfallInterior interiorParent)
         {
             // Must have a DaggerfallLocation parent
             if (interiorParent == null)
@@ -229,35 +229,34 @@ namespace DaggerfallWorkshop.Game.Questing
             // Always place foes around player rather than use spawn points
             // Spawn points work well for "interior hunt" quests but less so for "directly attack the player"
             // Feel just placing freely will yield best results overall
-            PlaceFoeFreely(gameObjects, interiorParent.transform);
-            return;
+            return PlaceFoeFreely(gameObjects, interiorParent.transform);
         }
 
         // Place foe somewhere near player when inside a dungeon
         // Dungeons interiors are complex 3D environments with no navgrid/navmesh or known spawn nodes
-        void PlaceFoeDungeonInterior(GameObject[] gameObjects, DaggerfallDungeon dungeonParent)
+        bool PlaceFoeDungeonInterior(GameObject[] gameObjects, DaggerfallDungeon dungeonParent)
         {
-            PlaceFoeFreely(gameObjects, dungeonParent.transform);
+            return PlaceFoeFreely(gameObjects, dungeonParent.transform);
         }
 
         // Place foe somewhere near player when outside a location navgrid is available
         // Navgrid placement helps foe avoid getting tangled in geometry like buildings
-        void PlaceFoeExteriorLocation(GameObject[] gameObjects, DaggerfallLocation locationParent)
+        bool PlaceFoeExteriorLocation(GameObject[] gameObjects, DaggerfallLocation locationParent)
         {
-            PlaceFoeFreely(gameObjects, locationParent.transform);
+            return PlaceFoeFreely(gameObjects, locationParent.transform);
         }
 
         // Place foe somewhere near player when outside and no navgrid available
         // Wilderness environments are currently open so can be placed on ground anywhere within range
-        void PlaceFoeWilderness(GameObject[] gameObjects)
+        bool PlaceFoeWilderness(GameObject[] gameObjects)
         {
             // TODO this false will need to be true when start caching enemies
             GameManager.Instance.StreamingWorld.TrackLooseObject(gameObjects[pendingFoesSpawned], false, -1, -1, true);
-            PlaceFoeFreely(gameObjects, null, 8f, 25f);
+            return PlaceFoeFreely(gameObjects, null, 8f, 25f);
         }
 
         // Uses raycasts to find next spawn position just outside of player's field of view
-        void PlaceFoeFreely(GameObject[] gameObjects, Transform parent, float minDistance = 5f, float maxDistance = 20f)
+        bool PlaceFoeFreely(GameObject[] gameObjects, Transform parent, float minDistance = 5f, float maxDistance = 20f)
         {
             const float overlapSphereRadius = 0.65f;
             const float separationDistance = 1.25f;
@@ -265,7 +264,7 @@ namespace DaggerfallWorkshop.Game.Questing
 
             // Must have received a valid array
             if (gameObjects == null || gameObjects.Length == 0)
-                return;
+                return false;
 
             // Set parent - otherwise caller must set a parent
             if (parent)
@@ -288,17 +287,17 @@ namespace DaggerfallWorkshop.Game.Questing
             // Check for a hit
             Vector3 currentPoint;
             RaycastHit initialHit;
-            if (Physics.Raycast(ray, out initialHit, maxDistance, DFULayerMasks.CorporealMask))
+            if (Physics.Raycast(ray, out initialHit, maxDistance))
             {
                 float cos_normal = Vector3.Dot(- spawnDirection, initialHit.normal.normalized);
                 if (cos_normal < 1e-6)
-                    return;
+                    return false;
                 float separationForward = separationDistance / cos_normal;
 
                 // Must be greater than minDistance
                 float distanceSlack = initialHit.distance - separationForward - minDistance;
                 if (distanceSlack < 0f)
-                    return;
+                    return false;
 
                 // Separate out from hit point
                 float extraDistance = UnityEngine.Random.Range(0f, Mathf.Min(2f, distanceSlack));
@@ -313,14 +312,14 @@ namespace DaggerfallWorkshop.Game.Questing
             // Must be able to find a surface below
             RaycastHit floorHit;
             ray = new Ray(currentPoint, Vector3.down);
-            if (!Physics.Raycast(ray, out floorHit, maxFloorDistance, DFULayerMasks.CorporealMask))
-                return;
+            if (!Physics.Raycast(ray, out floorHit, maxFloorDistance))
+                return false;
 
             // Ensure this is open space
             Vector3 testPoint = floorHit.point + Vector3.up * separationDistance;
             Collider[] colliders = Physics.OverlapSphere(testPoint, overlapSphereRadius);
             if (colliders.Length > 0)
-                return;
+                return false;
 
             // This looks like a good spawn position
             pendingFoeGameObjects[pendingFoesSpawned].transform.position = testPoint;
@@ -336,6 +335,7 @@ namespace DaggerfallWorkshop.Game.Questing
 
             // Increment count
             pendingFoesSpawned++;
+            return true;
         }
 
         // Fine tunes foe position slightly based on mobility and enables GameObject
