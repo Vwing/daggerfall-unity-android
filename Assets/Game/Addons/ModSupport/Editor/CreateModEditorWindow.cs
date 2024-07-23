@@ -496,7 +496,7 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
                 return;
             }
 
-            var selection = Selection.GetFiltered<UnityEngine.Object>(SelectionMode.Deep);
+            var selection = Selection.GetFiltered<UnityEngine.Object>(SelectionMode.DeepAssets);
             if (selection.Length == 0)
             {
                 EditorUtility.DisplayDialog("Mod Builder", "No assets selected.", "OK");
@@ -513,7 +513,8 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
                 }
                 else if (!File.Exists(path))
                 {
-                    EditorUtility.DisplayDialog("Mod Builder", $"Path {path} doesn't exist.", "OK");
+                    if(!Directory.Exists(path))
+                        EditorUtility.DisplayDialog("Mod Builder", $"Path {path} doesn't exist.", "OK");
                 }
                 else
                 {
