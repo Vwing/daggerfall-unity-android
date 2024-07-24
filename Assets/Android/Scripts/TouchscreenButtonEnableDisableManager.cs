@@ -9,7 +9,7 @@ namespace DaggerfallWorkshop.Game
     public class TouchscreenButtonEnableDisableManager : MonoBehaviour
     {
         #region PlayerPrefs
-        private static bool LoadIsButtonEnabled(string buttonName, out bool isEnabled)
+        public static bool LoadIsButtonEnabled(string buttonName, out bool isEnabled)
         {
             string key = "IsTouchscreenButtonEnabled_" + buttonName;
             if (!PlayerPrefs.HasKey(key))
@@ -23,22 +23,22 @@ namespace DaggerfallWorkshop.Game
                 return true;
             }
         }
-        private static void SaveIsButtonEnabled(string buttonName, bool isEnabled)
+        public static void SaveIsButtonEnabled(string buttonName, bool isEnabled)
         {
             string key = "IsTouchscreenButtonEnabled_" + buttonName;
             PlayerPrefs.SetInt(key, isEnabled ? 1 : 0);
         }
-        private static void DeleteIsButtonEnabled(string buttonName)
+        public static void DeleteIsButtonEnabled(string buttonName)
         {
             string key = "IsTouchscreenButtonEnabled_" + buttonName;
             PlayerPrefs.DeleteKey(key);
         }
-        private bool IsLeftJoystickEnabled
+        public bool IsLeftJoystickEnabled
         {
             get { return PlayerPrefs.GetInt("IsTouchscreenButtonEnabled_LeftJoystick", 1) != 0; }
             set { PlayerPrefs.SetInt("IsTouchscreenButtonEnabled_LeftJoystick", value ? 1 : 0); }
         }
-        private bool IsRightJoystickEnabled
+        public bool IsRightJoystickEnabled
         {
             get { return PlayerPrefs.GetInt("IsTouchscreenButtonEnabled_RightJoystick", 1) != 0; }
             set { PlayerPrefs.SetInt("IsTouchscreenButtonEnabled_RightJoystick", value ? 1 : 0); }
@@ -59,17 +59,44 @@ namespace DaggerfallWorkshop.Game
             return true;
         }
         #endregion
-
+        [SerializeField] private GameObject buttonPrefabReference;
+        [SerializeField] private RectTransform buttonsParent;
         [SerializeField] private UnityUIPopup confirmationPopup;
         [SerializeField] private Button disableCurrentlyEditingButtonButton;
         [SerializeField] private TMPro.TMP_Dropdown enableNewButtonDropdown;
         [SerializeField] private List<TouchscreenButton> allButtons = new List<TouchscreenButton>();
+        [SerializeField] private List<TouchscreenButton> buttonsPool = new List<TouchscreenButton>();
         [SerializeField] private Toggle leftJoystickToggle, rightJoystickToggle;
         [SerializeField] private VirtualJoystick leftJoystick, rightJoystick;
         private Dictionary<string, bool> allButtonDefaultValues = new Dictionary<string, bool>();
 
         private bool hasShownPopup = false;
-
+        public void ReturnAllButtonsToPool()
+        {
+            foreach(var b in allButtons){
+                if(b){
+                    Destroy(b.image.sprite);
+                    Destroy(b.GetComponent<StaticTouchscreenJoystickOrDPad>().knob.GetComponent<Image>().sprite);
+                    b.gameObject.SetActive(false);
+                    buttonsPool.Add(b);
+                }
+            }
+            allButtons.Clear();
+        }
+        public void AddButtonFromPool(TouchscreenButtonConfiguration buttonConfig)
+        {
+            TouchscreenButton button;
+            if(buttonsPool.Count == 0){
+                button = GameObject.Instantiate(buttonPrefabReference, Vector3.zero, Quaternion.identity, buttonsParent).GetComponent<TouchscreenButton>();
+            }
+            else
+            {
+                button = buttonsPool[0];
+                buttonsPool.RemoveAt(0);
+            }
+            button.ApplyConfiguration(buttonConfig);
+            allButtons.Add(button);
+        }
         private void Awake()
         {
             if (!SetupSingleton())

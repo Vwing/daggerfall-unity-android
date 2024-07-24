@@ -11,88 +11,92 @@ namespace DaggerfallWorkshop.Game
     [System.Serializable]
     public class TouchscreenButtonConfiguration
     {
-        [SerializeField] private string name;
-        [SerializeField] private string buttonType;
-        [SerializeField] private bool canButtonBeEdited;
-        [SerializeField] private bool canButtonBeRemoved;
-        [SerializeField] private bool canButtonBeResized;
-        [SerializeField] private float defaultPositionX;
-        [SerializeField] private float defaultPositionY;
-        [SerializeField] private float positionX;
-        [SerializeField] private float positionY;
-        [SerializeField] private float defaultScaleX;
-        [SerializeField] private float defaultScaleY;
-        [SerializeField] private float scaleX;
-        [SerializeField] private float scaleY;
-        [SerializeField] private string anchor;
-        [SerializeField] private string labelAnchor;
-        [SerializeField] private string defaultActionMapping;
-        [SerializeField] private string defaultKeyCodeMapping;
-        [SerializeField] private string actionMapping;
-        [SerializeField] private string keyCodeMapping;
-        [SerializeField] private bool usesBuiltInTextures;
-        [SerializeField] private string texturePath;
-        [SerializeField] private string spriteName;
-        [SerializeField] private string knobTexturePath;
-        [SerializeField] private string knobSpriteName;
-        [SerializeField] private string buttonsInDrawer;
+        [SerializeField] [JsonProperty] private string name;
+        [SerializeField] [JsonProperty] private string buttonType;
+        [SerializeField] [JsonProperty] private bool isEnabled;
+        [SerializeField] [JsonProperty] private bool canButtonBeEdited;
+        [SerializeField] [JsonProperty] private bool canButtonBeRemoved;
+        [SerializeField] [JsonProperty] private bool canButtonBeResized;
+        [SerializeField] [JsonProperty] private float defaultPositionX;
+        [SerializeField] [JsonProperty] private float defaultPositionY;
+        [SerializeField] [JsonProperty] private float positionX;
+        [SerializeField] [JsonProperty] private float positionY;
+        [SerializeField] [JsonProperty] private float defaultScaleX;
+        [SerializeField] [JsonProperty] private float defaultScaleY;
+        [SerializeField] [JsonProperty] private float scaleX;
+        [SerializeField] [JsonProperty] private float scaleY;
+        [SerializeField] [JsonProperty] private string anchor;
+        [SerializeField] [JsonProperty] private string labelAnchor;
+        [SerializeField] [JsonProperty] private string defaultActionMapping;
+        [SerializeField] [JsonProperty] private string defaultKeyCodeMapping;
+        [SerializeField] [JsonProperty] private string actionMapping;
+        [SerializeField] [JsonProperty] private string keyCodeMapping;
+        [SerializeField] [JsonProperty] private bool usesBuiltInTextures;
+        [SerializeField] [JsonProperty] private string texturePath;
+        [SerializeField] [JsonProperty] private string spriteName;
+        [SerializeField] [JsonProperty] private string knobTexturePath;
+        [SerializeField] [JsonProperty] private string knobSpriteName;
+        [SerializeField] [JsonProperty] private string buttonsInDrawer;
 
-        public string Name {get{return name;} set{name = value;}}
-        public TouchscreenButtonType ButtonType 
+        
+        [JsonIgnore] public string Name {get{return name;} set{name = value;}}
+        [JsonIgnore] public TouchscreenButtonType ButtonType 
         {
             get { return (TouchscreenButtonType)Enum.Parse(typeof(TouchscreenButtonType), buttonType); } 
             set { buttonType = value.ToString(); } 
         }
-        public bool CanButtonBeEdited { get{return canButtonBeEdited;} set{ canButtonBeEdited = value;}}
-        public bool CanButtonBeRemoved { get{return canButtonBeRemoved;} set{ canButtonBeRemoved = value;}}
-        public bool CanButtonBeResized {get {return canButtonBeResized; } set {canButtonBeResized = value; }}
-        public Vector2 DefaultPosition{ get { return new Vector2(defaultPositionX, defaultPositionY); } set { defaultPositionX = value.x; defaultPositionY = value.y;} }
-        public Vector2 Position{ get { return new Vector2(positionX, positionY); } set { positionX = value.x; positionY = value.y;} }
-        public Vector2 DefaultScale { get { return new Vector2(defaultScaleX, defaultScaleY); } set { defaultScaleX = value.x; defaultScaleY = value.y;} }
-        public Vector2 Scale { get { return new Vector2(scaleX, scaleY); } set { scaleX = value.x; scaleY = value.y;} }
-        public TouchscreenButtonAnchor Anchor {
+        [JsonIgnore] public bool IsEnabled { get{return isEnabled;} set{ isEnabled = value;}}
+        [JsonIgnore] public bool CanButtonBeEdited { get{return canButtonBeEdited;} set{ canButtonBeEdited = value;}}
+        [JsonIgnore] public bool CanButtonBeRemoved { get{return canButtonBeRemoved;} set{ canButtonBeRemoved = value;}}
+        [JsonIgnore] public bool CanButtonBeResized {get {return canButtonBeResized; } set {canButtonBeResized = value; }}
+        [JsonIgnore] public Vector2 DefaultPosition{ get { return new Vector2(defaultPositionX, defaultPositionY); } set { defaultPositionX = value.x; defaultPositionY = value.y;} }
+        [JsonIgnore] public Vector2 Position{ get { return new Vector2(positionX, positionY); } set { positionX = value.x; positionY = value.y;} }
+        [JsonIgnore] public Vector2 DefaultScale { get { return new Vector2(defaultScaleX, defaultScaleY); } set { defaultScaleX = value.x; defaultScaleY = value.y;} }
+        [JsonIgnore] public Vector2 Scale { get { return new Vector2(scaleX, scaleY); } set { scaleX = value.x; scaleY = value.y;} }
+        [JsonIgnore] public TouchscreenButtonAnchor Anchor {
             get { return (TouchscreenButtonAnchor)Enum.Parse(typeof(TouchscreenButtonAnchor), anchor); }  
             set{ anchor = value.ToString(); } 
         }
-        public TouchscreenButtonAnchor LabelAnchor {
+        [JsonIgnore] public TouchscreenButtonAnchor LabelAnchor {
             get { return (TouchscreenButtonAnchor)Enum.Parse(typeof(TouchscreenButtonAnchor), labelAnchor); } 
             set { labelAnchor = value.ToString(); } 
         }
-        public InputManager.Actions DefaultActionMapping {
+        [JsonIgnore] public InputManager.Actions DefaultActionMapping {
             get { return (InputManager.Actions)Enum.Parse(typeof(InputManager.Actions), defaultActionMapping); }  
             set { defaultActionMapping = value.ToString(); } 
         }
-        public KeyCode DefaultKeyCodeMapping {
+        [JsonIgnore] public KeyCode DefaultKeyCodeMapping {
             get { return (KeyCode)Enum.Parse(typeof(KeyCode), defaultKeyCodeMapping); }
             set { defaultKeyCodeMapping = value.ToString(); } 
         }
-        public InputManager.Actions ActionMapping {
+        [JsonIgnore] public InputManager.Actions ActionMapping {
             get { return (InputManager.Actions)Enum.Parse(typeof(InputManager.Actions), actionMapping); } 
             set { actionMapping = value.ToString(); } 
         }
-        public KeyCode KeyCodeMapping {
+        [JsonIgnore] public KeyCode KeyCodeMapping {
             get { return (KeyCode)Enum.Parse(typeof(KeyCode), keyCodeMapping); } 
             set { keyCodeMapping = value.ToString(); } 
         }
-        public bool UsesBuiltInTextures {get{return usesBuiltInTextures;} set{usesBuiltInTextures = value;}}
-        public string TexturePath {get{return texturePath;} set{texturePath = value;}}
-        public string SpriteName {get{return spriteName;} set{ spriteName = value;}}
-        public string KnobTexturePath {get{return knobTexturePath;} set{knobTexturePath = value;}}
-        public string KnobSpriteName {get{return knobSpriteName;} set{ knobSpriteName = value;}}
-        public List<string> ButtonsInDrawer {
+        [JsonIgnore] public bool UsesBuiltInTextures {get{return usesBuiltInTextures;} set{usesBuiltInTextures = value;}}
+        [JsonIgnore] public string TexturePath {get{return texturePath;} set{texturePath = value;}}
+        [JsonIgnore] public string SpriteName {get{return spriteName;} set{ spriteName = value;}}
+        [JsonIgnore] public string KnobTexturePath {get{return knobTexturePath;} set{knobTexturePath = value;}}
+        [JsonIgnore] public string KnobSpriteName {get{return knobSpriteName;} set{ knobSpriteName = value;}}
+        [JsonIgnore] public List<string> ButtonsInDrawer {
             get { return buttonsInDrawer.Split(new char[]{',', ' '}).ToList(); } 
             set { buttonsInDrawer = value == null ? "" : string.Join(',', value); }
         }
 
         public TouchscreenButtonConfiguration(string name, Vector2 defaultPosition, Vector2 defaultScale, 
-            TouchscreenButtonType buttonType = TouchscreenButtonType.Button, bool usesBuiltInTexture = true, string texturePath = "knob", 
-            string spriteName = "", string knobTexturePath = "", string knobSpriteName = "",
+            TouchscreenButtonType buttonType = TouchscreenButtonType.Button, bool isEnabled = true, bool usesBuiltInTexture = true, 
+            string texturePath = "knob", string spriteName = "", string knobTexturePath = "", string knobSpriteName = "",
             InputManager.Actions defaultActionMapping = InputManager.Actions.Unknown, KeyCode defaultKeyCodeMapping = KeyCode.None, 
             TouchscreenButtonAnchor anchor = TouchscreenButtonAnchor.MiddleMiddle, TouchscreenButtonAnchor labelAnchor = TouchscreenButtonAnchor.TopMiddle, 
             bool canButtonBeEdited = true, bool canButtonBeRemoved = true, bool canButtonBeResized = true, List<string> buttonsInDrawer = null)
         {
             this.Name = name;
             this.ButtonType = buttonType;
+            this.IsEnabled = isEnabled;
             this.CanButtonBeEdited = canButtonBeEdited;
             this.CanButtonBeRemoved = canButtonBeRemoved;
             this.CanButtonBeResized = canButtonBeResized;
@@ -175,6 +179,35 @@ namespace DaggerfallWorkshop.Game
                 Debug.LogError($"Failed to serialize button {button.name} due to error {e}");
                 return "";
             }
+        }
+    }
+
+    public class TouchscreenButtonConfigurationComparer : IComparer<TouchscreenButtonConfiguration>
+    {
+        public int Compare(TouchscreenButtonConfiguration a, TouchscreenButtonConfiguration b)
+        {
+            // First, sort by button type to ensure Drawers are at the end
+            int typeComparison = a.ButtonType.CompareTo(b.ButtonType);
+            if (typeComparison != 0)
+            {
+                return typeComparison;
+            }
+
+            // For Drawer buttons, check if one contains the other
+            if (a.ButtonType == TouchscreenButtonType.Drawer && b.ButtonType == TouchscreenButtonType.Drawer)
+            {
+                bool aContainsB = a.ButtonsInDrawer.Contains(b.Name);
+                bool bContainsA = b.ButtonsInDrawer.Contains(a.Name);
+                if (aContainsB && !bContainsA)
+                {
+                    return 1;
+                }
+                else if (!aContainsB && bContainsA)
+                {
+                    return -1;
+                }
+            }
+            return 0;
         }
     }
 }

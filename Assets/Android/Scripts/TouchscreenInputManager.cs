@@ -23,6 +23,7 @@ namespace DaggerfallWorkshop.Game
         public static TouchscreenInputManager Instance { get; private set; }
 
         #region monobehaviour
+        [Header("References")]
         [SerializeField] private Camera renderCamera;
         [SerializeField] private Canvas canvas;
         [SerializeField] private CanvasGroup canvasGroup;
@@ -30,16 +31,24 @@ namespace DaggerfallWorkshop.Game
         [SerializeField] private Canvas editControlsCanvas;
         [SerializeField] private Canvas joystickCanvas;
         [SerializeField] private Canvas buttonsCanvas;
-        [SerializeField] private Canvas selectedButtonOptionsPanel;
         [SerializeField] private Button editControlsBackgroundButton;
-        [SerializeField] private TMPro.TMP_Dropdown editButtonMappingDropdown;
-        [SerializeField] private TMPro.TMP_Dropdown editButtonKeyCodeDropdown;
-        [SerializeField] private TMPro.TMP_Dropdown editButtonAnchorDropdown;
-        [SerializeField] private TMPro.TMP_Dropdown editLabelAnchorDropdown;
         [SerializeField] private TouchscreenButton editTouchscreenControlsButton;
-        [SerializeField] private Button resetButtonTransformsButton, resetButtonMappingsButton;
+        [Header("On-Screen Control Options")]
+        [SerializeField] private Button resetButtonTransformsButton;
+        [SerializeField] private Button resetButtonMappingsButton;
         [SerializeField] private Slider alphaSlider;
         [SerializeField] private Toggle joystickTapsActivateCenterObjectToggle;
+        [Header("Selected Button Options")]
+        [SerializeField] private Canvas selectedButtonOptionsPanel;
+        [SerializeField] private TMPro.TMP_Dropdown actionMappingDropdown;
+        [SerializeField] private TMPro.TMP_Dropdown keycodeDropdown;
+        [SerializeField] private TMPro.TMP_InputField buttonNameInputField; // new
+        [SerializeField] private TMPro.TMP_Dropdown buttonTypeDropdown; // new
+        [SerializeField] private TMPro.TMP_Dropdown anchorDropdown;
+        [SerializeField] private TMPro.TMP_Dropdown labelAnchorDropdown;
+        [SerializeField] private TMPro.TMP_Dropdown spriteDropdown; // new
+        [SerializeField] private TMPro.TMP_Dropdown knobSpriteDropdown; // new
+        [Header("Debug")]
         [SerializeField] private bool debugInEditor = false;
 
 
@@ -47,7 +56,8 @@ namespace DaggerfallWorkshop.Game
         public bool IsEditingControls { get { return editControlsCanvas.enabled; } }
         public TouchscreenButton CurrentlyEditingButton { get { return currentlyEditingButton; } }
         public UnityUIPopup ConfirmChangePopup { get{ return confirmChangePopup; } }
-        public float SavedAlpha { get { return PlayerPrefs.GetFloat("TouchscreenControlsAlpha", 1f); } private set { PlayerPrefs.SetFloat("TouchscreenControlsAlpha", value);} }
+        public Slider AlphaSlider{get{return alphaSlider;}}
+        public float SavedAlpha { get { return PlayerPrefs.GetFloat("TouchscreenControlsAlpha", 1f); } set { PlayerPrefs.SetFloat("TouchscreenControlsAlpha", value);} }
 
         public event System.Action<bool> onEditControlsToggled;
         public event System.Action<TouchscreenButton> onCurrentlyEditingButtonChanged;
@@ -104,37 +114,64 @@ namespace DaggerfallWorkshop.Game
             // edit controls canvas setup
 
             // Add button action mapping options
-            editButtonMappingDropdown.ClearOptions();
+            actionMappingDropdown.ClearOptions();
             List<string> options = new List<string>();
             for (int i = 0; i <= (int)InputManager.Actions.Custom10; ++i)
                 options.Add(((InputManager.Actions)i).ToString());
-            editButtonMappingDropdown.AddOptions(options);
-            editButtonMappingDropdown.onValueChanged.AddListener(OnEditControlsDropdownValueChanged);
+            actionMappingDropdown.AddOptions(options);
+            actionMappingDropdown.onValueChanged.AddListener(OnEditControlsDropdownValueChanged);
 
             // Add button key mapping options
             IEnumerable<int> allKeyCodes = ((KeyCode[])System.Enum.GetValues(typeof(KeyCode))).Select(s => (int)s);
-            editButtonKeyCodeDropdown.ClearOptions();
+            keycodeDropdown.ClearOptions();
             foreach (var key in allKeyCodes)
                 if (key < (int)KeyCode.Joystick1Button0 && !InputManager.unacceptedAnyKeys.Contains(key))
                     acceptedKeyCodes[((KeyCode)key).ToString()] = key;
-            editButtonKeyCodeDropdown.AddOptions(acceptedKeyCodes.Select(s => s.Key).ToList());
-            editButtonKeyCodeDropdown.onValueChanged.AddListener(OnEditControlsKeyCodeDropdownValueChanged);
+            keycodeDropdown.AddOptions(acceptedKeyCodes.Select(s => s.Key).ToList());
+            keycodeDropdown.onValueChanged.AddListener(OnEditControlsKeyCodeDropdownValueChanged);
+
+            // button name changed
+            buttonNameInputField.onEndEdit.AddListener(null);
+
+            // Add button type options
+            buttonTypeDropdown.ClearOptions();
+            options.Clear();
+            for (int i = 0; i <= (int)TouchscreenButtonType.CameraDPad; ++i)
+                options.Add(((TouchscreenButtonType)i).ToString());
+            buttonTypeDropdown.AddOptions(options);
+            buttonTypeDropdown.onValueChanged.AddListener(OnButtonTypeDropdownValueChanged);
 
             // Add button anchor mapping options
-            editButtonAnchorDropdown.ClearOptions();
+            anchorDropdown.ClearOptions();
             options.Clear();
             for (int i = 0; i <= (int)TouchscreenButtonAnchor.BottomRight; ++i)
                 options.Add(((TouchscreenButtonAnchor)i).ToString());
-            editButtonAnchorDropdown.AddOptions(options);
-            editButtonAnchorDropdown.onValueChanged.AddListener(OnButtonAnchorDropdownValueChanged);
+            anchorDropdown.AddOptions(options);
+            anchorDropdown.onValueChanged.AddListener(OnButtonAnchorDropdownValueChanged);
 
             // Add label anchor mapping options
-            editLabelAnchorDropdown.ClearOptions();
+            labelAnchorDropdown.ClearOptions();
             options.Clear();
             for (int i = 0; i <= (int)TouchscreenButtonAnchor.BottomRight; ++i)
                 options.Add(((TouchscreenButtonAnchor)i).ToString());
-            editLabelAnchorDropdown.AddOptions(options);
-            editLabelAnchorDropdown.onValueChanged.AddListener(OnLabelAnchorDropdownValueChanged);
+            labelAnchorDropdown.AddOptions(options);
+            labelAnchorDropdown.onValueChanged.AddListener(OnLabelAnchorDropdownValueChanged);
+
+            // Add sprite options
+            spriteDropdown.ClearOptions();
+            options.Clear();
+            // for (int i = 0; i <= (int)TouchscreenButtonAnchor.BottomRight; ++i)
+            //     options.Add(((TouchscreenButtonAnchor)i).ToString());
+            spriteDropdown.AddOptions(options);
+            spriteDropdown.onValueChanged.AddListener(null);
+
+            // Add knob sprite options
+            knobSpriteDropdown.ClearOptions();
+            options.Clear();
+            // for (int i = 0; i <= (int)TouchscreenButtonAnchor.BottomRight; ++i)
+            //     options.Add(((TouchscreenButtonAnchor)i).ToString());
+            knobSpriteDropdown.AddOptions(options);
+            knobSpriteDropdown.onValueChanged.AddListener(null);
 
             editControlsBackgroundButton.gameObject.SetActive(false);
 
@@ -175,10 +212,10 @@ namespace DaggerfallWorkshop.Game
             StopEditingCurrentButton();
             selectedButtonOptionsPanel.enabled = touchscreenButton && (touchscreenButton.CanActionBeEdited || touchscreenButton.CanButtonBeRemoved);
             if (touchscreenButton){
-                editButtonMappingDropdown.interactable = touchscreenButton.CanActionBeEdited;
-                editButtonMappingDropdown.value = (int)touchscreenButton.myAction;
-                editButtonKeyCodeDropdown.interactable = touchscreenButton.CanActionBeEdited;
-                editButtonKeyCodeDropdown.value = editButtonKeyCodeDropdown.options.FindIndex(p => p.text == touchscreenButton.myKey.ToString());
+                actionMappingDropdown.interactable = touchscreenButton.CanActionBeEdited;
+                actionMappingDropdown.value = (int)touchscreenButton.myAction;
+                keycodeDropdown.interactable = touchscreenButton.CanActionBeEdited;
+                keycodeDropdown.value = keycodeDropdown.options.FindIndex(p => p.text == touchscreenButton.myKey.ToString());
             }
             currentlyEditingButton = touchscreenButton;
             onCurrentlyEditingButtonChanged?.Invoke(touchscreenButton);
@@ -200,8 +237,15 @@ namespace DaggerfallWorkshop.Game
         {
             if (currentlyEditingButton)
             {
-                KeyCode newKey = (KeyCode)acceptedKeyCodes[editButtonKeyCodeDropdown.options[newVal].text];
+                KeyCode newKey = (KeyCode)acceptedKeyCodes[keycodeDropdown.options[newVal].text];
                 currentlyEditingButton.myKey = newKey;
+            }
+        }
+        private void OnButtonTypeDropdownValueChanged(int newVal)
+        {
+            if (currentlyEditingButton)
+            {
+                currentlyEditingButton.SetButtonType((TouchscreenButtonType)newVal);
             }
         }
         private void OnButtonAnchorDropdownValueChanged(int newVal)
