@@ -74,7 +74,6 @@ namespace DaggerfallWorkshop.Game.Utility
 
             // Try placing foes near player
             PlaceFoeFreely(pendingFoeGameObjects, MinDistance, MaxDistance);
-
             if (spawnInProgress)
                 GameManager.Instance.RaiseOnEncounterEvent();
         }
@@ -116,94 +115,68 @@ namespace DaggerfallWorkshop.Game.Utility
         #region Private Methods
 
         // Uses raycasts to find next spawn position just outside of player's field of view
-        void PlaceFoeFreely(GameObject[] gameObjects, float minDistance = 5f, float maxDistance = 20f)
+        bool PlaceFoeFreely(GameObject[] gameObjects, float minDistance = 5f, float maxDistance = 20f, bool placeEnemyBehindPlayer = true, int spawnTries = 15)
         {
-            const float overlapSphereRadius = 0.65f;
             const float separationDistance = 1.25f;
             const float maxFloorDistance = 4f;
 
             // Must have received a valid array
             if (gameObjects == null || gameObjects.Length == 0)
-                return;
+                return false;
 
             // Skip this foe if destroyed (e.g. player left building where pending)
             if (!gameObjects[pendingFoesSpawned])
             {
                 pendingFoesSpawned++;
-                return;
+                return true;
             }
-
+            var enemyCC = gameObjects[pendingFoesSpawned].GetComponent<CharacterController>();
+            var playerCC = GameManager.Instance.PlayerController;
             // Set parent if none specified already
             if (!gameObjects[pendingFoesSpawned].transform.parent)
                 gameObjects[pendingFoesSpawned].transform.parent = GameObjectHelper.GetBestParent();
-
-            // Get roation of spawn ray
-            Quaternion rotation;
-            if (LineOfSightCheck)
-            {
-                // Try to spawn outside of player's field of view
-                float directionAngle = GameManager.Instance.MainCamera.fieldOfView;
-                directionAngle += UnityEngine.Random.Range(0f, 4f);
-                if (UnityEngine.Random.Range(0f, 1f) > 0.5f)
-                    rotation = Quaternion.Euler(0, -directionAngle, 0);
+            
+            for(int i =0; i < spawnTries; ++i){
+                float fov = GameManager.Instance.MainCamera.fieldOfView;
+                float randomAngle;
+                if(!LineOfSightCheck || i > spawnTries/3) // give up on line of sight checks after we've tried a few times
+                    randomAngle = UnityEngine.Random.Range(-180, 180);
+                else if(!placeEnemyBehindPlayer)
+                    randomAngle = UnityEngine.Random.Range(-fov, fov);
                 else
-                    rotation = Quaternion.Euler(0, directionAngle, 0);
-            }
-            else
-            {
-                // Don't care about player's field of view (e.g. at rest)
-                rotation = Quaternion.Euler(0, UnityEngine.Random.Range(0, 360), 0);
-            }
+                    randomAngle = UnityEngine.Random.Range(fov, 180f) * (UnityEngine.Random.value < 0.5f ? -1f : 1f);
+                Quaternion rot = Quaternion.Euler(0, randomAngle, 0);
+                Vector3 angle = (rot * Vector3.forward).normalized;
+                Vector3 spawnDirection = GameManager.Instance.PlayerObject.transform.TransformDirection(angle).normalized;
+                Vector3 playerFootPosition = playerCC.transform.position + playerCC.center - playerCC.height/2f * Vector3.down;
+                Vector3 spawnPos = playerFootPosition  + spawnDirection * UnityEngine.Random.Range(minDistance, maxDistance);
+                enemyCC.transform.rotation = playerCC.transform.rotation;
+                spawnPos += enemyCC.height/2f * Vector3.up + enemyCC.center;
 
-            // Get direction vector and create a new ray
-            Vector3 angle = (rotation * Vector3.forward).normalized;
-            Vector3 spawnDirection = GameManager.Instance.PlayerObject.transform.TransformDirection(angle).normalized;
-            Ray ray = new Ray(GameManager.Instance.PlayerObject.transform.position, spawnDirection);
+                // Must be able to find a surface below
+                if (!Physics.Raycast(spawnPos, Vector3.down, out RaycastHit floorHit, maxFloorDistance, DFULayerMasks.CorporealMask))
+                    continue;
 
-            // Check for a hit
-            Vector3 currentPoint;
-            RaycastHit initialHit;
-            if (Physics.Raycast(ray, out initialHit, maxDistance, DFULayerMasks.CorporealMask))
-            {
-                float cos_normal = Vector3.Dot(-spawnDirection, initialHit.normal.normalized);
-                if (cos_normal < 1e-6)
-                    return;
-                float separationForward = separationDistance / cos_normal;
+                // Ensure this is open space
+                spawnPos = floorHit.point + enemyCC.center + (enemyCC.height/2f + .5f)*Vector3.up;
+                Collider[] colliders = Physics.OverlapCapsule(spawnPos - enemyCC.height/2f * Vector3.up, spawnPos + enemyCC.height/2f * Vector3.up, enemyCC.radius, DFULayerMasks.CorporealMask);
+                if (colliders.Length > 0)
+                    continue;
 
-                // Must be greater than minDistance
-                float distanceSlack = initialHit.distance - separationForward - minDistance;
-                if (distanceSlack < 0f)
-                    return;
+                Debug.Log($"FoeSpawner: Found an enemy spawn point in {i} tries");
+                // This looks like a good spawn position
+                pendingFoeGameObjects[pendingFoesSpawned].transform.position = spawnPos;
+                FinalizeFoe(pendingFoeGameObjects[pendingFoesSpawned]);
+                gameObjects[pendingFoesSpawned].transform.LookAt(GameManager.Instance.PlayerObject.transform.position);
 
-                // Separate out from hit point
-                float extraDistance = UnityEngine.Random.Range(0f, Mathf.Min(2f, distanceSlack));
-                currentPoint = initialHit.point - spawnDirection * (separationForward + extraDistance);
-            }
-            else
-            {
-                // Player might be in an open area (e.g. outdoors) pick a random point along spawn direction
-                currentPoint = GameManager.Instance.PlayerObject.transform.position + spawnDirection * UnityEngine.Random.Range(minDistance, maxDistance);
+                // Increment count
+                pendingFoesSpawned++;
+                return true;
             }
 
-            // Must be able to find a surface below
-            RaycastHit floorHit;
-            ray = new Ray(currentPoint, Vector3.down);
-            if (!Physics.Raycast(ray, out floorHit, maxFloorDistance, DFULayerMasks.CorporealMask))
-                return;
-
-            // Ensure this is open space
-            Vector3 testPoint = floorHit.point + Vector3.up * separationDistance;
-            Collider[] colliders = Physics.OverlapSphere(testPoint, overlapSphereRadius);
-            if (colliders.Length > 0)
-                return;
-
-            // This looks like a good spawn position
-            pendingFoeGameObjects[pendingFoesSpawned].transform.position = testPoint;
-            FinalizeFoe(pendingFoeGameObjects[pendingFoesSpawned]);
-            gameObjects[pendingFoesSpawned].transform.LookAt(GameManager.Instance.PlayerObject.transform.position);
-
-            // Increment count
-            pendingFoesSpawned++;
+            // Couldn't find a spawn point
+            Debug.Log($"FoeSPawner: Couldn't find a valid enemy spawn point after {spawnTries} tries.");
+            return false;
         }
 
         // Fine tunes foe position slightly based on mobility and enables GameObject

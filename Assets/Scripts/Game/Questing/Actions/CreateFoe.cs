@@ -154,10 +154,9 @@ namespace DaggerfallWorkshop.Game.Questing
             }
 
             // Try to deploy a pending spawns
-            if (spawnInProgress)
-            {
-                if(TryPlacement())
-                    GameManager.Instance.RaiseOnEncounterEvent();
+            if(spawnInProgress){
+                TryPlacement();
+                GameManager.Instance.RaiseOnEncounterEvent();
             }
         }
 
@@ -180,7 +179,7 @@ namespace DaggerfallWorkshop.Game.Questing
             pendingFoesSpawned = 0;
         }
 
-        bool TryPlacement()
+        bool TryPlacement(bool placeEnemyBehindPlayer = true)
         {
             PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
 
@@ -195,19 +194,19 @@ namespace DaggerfallWorkshop.Game.Questing
             // Place in world near player depending on local area
             if (playerEnterExit.IsPlayerInsideBuilding)
             {
-                return PlaceFoeBuildingInterior(pendingFoeGameObjects, playerEnterExit.Interior);
+                return PlaceFoeBuildingInterior(pendingFoeGameObjects, playerEnterExit.Interior, placeEnemyBehindPlayer);
             }
             else if (playerEnterExit.IsPlayerInsideDungeon)
             {
-                return PlaceFoeDungeonInterior(pendingFoeGameObjects, playerEnterExit.Dungeon);
+                return PlaceFoeDungeonInterior(pendingFoeGameObjects, playerEnterExit.Dungeon, placeEnemyBehindPlayer);
             }
             else if (!playerEnterExit.IsPlayerInside && GameManager.Instance.PlayerGPS.IsPlayerInLocationRect)
             {
-                return PlaceFoeExteriorLocation(pendingFoeGameObjects, GameManager.Instance.StreamingWorld.CurrentPlayerLocationObject);
+                return PlaceFoeExteriorLocation(pendingFoeGameObjects, GameManager.Instance.StreamingWorld.CurrentPlayerLocationObject, placeEnemyBehindPlayer);
             }
             else
             {
-                return PlaceFoeWilderness(pendingFoeGameObjects);
+                return PlaceFoeWilderness(pendingFoeGameObjects, placeEnemyBehindPlayer);
             }
         }
 
@@ -217,7 +216,7 @@ namespace DaggerfallWorkshop.Game.Questing
 
         // Place foe somewhere near player when inside a building
         // Building interiors have spawn nodes for this placement so we can roll out foes all at once
-        bool PlaceFoeBuildingInterior(GameObject[] gameObjects, DaggerfallInterior interiorParent)
+        bool PlaceFoeBuildingInterior(GameObject[] gameObjects, DaggerfallInterior interiorParent, bool placeEnemyBehindPlayer = true)
         {
             // Must have a DaggerfallLocation parent
             if (interiorParent == null)
@@ -229,115 +228,108 @@ namespace DaggerfallWorkshop.Game.Questing
             // Always place foes around player rather than use spawn points
             // Spawn points work well for "interior hunt" quests but less so for "directly attack the player"
             // Feel just placing freely will yield best results overall
-            return PlaceFoeFreely(gameObjects, interiorParent.transform);
+            return PlaceFoeFreely(gameObjects, interiorParent.transform, 5, 20, placeEnemyBehindPlayer);
         }
 
         // Place foe somewhere near player when inside a dungeon
         // Dungeons interiors are complex 3D environments with no navgrid/navmesh or known spawn nodes
-        bool PlaceFoeDungeonInterior(GameObject[] gameObjects, DaggerfallDungeon dungeonParent)
+        bool PlaceFoeDungeonInterior(GameObject[] gameObjects, DaggerfallDungeon dungeonParent, bool placeEnemyBehindPlayer = true)
         {
-            return PlaceFoeFreely(gameObjects, dungeonParent.transform);
+            return PlaceFoeFreely(gameObjects, dungeonParent.transform, 5, 20, placeEnemyBehindPlayer);
         }
 
         // Place foe somewhere near player when outside a location navgrid is available
         // Navgrid placement helps foe avoid getting tangled in geometry like buildings
-        bool PlaceFoeExteriorLocation(GameObject[] gameObjects, DaggerfallLocation locationParent)
+        bool PlaceFoeExteriorLocation(GameObject[] gameObjects, DaggerfallLocation locationParent, bool placeEnemyBehindPlayer = true)
         {
-            return PlaceFoeFreely(gameObjects, locationParent.transform);
+            return PlaceFoeFreely(gameObjects, locationParent.transform, 5, 20, placeEnemyBehindPlayer);
         }
 
         // Place foe somewhere near player when outside and no navgrid available
         // Wilderness environments are currently open so can be placed on ground anywhere within range
-        bool PlaceFoeWilderness(GameObject[] gameObjects)
+        bool PlaceFoeWilderness(GameObject[] gameObjects, bool placeEnemyBehindPlayer = true)
         {
             // TODO this false will need to be true when start caching enemies
             GameManager.Instance.StreamingWorld.TrackLooseObject(gameObjects[pendingFoesSpawned], false, -1, -1, true);
-            return PlaceFoeFreely(gameObjects, null, 8f, 25f);
+            return PlaceFoeFreely(gameObjects, null, 8f, 25f, placeEnemyBehindPlayer, false);
         }
 
         // Uses raycasts to find next spawn position just outside of player's field of view
-        bool PlaceFoeFreely(GameObject[] gameObjects, Transform parent, float minDistance = 5f, float maxDistance = 20f)
+        bool PlaceFoeFreely(GameObject[] gameObjects, Transform parent, float minDistance = 5f, float maxDistance = 20f, bool placeEnemyBehindPlayer = true, bool lineOfSight = true, int spawnTries = 15)
         {
-            const float overlapSphereRadius = 0.65f;
-            const float separationDistance = 1.25f;
             const float maxFloorDistance = 4f;
 
             // Must have received a valid array
             if (gameObjects == null || gameObjects.Length == 0)
                 return false;
 
+            // Skip this foe if destroyed (e.g. player left building where pending)
+            if (!gameObjects[pendingFoesSpawned])
+            {
+                pendingFoesSpawned++;
+                return true;
+            }
+
             // Set parent - otherwise caller must set a parent
             if (parent)
                 gameObjects[pendingFoesSpawned].transform.parent = parent;
 
-            // Select a left or right direction outside of camera FOV
-            Quaternion rotation;
-            float directionAngle = GameManager.Instance.MainCamera.fieldOfView;
-            directionAngle += UnityEngine.Random.Range(0f, 4f);
-            if (UnityEngine.Random.Range(0f, 1f) > 0.5f)
-                rotation = Quaternion.Euler(0, -directionAngle, 0);
-            else
-                rotation = Quaternion.Euler(0, directionAngle, 0);
+            var enemyCC = gameObjects[pendingFoesSpawned].GetComponent<CharacterController>();
+            var playerCC = GameManager.Instance.PlayerController;
+            // Set parent if none specified already
+            if (!gameObjects[pendingFoesSpawned].transform.parent)
+                gameObjects[pendingFoesSpawned].transform.parent = GameObjectHelper.GetBestParent();
+            
+            for(int i =0; i < spawnTries; ++i){
+                float fov = GameManager.Instance.MainCamera.fieldOfView;
+                float randomAngle;
+                if(!lineOfSight || i > spawnTries/3) // give up on line of sight checks after we've tried a few times
+                    randomAngle = UnityEngine.Random.Range(-180, 180);
+                else if(!placeEnemyBehindPlayer)
+                    randomAngle = UnityEngine.Random.Range(-fov, fov);
+                else
+                    randomAngle = UnityEngine.Random.Range(fov, 180f) * (UnityEngine.Random.value < 0.5f ? -1f : 1f);
+                Quaternion rot = Quaternion.Euler(0, randomAngle, 0);
+                Vector3 angle = (rot * Vector3.forward).normalized;
+                Vector3 spawnDirection = GameManager.Instance.PlayerObject.transform.TransformDirection(angle).normalized;
+                Vector3 playerFootPosition = playerCC.transform.position + playerCC.center - playerCC.height/2f * Vector3.down;
+                Vector3 spawnPos = playerFootPosition  + spawnDirection * UnityEngine.Random.Range(minDistance, maxDistance);
+                enemyCC.transform.rotation = playerCC.transform.rotation;
+                spawnPos += enemyCC.height/2f * Vector3.up + enemyCC.center;
 
-            // Get direction vector and create a new ray
-            Vector3 angle = (rotation * Vector3.forward).normalized;
-            Vector3 spawnDirection = GameManager.Instance.PlayerObject.transform.TransformDirection(angle).normalized;
-            Ray ray = new Ray(GameManager.Instance.PlayerObject.transform.position, spawnDirection);
+                // Must be able to find a surface below
+                if (!Physics.Raycast(spawnPos, Vector3.down, out RaycastHit floorHit, maxFloorDistance, DFULayerMasks.CorporealMask))
+                    continue;
 
-            // Check for a hit
-            Vector3 currentPoint;
-            RaycastHit initialHit;
-            if (Physics.Raycast(ray, out initialHit, maxDistance))
-            {
-                float cos_normal = Vector3.Dot(- spawnDirection, initialHit.normal.normalized);
-                if (cos_normal < 1e-6)
-                    return false;
-                float separationForward = separationDistance / cos_normal;
+                // Ensure this is open space
+                spawnPos = floorHit.point + enemyCC.center + (enemyCC.height/2f + .5f)*Vector3.up;
+                Collider[] colliders = Physics.OverlapCapsule(spawnPos - enemyCC.height/2f * Vector3.up, spawnPos + enemyCC.height/2f * Vector3.up, enemyCC.radius, DFULayerMasks.CorporealMask);
+                if (colliders.Length > 0)
+                    continue;
 
-                // Must be greater than minDistance
-                float distanceSlack = initialHit.distance - separationForward - minDistance;
-                if (distanceSlack < 0f)
-                    return false;
+                Debug.Log($"CreateFoe: Found an enemy spawn point in {i} tries");
 
-                // Separate out from hit point
-                float extraDistance = UnityEngine.Random.Range(0f, Mathf.Min(2f, distanceSlack));
-                currentPoint = initialHit.point - spawnDirection * (separationForward + extraDistance);
-            }
-            else
-            {
-                // Player might be in an open area (e.g. outdoors) pick a random point along spawn direction
-                currentPoint = GameManager.Instance.PlayerObject.transform.position + spawnDirection * UnityEngine.Random.Range(minDistance, maxDistance);
-            }
+                // This looks like a good spawn position
+                pendingFoeGameObjects[pendingFoesSpawned].transform.position = spawnPos;
+                FinalizeFoe(pendingFoeGameObjects[pendingFoesSpawned]);
+                gameObjects[pendingFoesSpawned].transform.LookAt(GameManager.Instance.PlayerObject.transform.position);
 
-            // Must be able to find a surface below
-            RaycastHit floorHit;
-            ray = new Ray(currentPoint, Vector3.down);
-            if (!Physics.Raycast(ray, out floorHit, maxFloorDistance))
-                return false;
+                // Send msg message on first spawn only
+                if (msgMessageID != -1)
+                {
+                    ParentQuest.ShowMessagePopup(msgMessageID, oncePerQuest:true);
+                    msgMessageID = -1;
+                }
 
-            // Ensure this is open space
-            Vector3 testPoint = floorHit.point + Vector3.up * separationDistance;
-            Collider[] colliders = Physics.OverlapSphere(testPoint, overlapSphereRadius);
-            if (colliders.Length > 0)
-                return false;
-
-            // This looks like a good spawn position
-            pendingFoeGameObjects[pendingFoesSpawned].transform.position = testPoint;
-            FinalizeFoe(pendingFoeGameObjects[pendingFoesSpawned]);
-            gameObjects[pendingFoesSpawned].transform.LookAt(GameManager.Instance.PlayerObject.transform.position);
-
-            // Send msg message on first spawn only
-            if (msgMessageID != -1)
-            {
-                ParentQuest.ShowMessagePopup(msgMessageID, oncePerQuest:true);
-                msgMessageID = -1;
+                // Increment count
+                pendingFoesSpawned++;
+                return true;
             }
 
-            // Increment count
-            pendingFoesSpawned++;
-            return true;
+            // Couldn't find a spawn point
+            Debug.Log($"CreateFoe: Couldn't find a valid enemy spawn point after {spawnTries} tries.");
+            return false;
         }
-
         // Fine tunes foe position slightly based on mobility and enables GameObject
         void FinalizeFoe(GameObject go)
         {
