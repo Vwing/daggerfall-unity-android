@@ -14947,11 +14947,11 @@ RectTransform:
   - {fileID: 2548303059384212473}
   m_Father: {fileID: 331666969234178365}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -248.9999, y: 459.68585}
-  m_SizeDelta: {x: 450, y: 42.4}
-  m_Pivot: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0.5, y: 1}
+  m_AnchorMax: {x: 0.5, y: 1}
+  m_AnchoredPosition: {x: -248.9999, y: 0}
+  m_SizeDelta: {x: 450, y: 42.400024}
+  m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &7927866132280421469
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -20004,19 +20004,11 @@ MonoBehaviour:
   buttonsCanvas: {fileID: 7547242008092373769}
   editControlsBackgroundButton: {fileID: 247350708399146264}
   editTouchscreenControlsButton: {fileID: 6218843937169634523}
+  selectedButtonOptionsPanel: {fileID: 4020767216874199066}
   resetButtonTransformsButton: {fileID: 1312493411870456332}
   resetButtonMappingsButton: {fileID: 403276337872581067}
   alphaSlider: {fileID: 5016482443786966207}
   joystickTapsActivateCenterObjectToggle: {fileID: 432467903877895486}
-  selectedButtonOptionsPanel: {fileID: 4020767216874199066}
-  actionMappingDropdown: {fileID: 71924089765068735}
-  keycodeDropdown: {fileID: 2701889145187263299}
-  buttonNameInputField: {fileID: 5941940032509570420}
-  buttonTypeDropdown: {fileID: 3700253783717944547}
-  anchorDropdown: {fileID: 9133446452888324150}
-  labelAnchorDropdown: {fileID: 402439041273365925}
-  spriteDropdown: {fileID: 2858161871778313855}
-  knobSpriteDropdown: {fileID: 8486896273288924493}
   debugInEditor: 1
 --- !u!114 &8965815436328658270
 MonoBehaviour:
@@ -20030,8 +20022,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9c0b54e336f34005bd1dfae90cbf4a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  buttonPrefabReference: {fileID: 0}
-  buttonsParent: {fileID: 0}
+  buttonPrefabReference: {fileID: 824395575733351886, guid: 2cab95263d5794de0a5c67954d890948,
+    type: 3}
+  buttonsParent: {fileID: 5944443424093154512}
   confirmationPopup: {fileID: 5003767334326965334}
   disableCurrentlyEditingButtonButton: {fileID: 6380235252373066810}
   enableNewButtonDropdown: {fileID: 1531151121734542615}
@@ -20083,6 +20076,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0a6dfd3c27e8406cb07b99db1bdae6c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  actionMappingDropdown: {fileID: 71924089765068735}
+  keycodeDropdown: {fileID: 2701889145187263299}
+  buttonNameInputField: {fileID: 5941940032509570420}
+  buttonTypeDropdown: {fileID: 3700253783717944547}
+  anchorDropdown: {fileID: 9133446452888324150}
+  labelAnchorDropdown: {fileID: 402439041273365925}
+  spriteDropdown: {fileID: 2858161871778313855}
+  knobSpriteDropdown: {fileID: 8486896273288924493}
 --- !u!1 &8586893107531859260
 GameObject:
   m_ObjectHideFlags: 0
@@ -22354,7 +22355,7 @@ MonoBehaviour:
   m_fontSizeMax: 72
   m_fontStyle: 1
   m_HorizontalAlignment: 2
-  m_VerticalAlignment: 1024
+  m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_wordSpacing: 0

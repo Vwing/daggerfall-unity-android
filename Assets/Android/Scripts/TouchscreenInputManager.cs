@@ -33,21 +33,12 @@ namespace DaggerfallWorkshop.Game
         [SerializeField] private Canvas buttonsCanvas;
         [SerializeField] private Button editControlsBackgroundButton;
         [SerializeField] private TouchscreenButton editTouchscreenControlsButton;
+        [SerializeField] private Canvas selectedButtonOptionsPanel;
         [Header("On-Screen Control Options")]
         [SerializeField] private Button resetButtonTransformsButton;
         [SerializeField] private Button resetButtonMappingsButton;
         [SerializeField] private Slider alphaSlider;
         [SerializeField] private Toggle joystickTapsActivateCenterObjectToggle;
-        [Header("Selected Button Options")]
-        [SerializeField] private Canvas selectedButtonOptionsPanel;
-        [SerializeField] private TMPro.TMP_Dropdown actionMappingDropdown;
-        [SerializeField] private TMPro.TMP_Dropdown keycodeDropdown;
-        [SerializeField] private TMPro.TMP_InputField buttonNameInputField; // new
-        [SerializeField] private TMPro.TMP_Dropdown buttonTypeDropdown; // new
-        [SerializeField] private TMPro.TMP_Dropdown anchorDropdown;
-        [SerializeField] private TMPro.TMP_Dropdown labelAnchorDropdown;
-        [SerializeField] private TMPro.TMP_Dropdown spriteDropdown; // new
-        [SerializeField] private TMPro.TMP_Dropdown knobSpriteDropdown; // new
         [Header("Debug")]
         [SerializeField] private bool debugInEditor = false;
 
@@ -66,8 +57,6 @@ namespace DaggerfallWorkshop.Game
 
         private RenderTexture renderTex;
         private TouchscreenButton currentlyEditingButton;
-
-        private Dictionary<string, int> acceptedKeyCodes = new Dictionary<string, int>();
 
         private void Awake()
         {
@@ -111,68 +100,6 @@ namespace DaggerfallWorkshop.Game
                 gameObject.SetActive(false);
             }
 
-            // edit controls canvas setup
-
-            // Add button action mapping options
-            actionMappingDropdown.ClearOptions();
-            List<string> options = new List<string>();
-            for (int i = 0; i <= (int)InputManager.Actions.Custom10; ++i)
-                options.Add(((InputManager.Actions)i).ToString());
-            actionMappingDropdown.AddOptions(options);
-            actionMappingDropdown.onValueChanged.AddListener(OnEditControlsDropdownValueChanged);
-
-            // Add button key mapping options
-            IEnumerable<int> allKeyCodes = ((KeyCode[])System.Enum.GetValues(typeof(KeyCode))).Select(s => (int)s);
-            keycodeDropdown.ClearOptions();
-            foreach (var key in allKeyCodes)
-                if (key < (int)KeyCode.Joystick1Button0 && !InputManager.unacceptedAnyKeys.Contains(key))
-                    acceptedKeyCodes[((KeyCode)key).ToString()] = key;
-            keycodeDropdown.AddOptions(acceptedKeyCodes.Select(s => s.Key).ToList());
-            keycodeDropdown.onValueChanged.AddListener(OnEditControlsKeyCodeDropdownValueChanged);
-
-            // button name changed
-            buttonNameInputField.onEndEdit.AddListener(null);
-
-            // Add button type options
-            buttonTypeDropdown.ClearOptions();
-            options.Clear();
-            for (int i = 0; i <= (int)TouchscreenButtonType.CameraDPad; ++i)
-                options.Add(((TouchscreenButtonType)i).ToString());
-            buttonTypeDropdown.AddOptions(options);
-            buttonTypeDropdown.onValueChanged.AddListener(OnButtonTypeDropdownValueChanged);
-
-            // Add button anchor mapping options
-            anchorDropdown.ClearOptions();
-            options.Clear();
-            for (int i = 0; i <= (int)TouchscreenButtonAnchor.BottomRight; ++i)
-                options.Add(((TouchscreenButtonAnchor)i).ToString());
-            anchorDropdown.AddOptions(options);
-            anchorDropdown.onValueChanged.AddListener(OnButtonAnchorDropdownValueChanged);
-
-            // Add label anchor mapping options
-            labelAnchorDropdown.ClearOptions();
-            options.Clear();
-            for (int i = 0; i <= (int)TouchscreenButtonAnchor.BottomRight; ++i)
-                options.Add(((TouchscreenButtonAnchor)i).ToString());
-            labelAnchorDropdown.AddOptions(options);
-            labelAnchorDropdown.onValueChanged.AddListener(OnLabelAnchorDropdownValueChanged);
-
-            // Add sprite options
-            spriteDropdown.ClearOptions();
-            options.Clear();
-            // for (int i = 0; i <= (int)TouchscreenButtonAnchor.BottomRight; ++i)
-            //     options.Add(((TouchscreenButtonAnchor)i).ToString());
-            spriteDropdown.AddOptions(options);
-            spriteDropdown.onValueChanged.AddListener(null);
-
-            // Add knob sprite options
-            knobSpriteDropdown.ClearOptions();
-            options.Clear();
-            // for (int i = 0; i <= (int)TouchscreenButtonAnchor.BottomRight; ++i)
-            //     options.Add(((TouchscreenButtonAnchor)i).ToString());
-            knobSpriteDropdown.AddOptions(options);
-            knobSpriteDropdown.onValueChanged.AddListener(null);
-
             editControlsBackgroundButton.gameObject.SetActive(false);
 
             alphaSlider.maxValue = 1;
@@ -211,12 +138,6 @@ namespace DaggerfallWorkshop.Game
 
             StopEditingCurrentButton();
             selectedButtonOptionsPanel.enabled = touchscreenButton && (touchscreenButton.CanActionBeEdited || touchscreenButton.CanButtonBeRemoved);
-            if (touchscreenButton){
-                actionMappingDropdown.interactable = touchscreenButton.CanActionBeEdited;
-                actionMappingDropdown.value = (int)touchscreenButton.myAction;
-                keycodeDropdown.interactable = touchscreenButton.CanActionBeEdited;
-                keycodeDropdown.value = keycodeDropdown.options.FindIndex(p => p.text == touchscreenButton.myKey.ToString());
-            }
             currentlyEditingButton = touchscreenButton;
             onCurrentlyEditingButtonChanged?.Invoke(touchscreenButton);
         }
@@ -225,42 +146,6 @@ namespace DaggerfallWorkshop.Game
             selectedButtonOptionsPanel.enabled = false;
             currentlyEditingButton = null;
             onCurrentlyEditingButtonChanged?.Invoke(null);
-        }
-        private void OnEditControlsDropdownValueChanged(int newVal)
-        {
-            if (currentlyEditingButton)
-            {
-                currentlyEditingButton.myAction = (InputManager.Actions)newVal;
-            }
-        }
-        private void OnEditControlsKeyCodeDropdownValueChanged(int newVal)
-        {
-            if (currentlyEditingButton)
-            {
-                KeyCode newKey = (KeyCode)acceptedKeyCodes[keycodeDropdown.options[newVal].text];
-                currentlyEditingButton.myKey = newKey;
-            }
-        }
-        private void OnButtonTypeDropdownValueChanged(int newVal)
-        {
-            if (currentlyEditingButton)
-            {
-                currentlyEditingButton.SetButtonType((TouchscreenButtonType)newVal);
-            }
-        }
-        private void OnButtonAnchorDropdownValueChanged(int newVal)
-        {
-            if (currentlyEditingButton)
-            {
-                currentlyEditingButton.SetButtonAnchor((TouchscreenButtonAnchor)newVal);
-            }
-        }
-        private void OnLabelAnchorDropdownValueChanged(int newVal)
-        {
-            if (currentlyEditingButton)
-            {
-                currentlyEditingButton.SetLabelAnchor((TouchscreenButtonAnchor)newVal);
-            }
         }
 
         private void OnEditControlsBackgroundClicked()
