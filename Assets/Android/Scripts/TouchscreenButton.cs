@@ -56,6 +56,7 @@ namespace DaggerfallWorkshop.Game
         public event System.Action Resized;
 
         public bool isButtonDrawer = false;
+        public bool isToggleForEditOnScreenControls = false;
         public InputManager.Actions myAction = InputManager.Actions.Unknown;
         public KeyCode myKey = KeyCode.None;
         public bool WasDragging { get; private set; }
@@ -67,6 +68,7 @@ namespace DaggerfallWorkshop.Game
         [SerializeField] private bool canButtonBeRemoved = true;
         [SerializeField] private ResizeButtonPosition resizeButtonPos = ResizeButtonPosition.TopLeft;
         [SerializeField] private TMPro.TMP_Text label;
+        [SerializeField] private TMPro.TMP_Text text;
         [SerializeField] private RectTransform resizeButton;
         [SerializeField] private Button addToDrawerButton;
         [SerializeField] private Button removeFromDrawerButton;
@@ -95,6 +97,12 @@ namespace DaggerfallWorkshop.Game
         private bool isPointerDown;
         private int snapScale = 20;
         private bool isDrawerOpen = true;
+
+        private bool isUsingBuiltInTextures = true;
+        private string texturePath = "knob";
+        private string spriteName = "";
+        private string knobTexturePath = "";
+        private string knobSpriteName = "";
 
         protected override void Start()
         {
@@ -172,6 +180,16 @@ namespace DaggerfallWorkshop.Game
                 });
                 CloseDrawer();
             }
+
+            isUsingBuiltInTextures = true;
+            texturePath = "linux_buttons_sheet";
+            spriteName = image.sprite.name;
+            knobTexturePath = "linux_buttons_sheet";
+            knobSpriteName = GetComponent<StaticTouchscreenJoystickOrDPad>().knob.GetComponent<Image>().sprite?.name;
+            if (isToggleForEditOnScreenControls)
+                onClick.AddListener(OnEditControlsButtonClicked);
+            else
+                onClick.RemoveListener(OnEditControlsButtonClicked);
         }
         public void ApplyConfiguration(TouchscreenButtonConfiguration config)
         {
@@ -197,17 +215,46 @@ namespace DaggerfallWorkshop.Game
             isUsingBuiltInTextures = config.UsesBuiltInTextures;
             gameObject.SetActive(config.IsEnabled);
             UpdateLabelText();
+            text.text = config.Text;
+            text.enabled = !string.IsNullOrEmpty(text.text);
             resizeButton.gameObject.SetActive(false);
+            isToggleForEditOnScreenControls = config.IsToggleForEditOnScreenControls;
+            if (isToggleForEditOnScreenControls)
+                onClick.AddListener(OnEditControlsButtonClicked);
+            else
+                onClick.RemoveListener(OnEditControlsButtonClicked);
+        }
+        private void OnEditControlsButtonClicked()
+        {
+            TouchscreenInputManager.Instance.OnEditTouchscreenControlsButtonClicked(this);
         }
         public TouchscreenButtonConfiguration GetCurrentConfiguration()
         {
+#if UNITY_EDITOR
+            LoadSavedSettingsDeprecated();
+#endif
             TouchscreenButtonConfiguration config = new(
-                gameObject.name, defaultButtonPosition, defaultButtonSizeDelta, currentButtonType, gameObject.activeSelf,
+                gameObject.name, defaultButtonPosition, defaultButtonSizeDelta, GetCurrentButtonType(), gameObject.activeSelf,
                 isUsingBuiltInTextures, texturePath, spriteName, knobTexturePath, knobSpriteName, defaultAction, defaultKeyCode, 
                 GetAnchorType(rectTransform.anchorMin), GetAnchorType(label.rectTransform.anchorMin), canActionBeEdited, canButtonBeRemoved,
-                canButtonBeResized, GetSavedButtonsInMyDrawer()
+                canButtonBeResized, GetSavedButtonsInMyDrawer(), text.text, isToggleForEditOnScreenControls
             );
             return config;
+        }
+        private TouchscreenButtonType GetCurrentButtonType()
+        {
+            var dpadOrJoystick = GetComponent<StaticTouchscreenJoystickOrDPad>();
+            if (isButtonDrawer)
+                return TouchscreenButtonType.Drawer;
+            else if (dpadOrJoystick.enabled)
+            {
+                if (dpadOrJoystick.horizontalAxisAction == InputManager.AxisActions.MovementHorizontal)
+                    return dpadOrJoystick.isDPad ? TouchscreenButtonType.DPad : TouchscreenButtonType.Joystick;
+                else
+                    return dpadOrJoystick.isDPad ? TouchscreenButtonType.CameraDPad : TouchscreenButtonType.CameraJoystick;
+            }
+            else
+                return TouchscreenButtonType.Button;
         }
         private TouchscreenButtonAnchor GetAnchorType(Vector2 anchor)
         {
@@ -232,12 +279,6 @@ namespace DaggerfallWorkshop.Game
             else
                 return TouchscreenButtonAnchor.BottomMiddle;
         }
-        private TouchscreenButtonType currentButtonType = TouchscreenButtonType.Button;
-        private bool isUsingBuiltInTextures = true;
-        private string texturePath = "knob";
-        private string spriteName = "";
-        private string knobTexturePath = "";
-        private string knobSpriteName = "";
         public void SetButtonType(TouchscreenButtonType buttonType, List<string> buttonsInDrawer = null)
         {
             ClearButtonsFromDrawer();
@@ -300,7 +341,6 @@ namespace DaggerfallWorkshop.Game
                 default:
                     break;
             }
-            currentButtonType = buttonType;
         }
         public void CloseDrawer(){
             isDrawerOpen = false;

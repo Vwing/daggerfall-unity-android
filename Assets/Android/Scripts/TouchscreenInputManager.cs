@@ -108,7 +108,6 @@ namespace DaggerfallWorkshop.Game
 
             joystickTapsActivateCenterObjectToggle.isOn = VirtualJoystick.JoystickTapsShouldActivateCenterObject;
 
-            editTouchscreenControlsButton.onClick.AddListener(OnEditTouchscreenControlsButtonClicked);
             resetButtonMappingsButton.onClick.AddListener(OnResetButtonMappingsButtonClicked);
             resetButtonTransformsButton.onClick.AddListener(OnResetButtonTransformsButtonClicked);
             editControlsBackgroundButton.onClick.AddListener(OnEditControlsBackgroundClicked);
@@ -163,9 +162,9 @@ namespace DaggerfallWorkshop.Game
             //if (!resetButtonMappingsButton.WasDragging)
             confirmChangePopup.Open("Do you want to reset the button action mappings to their default values?", onResetButtonActionsToDefaultValues);
         }
-        private void OnEditTouchscreenControlsButtonClicked()
+        public void OnEditTouchscreenControlsButtonClicked(TouchscreenButton editControlsButton)
         {
-            if (!editTouchscreenControlsButton.WasDragging)
+            if (!editControlsButton.WasDragging)
             {
                 editControlsCanvas.enabled = !editControlsCanvas.enabled;
                 editControlsBackgroundButton.gameObject.SetActive(editControlsCanvas.enabled);

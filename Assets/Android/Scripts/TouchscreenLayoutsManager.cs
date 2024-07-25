@@ -5,59 +5,19 @@ using System.IO;
 using System;
 using Newtonsoft.Json;
 using System.Linq;
+using UnityEngine.UI;
 
 namespace DaggerfallWorkshop.Game
 {
-    [System.Serializable]
-    public class TouchscreenLayoutConfiguration
-    {
-        public string name = "default-layout";
-        public float defaultUIAlpha = 1f;
-        public bool leftJoystickEnabled = true;
-        public bool rightJoystickEnabled = true;
-        public bool screenTapsActivateCenterObject = true;
-        public List<TouchscreenButtonConfiguration> buttons;
-
-        public static TouchscreenLayoutConfiguration ReadFromPath(string path)
-        {
-            if(!File.Exists(path))
-            {
-                Debug.LogError($"TouchscreenButtonSerializable file path {path} does not exist");
-                return null;
-            }
-            return Deserialize(File.ReadAllText(path));
-        }
-        public static void WriteToPath(TouchscreenLayoutConfiguration layout, string path)
-        {
-            try{
-                File.WriteAllText(path, Serialize(layout));
-            } catch (Exception e) {
-                Debug.LogError($"Failed to write button {layout} to path {path} due to error {e}");
-            }
-        }
-        public static TouchscreenLayoutConfiguration Deserialize(string json)
-        {
-            try {
-                return JsonConvert.DeserializeObject<TouchscreenLayoutConfiguration>(json);
-            } catch (Exception e) {
-                Debug.LogError($"Failed to deserialize json string into a TouchscreenLayoutConfiguration object due to error {e}\n\nJSON contents:\n{json}");
-                return null;
-            }
-        }
-        public static string Serialize(TouchscreenLayoutConfiguration layout)
-        {
-            try{
-                return JsonConvert.SerializeObject(layout);
-            } catch (Exception e) {
-                Debug.LogError($"Failed to serialize layout {layout.name} due to error {e}");
-                return "";
-            }
-        }
-
-    }
     public class TouchscreenLayoutsManager : MonoBehaviour
     {
         public static TouchscreenLayoutsManager Instance{get; private set;}
+
+        [SerializeField] private Button importLayoutButton;
+        [SerializeField] private Button exportLayoutButton;
+        [SerializeField] private Button importTextureButton;
+        [SerializeField] private TMPro.TMP_Dropdown layoutsDropdown;
+        [SerializeField] private TMPro.TMP_InputField currentLayoutName;
 
         [Header("Selected Button Options")]
         [SerializeField] private TMPro.TMP_Dropdown actionMappingDropdown;
@@ -72,25 +32,52 @@ namespace DaggerfallWorkshop.Game
         private List<TouchscreenLayoutConfiguration> loadedLayouts = new List<TouchscreenLayoutConfiguration>();
         private Dictionary<string, int> acceptedKeyCodes = new Dictionary<string, int>();
 
+        public static string LayoutsPath { get { return Path.Combine(Paths.PersistentDataPath, "TouchscreenLayouts"); } }
+
 
         private void Awake()
         {
             Instance = this;
         }
-        private IEnumerator Start()
+        private void ImportNewLayout()
         {
-            yield return null;
-            yield return null;
+            // TODO: Open native file picker so you can choose a layout to load
+            LoadLayoutFromPath(currentLayoutName.text);
+        }
+        private void ImportNewButtonTexture()
+        {
+            // TODO: Open native file picker so you can choose a texture to add
+        }
+        private void ExportCurrentLayout()
+        {
+            // TODO: Open native file picker so that you can choose where it goes
+            WriteLayoutToPath(GetCurrentLayoutConfig());
+        }
+        private void AttemptRenamingLayout(string newLayoutName)
+        {
+
+        }
+        private void Start()
+        {
+            importLayoutButton.onClick.AddListener(ImportNewLayout);
+            exportLayoutButton.onClick.AddListener(ExportCurrentLayout);
+            importTextureButton.onClick.AddListener(ImportNewButtonTexture);
+            currentLayoutName.onEndEdit.AddListener(AttemptRenamingLayout);
             SetupUI();
             TouchscreenInputManager.Instance.onCurrentlyEditingButtonChanged += SetupUIBasedOnCurrentlyEditingTouchscreenButton;
-#if UNITY_EDITOR
-            yield return new WaitForSecondsRealtime(1f);
-            var layout = GetCurrentLayoutConfig();
-            string path = Path.Combine(Paths.PersistentDataPath, layout.name + ".json");
+            //Invoke("WriteCurrentLayoutToPath", 1f);
+        }
+        private void LoadLayoutFromPath(string layoutName)
+        {
+            var layout = TouchscreenLayoutConfiguration.ReadFromPath(Path.Combine(LayoutsPath, layoutName + ".json"));
+            LoadLayout(layout);
+        }
+        private void WriteLayoutToPath(TouchscreenLayoutConfiguration layout)
+        {
+            string path = Path.Combine(LayoutsPath, layout.name + ".json");
             TouchscreenLayoutConfiguration.WriteToPath(layout, path);
-            string buttonPath = Path.Combine(Paths.PersistentDataPath, layout.buttons[0].Name + ".json");
+            string buttonPath = Path.Combine(LayoutsPath, layout.buttons[0].Name + ".json");
             TouchscreenButtonConfiguration.WriteToPath(layout.buttons[0], buttonPath);
-#endif
         }
         public void SetupUIBasedOnCurrentlyEditingTouchscreenButton(TouchscreenButton touchscreenButton)
         {
@@ -101,8 +88,18 @@ namespace DaggerfallWorkshop.Game
                 keycodeDropdown.value = keycodeDropdown.options.FindIndex(p => p.text == touchscreenButton.myKey.ToString());
             }
         }
+        private void UpdateLayoutsDropdown()
+        {
+            layoutsDropdown.ClearOptions();
+            List<string> layoutsInPath = Directory.GetFiles(LayoutsPath).Where(p => File.Exists(p) && Path.GetExtension(p) == ".json").Select(p => Path.GetFileNameWithoutExtension(p)).ToList();
+            layoutsDropdown.AddOptions(layoutsInPath);
+        }
+        private void OnLayoutsDropdownValueChanged(int newVal) => LoadLayoutFromPath(layoutsDropdown.options[newVal].text);
         private void SetupUI()
         {
+            UpdateLayoutsDropdown();
+            layoutsDropdown.onValueChanged.AddListener(OnLayoutsDropdownValueChanged);
+
             // edit controls canvas setup
 
             // Add button action mapping options
@@ -227,5 +224,61 @@ namespace DaggerfallWorkshop.Game
                 TouchscreenInputManager.Instance.CurrentlyEditingButton.SetLabelAnchor((TouchscreenButtonAnchor)newVal);
             }
         }
+    }
+    [System.Serializable]
+    public class TouchscreenLayoutConfiguration
+    {
+        public string name = "default-layout";
+        public float defaultUIAlpha = 1f;
+        public bool leftJoystickEnabled = true;
+        public bool rightJoystickEnabled = true;
+        public bool screenTapsActivateCenterObject = true;
+        public List<TouchscreenButtonConfiguration> buttons;
+
+        public static TouchscreenLayoutConfiguration ReadFromPath(string path)
+        {
+            if (!File.Exists(path))
+            {
+                Debug.LogError($"TouchscreenButtonSerializable file path {path} does not exist");
+                return null;
+            }
+            return Deserialize(File.ReadAllText(path));
+        }
+        public static void WriteToPath(TouchscreenLayoutConfiguration layout, string path)
+        {
+            try
+            {
+                File.WriteAllText(path, Serialize(layout));
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to write button {layout} to path {path} due to error {e}");
+            }
+        }
+        public static TouchscreenLayoutConfiguration Deserialize(string json)
+        {
+            try
+            {
+                return JsonConvert.DeserializeObject<TouchscreenLayoutConfiguration>(json);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to deserialize json string into a TouchscreenLayoutConfiguration object due to error {e}\n\nJSON contents:\n{json}");
+                return null;
+            }
+        }
+        public static string Serialize(TouchscreenLayoutConfiguration layout)
+        {
+            try
+            {
+                return JsonConvert.SerializeObject(layout, Formatting.Indented);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to serialize layout {layout.name} due to error {e}");
+                return "";
+            }
+        }
+
     }
 }

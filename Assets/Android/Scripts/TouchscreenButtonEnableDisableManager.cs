@@ -75,8 +75,8 @@ namespace DaggerfallWorkshop.Game
         {
             foreach(var b in allButtons){
                 if(b){
-                    Destroy(b.image.sprite);
-                    Destroy(b.GetComponent<StaticTouchscreenJoystickOrDPad>().knob.GetComponent<Image>().sprite);
+                    b.image.sprite = null;
+                    b.GetComponent<StaticTouchscreenJoystickOrDPad>().knob.GetComponent<Image>().sprite = null;
                     b.gameObject.SetActive(false);
                     buttonsPool.Add(b);
                 }

@@ -71,8 +71,8 @@ TextureImporter:
     buildTarget: DefaultTexturePlatform
     maxTextureSize: 16384
     resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
+    textureFormat: 4
+    textureCompression: 2
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -113,8 +113,8 @@ TextureImporter:
       name: dpad
       rect:
         serializedVersion: 2
-        x: 16
-        y: 160
+        x: 115
+        y: 170
         width: 32
         height: 32
       alignment: 0
@@ -135,7 +135,7 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 160
-        y: 160
+        y: 170
         width: 32
         height: 32
       alignment: 0
@@ -152,11 +152,11 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: joystick_left
+      name: joystick
       rect:
         serializedVersion: 2
         x: 16
-        y: 112
+        y: 131
         width: 32
         height: 32
       alignment: 0
@@ -173,32 +173,11 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: joystick_right
-      rect:
-        serializedVersion: 2
-        x: 64
-        y: 112
-        width: 32
-        height: 32
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 944104874dcf94218b7eae3ed84881c5
-      internalID: 1996604764
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
       name: button_zr
       rect:
         serializedVersion: 2
         x: 112
-        y: 112
+        y: 131
         width: 32
         height: 32
       alignment: 0
@@ -219,7 +198,7 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 160
-        y: 112
+        y: 131
         width: 32
         height: 32
       alignment: 0
@@ -240,7 +219,7 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 16
-        y: 80
+        y: 99
         width: 32
         height: 16
       alignment: 0
@@ -261,7 +240,7 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 64
-        y: 80
+        y: 99
         width: 32
         height: 16
       alignment: 0
@@ -282,7 +261,7 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 115
-        y: 80
+        y: 99
         width: 26
         height: 16
       alignment: 0
@@ -303,7 +282,7 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 163
-        y: 80
+        y: 99
         width: 26
         height: 16
       alignment: 0
@@ -324,7 +303,7 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 16
-        y: 32
+        y: 51
         width: 32
         height: 32
       alignment: 0
@@ -345,7 +324,7 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 64
-        y: 32
+        y: 51
         width: 32
         height: 32
       alignment: 0
@@ -366,7 +345,7 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 112
-        y: 32
+        y: 51
         width: 32
         height: 32
       alignment: 0
@@ -387,7 +366,7 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 160
-        y: 32
+        y: 51
         width: 32
         height: 32
       alignment: 0
@@ -407,12 +386,12 @@ TextureImporter:
       name: joystick_left_knob
       rect:
         serializedVersion: 2
-        x: 23
-        y: 9
+        x: 57
+        y: 137
         width: 18
         height: 18
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
@@ -420,6 +399,153 @@ TextureImporter:
       bones: []
       spriteID: 9489148dde89e44f08f0859b7eff2b1e
       internalID: 1208766975
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: joystick_right_knob
+      rect:
+        serializedVersion: 2
+        x: 83
+        y: 137
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 61188808b2bff3c4a937d95fb2cfd05f
+      internalID: 1232557572
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: button_up
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 10
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 391b4439e673c0b4a8f3dcbf52a6bbf9
+      internalID: 2109543974
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: button_right
+      rect:
+        serializedVersion: 2
+        x: 65
+        y: 10
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8ff37b57ad9314849bb9734033975709
+      internalID: 218222132
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: button_down
+      rect:
+        serializedVersion: 2
+        x: 112
+        y: 10
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 58bbb17f855368f478c05c07cf237959
+      internalID: -1626520922
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: button_left
+      rect:
+        serializedVersion: 2
+        x: 160
+        y: 10
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7749fa0ca298b1b42b81d2e2ef92b028
+      internalID: -358542355
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: button_blank
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 170
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ff640ad403c7b0c42bb2681599618d80
+      internalID: -1636377528
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: knob
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 170
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d40ff56c88985494bac25292d80543a0
+      internalID: -1734073853
       vertices: []
       indices: 
       edges: []
@@ -435,24 +561,29 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     nameFileIdTable:
+      button_blank: -1636377528
+      button_down: 111818585
       button_east: -732737211
+      button_left: 2095522544
       button_mode: 511349112
       button_north: 452829144
+      button_right: 218222132
       button_select: 198465398
       button_south: 630316967
       button_start: 40622418
       button_triggerleft: -37177314
       button_triggerright: 594940194
+      button_up: 2109543974
       button_west: 150110942
       button_zl: 306893514
       button_zr: -525889725
       dpad: 136484422
-      joystick_left: -986790513
+      joystick: -986790513
       joystick_left_knob: 1208766975
       joystick_right: 1996604764
-      linux_buttons_sheet_1: 111818585
+      joystick_right_knob: 1232557572
+      knob: -1734073853
       linux_buttons_sheet_10: 1023164867
-      linux_buttons_sheet_2: 2095522544
       linux_buttons_sheet_23: 2002058950
       linux_buttons_sheet_3: 659356175
       linux_buttons_sheet_4: 1994724656
