@@ -110,7 +110,7 @@ namespace DaggerfallWorkshop.Game
             if (Application.isPlaying)
             {
                 snapScale = Mathf.RoundToInt(k_defaultSnapScaleAt1080p * (Mathf.Min(Screen.height, Screen.width) / 1080f));
-                LoadSavedSettingsDeprecated();
+                //LoadSavedSettingsDeprecated();
                 addToDrawerButton.onClick.AddListener(OnAddToDrawerButtonClicked);
                 removeFromDrawerButton.onClick.AddListener(OnRemoveFromDrawerButtonClicked);
                 TouchscreenInputManager.Instance.onEditControlsToggled += Instance_onEditControlsToggled;
@@ -173,7 +173,7 @@ namespace DaggerfallWorkshop.Game
 
             if(isButtonDrawer){
                 buttonsInDrawer.AddRange(GetSavedButtonsInMyDrawer().Select(s => TouchscreenButtonEnableDisableManager.Instance.GetButtonBehaviour(s).gameObject));
-                buttonsInDrawer.ForEach( delegate(GameObject but)
+                buttonsInDrawer.ForEach(delegate(GameObject but)
                 {
                     but.transform.SetParent(buttonDrawerParent, true); 
                     but.GetComponent<RectTransform>().anchoredPosition = but.GetComponent<TouchscreenButton>().GetSavedPosition();
@@ -183,13 +183,17 @@ namespace DaggerfallWorkshop.Game
 
             isUsingBuiltInTextures = true;
             texturePath = "linux_buttons_sheet";
-            spriteName = image.sprite.name;
-            knobTexturePath = "linux_buttons_sheet";
-            knobSpriteName = GetComponent<StaticTouchscreenJoystickOrDPad>().knob.GetComponent<Image>().sprite?.name;
-            if (isToggleForEditOnScreenControls)
-                onClick.AddListener(OnEditControlsButtonClicked);
+            spriteName = ((Image)targetGraphic).sprite.name;
+            if (!GetComponent<StaticTouchscreenJoystickOrDPad>().enabled)
+            {
+                knobTexturePath = "";
+                knobSpriteName = "";
+            }
             else
-                onClick.RemoveListener(OnEditControlsButtonClicked);
+            {
+                knobTexturePath = "linux_buttons_sheet";
+                knobSpriteName = GetComponent<StaticTouchscreenJoystickOrDPad>().knob.GetComponent<Image>().sprite?.name;
+            }
         }
         public void ApplyConfiguration(TouchscreenButtonConfiguration config)
         {
@@ -211,28 +215,28 @@ namespace DaggerfallWorkshop.Game
             canActionBeEdited = config.CanButtonBeEdited;
             canButtonBeResized = config.CanButtonBeResized;
             gameObject.name = config.Name;
-            image.sprite = config.LoadSprite();
+            ((Image)targetGraphic).sprite = config.LoadSprite();
             isUsingBuiltInTextures = config.UsesBuiltInTextures;
+            texturePath = config.TexturePath;
+            spriteName = config.SpriteName;
+            knobTexturePath = config.TexturePath;
+            knobSpriteName = config.KnobSpriteName;
+
             gameObject.SetActive(config.IsEnabled);
             UpdateLabelText();
             text.text = config.Text;
             text.enabled = !string.IsNullOrEmpty(text.text);
             resizeButton.gameObject.SetActive(false);
             isToggleForEditOnScreenControls = config.IsToggleForEditOnScreenControls;
-            if (isToggleForEditOnScreenControls)
-                onClick.AddListener(OnEditControlsButtonClicked);
-            else
-                onClick.RemoveListener(OnEditControlsButtonClicked);
-        }
-        private void OnEditControlsButtonClicked()
-        {
-            TouchscreenInputManager.Instance.OnEditTouchscreenControlsButtonClicked(this);
+
+            if (config.IsToggleForEditOnScreenControls)
+                Debug.Log($"{config.Position} {config.DefaultPosition} {rectTransform.anchoredPosition}");
         }
         public TouchscreenButtonConfiguration GetCurrentConfiguration()
         {
-#if UNITY_EDITOR
-            LoadSavedSettingsDeprecated();
-#endif
+            //#if UNITY_EDITOR
+            //LoadSavedSettingsDeprecated();
+            //#endif
             TouchscreenButtonConfiguration config = new(
                 gameObject.name, defaultButtonPosition, defaultButtonSizeDelta, GetCurrentButtonType(), gameObject.activeSelf,
                 isUsingBuiltInTextures, texturePath, spriteName, knobTexturePath, knobSpriteName, defaultAction, defaultKeyCode, 
@@ -260,22 +264,22 @@ namespace DaggerfallWorkshop.Game
         {
             if (Mathf.Approximately(anchor.x, 0) && Mathf.Approximately(anchor.y, 0))
                 return TouchscreenButtonAnchor.BottomLeft;
-            else if (Mathf.Approximately(anchor.x, 1) && Mathf.Approximately(anchor.y, 0))
+            else if (Mathf.Approximately(anchor.x, 0.5f) && Mathf.Approximately(anchor.y, 0))
                 return TouchscreenButtonAnchor.BottomMiddle;
-            else if (Mathf.Approximately(anchor.x, 0.5f) && Mathf.Approximately(anchor.y, 1))
+            else if (Mathf.Approximately(anchor.x, 1) && Mathf.Approximately(anchor.y, 0))
                 return TouchscreenButtonAnchor.BottomRight;
-            else if (Mathf.Approximately(anchor.x, 0) && Mathf.Approximately(anchor.y, 1))
-                return TouchscreenButtonAnchor.TopLeft;
-            else if (Mathf.Approximately(anchor.x, 1) && Mathf.Approximately(anchor.y, 1))
-                return TouchscreenButtonAnchor.TopMiddle;
-            else if (Mathf.Approximately(anchor.x, 0.5f) && Mathf.Approximately(anchor.y, 0.5f))
-                return TouchscreenButtonAnchor.TopRight;
             else if (Mathf.Approximately(anchor.x, 0) && Mathf.Approximately(anchor.y, 0.5f))
                 return TouchscreenButtonAnchor.MiddleLeft;
+            else if (Mathf.Approximately(anchor.x, 0.5f) && Mathf.Approximately(anchor.y, 0.5f))
+                return TouchscreenButtonAnchor.MiddleMiddle;
             else if (Mathf.Approximately(anchor.x, 1) && Mathf.Approximately(anchor.y, 0.5f))
                 return TouchscreenButtonAnchor.MiddleRight;
-            else if (Mathf.Approximately(anchor.x, 0.5f) && Mathf.Approximately(anchor.y, 0))
-                return TouchscreenButtonAnchor.MiddleMiddle;
+            else if (Mathf.Approximately(anchor.x, 0) && Mathf.Approximately(anchor.y, 1))
+                return TouchscreenButtonAnchor.TopLeft;
+            else if (Mathf.Approximately(anchor.x, 0.5f) && Mathf.Approximately(anchor.y, 1))
+                return TouchscreenButtonAnchor.TopMiddle;
+            else if (Mathf.Approximately(anchor.x, 1) && Mathf.Approximately(anchor.y, 1))
+                return TouchscreenButtonAnchor.TopRight;
             else
                 return TouchscreenButtonAnchor.BottomMiddle;
         }
@@ -400,10 +404,12 @@ namespace DaggerfallWorkshop.Game
             else if (!Application.isPlaying || TouchscreenInputManager.Instance.IsEditingControls && s_shouldShowLabels)
             {
                 label.enabled = true;
-                if(myKey == KeyCode.None)
+                if (myKey == KeyCode.None)
                     label.text = myAction.ToString();
                 else if (myAction == InputManager.Actions.Unknown)
                     label.text = myKey.ToString();
+                else if (isToggleForEditOnScreenControls)
+                    label.text = "Toggle Edit Mode";
                 else
                     label.text = $"{myAction} + {myKey}";
             }
@@ -709,6 +715,8 @@ namespace DaggerfallWorkshop.Game
             {
                 OnPointerUpDuringGameplay(eventData);
             }
+            if(isToggleForEditOnScreenControls)
+                TouchscreenInputManager.Instance.OnEditTouchscreenControlsButtonClicked(this);
             pointerDownWasTouchingResizeButton = false;
         }
 

@@ -59,6 +59,7 @@ namespace DaggerfallWorkshop.Game
         }
         private void Start()
         {
+            currentLayoutName.text = "default-layout";
             importLayoutButton.onClick.AddListener(ImportNewLayout);
             exportLayoutButton.onClick.AddListener(ExportCurrentLayout);
             importTextureButton.onClick.AddListener(ImportNewButtonTexture);
@@ -66,14 +67,23 @@ namespace DaggerfallWorkshop.Game
             SetupUI();
             TouchscreenInputManager.Instance.onCurrentlyEditingButtonChanged += SetupUIBasedOnCurrentlyEditingTouchscreenButton;
             //Invoke("WriteCurrentLayoutToPath", 1f);
+            //Invoke("ImportNewLayout", 1.5f);
+        }
+        private void OnDestroy()
+        {
+            if(TouchscreenInputManager.Instance)
+                TouchscreenInputManager.Instance.onCurrentlyEditingButtonChanged -= SetupUIBasedOnCurrentlyEditingTouchscreenButton;
         }
         private void LoadLayoutFromPath(string layoutName)
         {
+            Debug.Log($"TouchscreenLayoutsManager: Loading {layoutName} from {LayoutsPath}");
             var layout = TouchscreenLayoutConfiguration.ReadFromPath(Path.Combine(LayoutsPath, layoutName + ".json"));
             LoadLayout(layout);
         }
+        private void WriteCurrentLayoutToPath() => WriteLayoutToPath(GetCurrentLayoutConfig());
         private void WriteLayoutToPath(TouchscreenLayoutConfiguration layout)
         {
+            Debug.Log($"TouchscreenLayoutsManager: Writing {layout.name} to {LayoutsPath}");
             string path = Path.Combine(LayoutsPath, layout.name + ".json");
             TouchscreenLayoutConfiguration.WriteToPath(layout, path);
             string buttonPath = Path.Combine(LayoutsPath, layout.buttons[0].Name + ".json");
@@ -86,6 +96,15 @@ namespace DaggerfallWorkshop.Game
                 actionMappingDropdown.value = (int)touchscreenButton.myAction;
                 keycodeDropdown.interactable = touchscreenButton.CanActionBeEdited;
                 keycodeDropdown.value = keycodeDropdown.options.FindIndex(p => p.text == touchscreenButton.myKey.ToString());
+
+                var buttonConfig = touchscreenButton.GetCurrentConfiguration();
+                buttonNameInputField.text = buttonConfig.Name;
+                buttonTypeDropdown.value = buttonTypeDropdown.options.FindIndex(p => p.text == buttonConfig.ButtonType.ToString());
+                anchorDropdown.value = anchorDropdown.options.FindIndex(p => p.text == buttonConfig.Anchor.ToString());
+                labelAnchorDropdown.value = labelAnchorDropdown.options.FindIndex(p => p.text == buttonConfig.LabelAnchor.ToString());
+                //spriteDropdown.value = spriteDropdown.options.FindIndex(p => p.text == buttonConfig.LabelAnchor.ToString());
+                //knobSpriteDropdown.value = knobSpriteDropdown.options.FindIndex(p => p.text == buttonConfig.LabelAnchor.ToString());
+
             }
         }
         private void UpdateLayoutsDropdown()
@@ -162,6 +181,7 @@ namespace DaggerfallWorkshop.Game
             knobSpriteDropdown.AddOptions(options);
             knobSpriteDropdown.onValueChanged.AddListener(null);
         }
+        public void LoadDefaultLayout() => LoadLayoutFromPath("default-layout");
         public void LoadLayout(TouchscreenLayoutConfiguration layoutConfig)
         {
             TouchscreenButtonEnableDisableManager.Instance.ReturnAllButtonsToPool();

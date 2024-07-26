@@ -195,8 +195,11 @@ namespace DaggerfallWorkshop.Game
         {
             var option = enableNewButtonDropdown.options[val];
             Button selectedButton = allButtons.Find(p => p.gameObject.name == option.text);
-            SetButtonEnabled(selectedButton, true);
-            UpdateEnableNewButtonDropdown();
+            if (selectedButton)
+            {
+                SetButtonEnabled(selectedButton, true);
+                UpdateEnableNewButtonDropdown();
+            }
         }
         // disables the button currently being edited, and updates the dropdown list.
         private void DisableCurrentlyEditingButton()

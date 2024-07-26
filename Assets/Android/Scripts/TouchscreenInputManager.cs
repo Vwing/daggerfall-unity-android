@@ -113,6 +113,9 @@ namespace DaggerfallWorkshop.Game
             editControlsBackgroundButton.onClick.AddListener(OnEditControlsBackgroundClicked);
             alphaSlider.onValueChanged.AddListener(OnAlphaSliderValueChanged);
             joystickTapsActivateCenterObjectToggle.onValueChanged.AddListener(OnJoystickTapsToggleChanged);
+
+
+            TouchscreenLayoutsManager.Instance.LoadDefaultLayout();
         }
         private void Update()
         {

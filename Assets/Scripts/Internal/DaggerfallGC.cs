@@ -39,7 +39,7 @@ namespace DaggerfallWorkshop
 
         private static void ForcedUnloadUnusedAssets()
         {
-            if(!isUnloadingAssets)
+            if(!isUnloadingAssets && CoroutineManager.Instance)
                 CoroutineManager.Instance.StartCoroutine(ForcedUnloadUnusedAssets_Coroutine());
         }
 
