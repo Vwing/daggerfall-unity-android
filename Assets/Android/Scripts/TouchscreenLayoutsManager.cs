@@ -181,7 +181,15 @@ namespace DaggerfallWorkshop.Game
             knobSpriteDropdown.AddOptions(options);
             knobSpriteDropdown.onValueChanged.AddListener(null);
         }
-        public void LoadDefaultLayout() => LoadLayoutFromPath("default-layout");
+        public void LoadDefaultLayout()
+        {
+            if(!Directory.Exists(LayoutsPath))
+                Directory.CreateDirectory(LayoutsPath);
+            if(!File.Exists(Path.Combine(LayoutsPath, "default-layout.json"))){
+                WriteLayoutToPath(GetCurrentLayoutConfig());
+            }
+            LoadLayoutFromPath("default-layout");
+        }
         public void LoadLayout(TouchscreenLayoutConfiguration layoutConfig)
         {
             TouchscreenButtonEnableDisableManager.Instance.ReturnAllButtonsToPool();

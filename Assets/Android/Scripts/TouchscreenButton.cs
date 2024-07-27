@@ -216,6 +216,9 @@ namespace DaggerfallWorkshop.Game
             canButtonBeResized = config.CanButtonBeResized;
             gameObject.name = config.Name;
             ((Image)targetGraphic).sprite = config.LoadSprite();
+            targetGraphic.rectTransform.anchorMin = Vector2.zero;
+            targetGraphic.rectTransform.anchorMax = Vector2.one;
+            targetGraphic.rectTransform.sizeDelta = Vector2.zero;
             isUsingBuiltInTextures = config.UsesBuiltInTextures;
             texturePath = config.TexturePath;
             spriteName = config.SpriteName;
@@ -223,20 +226,23 @@ namespace DaggerfallWorkshop.Game
             knobSpriteName = config.KnobSpriteName;
 
             gameObject.SetActive(config.IsEnabled);
-            UpdateLabelText();
             text.text = config.Text;
             text.enabled = !string.IsNullOrEmpty(text.text);
             resizeButton.gameObject.SetActive(false);
             isToggleForEditOnScreenControls = config.IsToggleForEditOnScreenControls;
+
+            UpdateLabelText();
 
             if (config.IsToggleForEditOnScreenControls)
                 Debug.Log($"{config.Position} {config.DefaultPosition} {rectTransform.anchoredPosition}");
         }
         public TouchscreenButtonConfiguration GetCurrentConfiguration()
         {
-            //#if UNITY_EDITOR
-            //LoadSavedSettingsDeprecated();
-            //#endif
+#if UNITY_EDITOR
+            if(string.IsNullOrEmpty(spriteName))
+                LoadSavedSettingsDeprecated();
+#endif
+            
             TouchscreenButtonConfiguration config = new(
                 gameObject.name, defaultButtonPosition, defaultButtonSizeDelta, GetCurrentButtonType(), gameObject.activeSelf,
                 isUsingBuiltInTextures, texturePath, spriteName, knobTexturePath, knobSpriteName, defaultAction, defaultKeyCode, 
@@ -399,19 +405,23 @@ namespace DaggerfallWorkshop.Game
         {
             if (!label)
                 return;
-            else if (!canActionBeEdited)
+
+            if (isToggleForEditOnScreenControls)
+                label.text = "Toggle Edit Mode";
+            else if (myKey == KeyCode.None && myAction == InputManager.Actions.Unknown)
+                label.text = "";
+            else if (myKey == KeyCode.None)
+                label.text = myAction.ToString();
+            else if (myAction == InputManager.Actions.Unknown)
+                label.text = myKey.ToString();
+            else
+                label.text = $"{myAction} + {myKey}";
+
+            if (!canActionBeEdited)
                 label.enabled = !Application.isPlaying || TouchscreenInputManager.Instance.IsEditingControls;
             else if (!Application.isPlaying || TouchscreenInputManager.Instance.IsEditingControls && s_shouldShowLabels)
             {
                 label.enabled = true;
-                if (myKey == KeyCode.None)
-                    label.text = myAction.ToString();
-                else if (myAction == InputManager.Actions.Unknown)
-                    label.text = myKey.ToString();
-                else if (isToggleForEditOnScreenControls)
-                    label.text = "Toggle Edit Mode";
-                else
-                    label.text = $"{myAction} + {myKey}";
             }
             else
                 label.enabled = false;
