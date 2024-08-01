@@ -902,7 +902,7 @@ GameObject:
   - component: {fileID: 290144788}
   - component: {fileID: 290144787}
   m_Layer: 0
-  m_Name: AndroidSimulationManager
+  m_Name: AndroidScreenManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

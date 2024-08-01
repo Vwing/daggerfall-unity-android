@@ -151,6 +151,10 @@ MonoBehaviour:
     m_Key: framerate
     m_Metadata:
       m_Items: []
+  - m_Id: 170425305900507136
+    m_Key: screenOrientationModes
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

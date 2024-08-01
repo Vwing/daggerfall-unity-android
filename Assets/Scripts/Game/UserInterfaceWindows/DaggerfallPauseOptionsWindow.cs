@@ -262,6 +262,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             QualitySettings.SetQualityLevel(DaggerfallUnity.Settings.QualityLevel = value);
             GameManager.UpdateShadowDistance();
             GameManager.UpdateShadowResolution();
+            GameManager.UpdateScreenOrientation();
             if (!saveSettings)
                 saveSettings = true;
         }

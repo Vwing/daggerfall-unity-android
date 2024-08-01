@@ -57,11 +57,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
         {
             base.Update();
 
-            if (Input.GetKeyDown(KeyCode.O)){
-                Debug.Log("Adding face");
-                AddFace(new Person(new Quest()));
-            }
-
             const int startX = 8;
             const int startY = 40;
             const int spaceY = 40;

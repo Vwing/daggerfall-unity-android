@@ -68,6 +68,9 @@ shadowResolutionModes,"Low
 Medium
 High
 Very High"
+screenOrientationModes,"Any
+Landscape
+Portrait"
 textureArrayLabel,Texture Arrays: 
 unsupported,Unsupported
 enabled,Enabled

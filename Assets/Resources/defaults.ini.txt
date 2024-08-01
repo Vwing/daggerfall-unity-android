@@ -20,6 +20,7 @@ FieldOfView=65
 MainFilterMode=0
 QualityLevel=5
 ShadowResolutionMode=0
+ScreenOrientationMode=1
 DungeonLightShadows=False
 InteriorLightShadows=True
 ExteriorLightShadows=True

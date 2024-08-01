@@ -231,6 +231,9 @@ namespace DaggerfallWorkshop.Game.Utility
             // Set shadow resolution
             GameManager.UpdateShadowResolution();
 
+            // Set screen orientation
+            GameManager.UpdateScreenOrientation();
+
             // VSync settings
             if (DaggerfallUnity.Settings.VSync)
                 QualitySettings.vSyncCount = 1;
