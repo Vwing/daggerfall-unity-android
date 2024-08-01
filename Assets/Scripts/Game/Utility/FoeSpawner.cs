@@ -119,6 +119,24 @@ namespace DaggerfallWorkshop.Game.Utility
         {
             const float separationDistance = 1.25f;
             const float maxFloorDistance = 4f;
+            const float overlapSphereRadius = 0.65f;
+
+            // override min/max distance in small interior spaces.
+            var dfInterior = FindObjectOfType<DaggerfallInterior>();
+            if(dfInterior){
+                	Bounds bounds = new Bounds (dfInterior.transform.position, Vector3.one);
+                    Renderer[] renderers = dfInterior.GetComponentsInChildren<Renderer> ();
+                    foreach (Renderer renderer in renderers)
+                    {
+                        bounds.Encapsulate (renderer.bounds);
+                    }
+                    Vector3 playerPos = GameManager.Instance.PlayerController.transform.position;
+                    Vector3 boundsMin = bounds.min;
+                    Vector3 boundsMax = bounds.max;
+                    boundsMin.y = boundsMax.y = playerPos.y;
+                    maxDistance = Mathf.Max(Vector3.Distance(playerPos, boundsMin), Vector3.Distance(playerPos, boundsMax));
+                    minDistance = Mathf.Min(minDistance, maxDistance/4f);
+            }
 
             // Must have received a valid array
             if (gameObjects == null || gameObjects.Length == 0)
@@ -159,7 +177,8 @@ namespace DaggerfallWorkshop.Game.Utility
 
                 // Ensure this is open space
                 spawnPos = floorHit.point + enemyCC.center + (enemyCC.height/2f + .5f)*Vector3.up;
-                Collider[] colliders = Physics.OverlapCapsule(spawnPos - enemyCC.height/2f * Vector3.up, spawnPos + enemyCC.height/2f * Vector3.up, enemyCC.radius, DFULayerMasks.CorporealMask);
+                // Collider[] colliders = Physics.OverlapCapsule(spawnPos - enemyCC.height/2f * Vector3.up, spawnPos + enemyCC.height/2f * Vector3.up, enemyCC.radius, DFULayerMasks.CorporealMask);
+                Collider[] colliders = Physics.OverlapSphere(spawnPos, overlapSphereRadius);
                 if (colliders.Length > 0)
                     continue;
 
