@@ -156,6 +156,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         HorizontalSlider fovSlider;
         HorizontalSlider terrainDistance;
         HorizontalSlider shadowResolutionMode;
+        HorizontalSlider screenOrientationMode;
         Checkbox dungeonLightShadows;
         Checkbox interiorLightShadows;
         Checkbox exteriorLightShadows;
@@ -380,6 +381,9 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             terrainDistance = AddSlider(rightPanel, "terrainDistance", 1, 4, DaggerfallUnity.Settings.TerrainDistance);
             shadowResolutionMode = AddSlider(rightPanel, "shadowResolutionMode",
                 DaggerfallUnity.Settings.ShadowResolutionMode, TextManager.Instance.GetLocalizedTextList("shadowResolutionModes", TextCollections.TextSettings));
+            screenOrientationMode = AddSlider(rightPanel, "screenOrientationMode",
+                DaggerfallUnity.Settings.ScreenOrientationMode, TextManager.Instance.GetLocalizedTextList("screenOrientationModes", TextCollections.TextSettings));
+            screenOrientationMode.OnMouseUp += ScreenOrientation_OnScroll;
             dungeonLightShadows = AddCheckbox(rightPanel, "dungeonLightShadows", DaggerfallUnity.Settings.DungeonLightShadows);
             interiorLightShadows = AddCheckbox(rightPanel, "interiorLightShadows", DaggerfallUnity.Settings.InteriorLightShadows);
             exteriorLightShadows = AddCheckbox(rightPanel, "exteriorLightShadows", DaggerfallUnity.Settings.ExteriorLightShadows);
@@ -511,6 +515,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             DaggerfallUnity.Settings.FieldOfView = fovSlider.Value;
             DaggerfallUnity.Settings.TerrainDistance = terrainDistance.Value;
             DaggerfallUnity.Settings.ShadowResolutionMode = shadowResolutionMode.ScrollIndex;
+            DaggerfallUnity.Settings.ScreenOrientationMode = screenOrientationMode.ScrollIndex;
             DaggerfallUnity.Settings.DungeonLightShadows = dungeonLightShadows.IsChecked;
             DaggerfallUnity.Settings.InteriorLightShadows = interiorLightShadows.IsChecked;
             DaggerfallUnity.Settings.ExteriorLightShadows = exteriorLightShadows.IsChecked;
@@ -802,7 +807,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         }
         /// <summary>
         /// We've added some texts on Android, but we don't want to have to extract the StreamingAssets/GameSettings.txt
-        /// file to the device every time the game is opened, as it's a slow operation, so we'll just hardcode the fallbacks here.
+        /// file to the device every time the game is opened, as it's a slow operation and could overwrite user settings,
+        /// so we'll just hardcode the fallbacks here.
         /// </summary>
         private static string GetAndroidFallbackText(string key)
         {
@@ -816,11 +822,14 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     return "Place HUD items on top of screen";
                 case "hudGoesOnTopInfo":
                     return "Determines whether the vitals and compass are drawn on top of the screen (better for mobile)";
+                case "screenOrientationMode":
+                    return "Screen Orientation";
+                case "screenOrientationModeInfo":
+                    return "Allowed screen orientation(s)";
                 default:
                     return "<TextError-NotFound>";
             }
         }
-
         private static string GetInfo(string key)
         {
             return GetText(string.Format("{0}Info", key));
@@ -881,6 +890,11 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         private void Resolution_OnScroll()
         {
             applyScreenChanges = true;
+        }
+        private void ScreenOrientation_OnScroll(BaseScreenComponent sender, Vector2 position)
+        {
+            DaggerfallUnity.Settings.ScreenOrientationMode = screenOrientationMode.Value;
+            GameManager.UpdateScreenOrientation();
         }
 
          private void MusicVolume_OnScroll()

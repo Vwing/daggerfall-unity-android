@@ -166,6 +166,8 @@ namespace DaggerfallWorkshop
         public bool ExclusiveFullscreen { get; set; }
         public int FieldOfView { get; set; }
         public int ShadowResolutionMode { get; set; }
+
+        public int ScreenOrientationMode { get; set; }
         public int MainFilterMode { get; set; }
         public int QualityLevel { get; set; }
         public bool DungeonLightShadows { get; set; }
@@ -426,6 +428,7 @@ namespace DaggerfallWorkshop
             FieldOfView = GetInt(sectionVideo, "FieldOfView", 60, 120);
             MainFilterMode = GetInt(sectionVideo, "MainFilterMode", 0, 2);
             ShadowResolutionMode = GetInt(sectionVideo, "ShadowResolutionMode", 0, 3);
+            ScreenOrientationMode = GetInt(sectionVideo, "ScreenOrientationMode", 0, 2);
             QualityLevel = GetInt(sectionVideo, "QualityLevel", 0, 5);
             DungeonLightShadows = GetBool(sectionVideo, "DungeonLightShadows");
             InteriorLightShadows = GetBool(sectionVideo, "InteriorLightShadows");
@@ -625,6 +628,7 @@ namespace DaggerfallWorkshop
             SetInt(sectionVideo, "FieldOfView", FieldOfView);
             SetInt(sectionVideo, "MainFilterMode", MainFilterMode);
             SetInt(sectionVideo, "ShadowResolutionMode", ShadowResolutionMode);
+            SetInt(sectionVideo, "ScreenOrientationMode", ScreenOrientationMode);
             SetInt(sectionVideo, "QualityLevel", QualityLevel);
             SetBool(sectionVideo, "DungeonLightShadows", DungeonLightShadows);
             SetBool(sectionVideo, "InteriorLightShadows", InteriorLightShadows);

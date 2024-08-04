@@ -56,7 +56,7 @@ namespace DaggerfallWorkshop.Game
                 rootRectTF = rootRectTF.parent as RectTransform;
 
             // set size to half of the screen area
-            (transform as RectTransform).SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, rootRectTF.rect.width / 2f);
+            UpdateSizeOfRectTF(rootRectTF.rect.width);
 
             // set vars
             Rect joystickRect = UnityUIUtils.GetScreenspaceRect(background, myCam);
@@ -65,6 +65,18 @@ namespace DaggerfallWorkshop.Game
 
             // Initially invisible
             SetJoystickVisibility(false);
+
+            AndroidScreenManager.ScreenResolutionChanged += AndroidScreenManager_ScreenResolutionChanged;
+        }
+        void OnDestroy()
+        {
+            AndroidScreenManager.ScreenResolutionChanged -= AndroidScreenManager_ScreenResolutionChanged;
+        }
+        // set size to half of the screen area
+        private void UpdateSizeOfRectTF(float screenWidth)
+        {
+            Debug.Log("VirtualJoystick: Updating size of rect tf");
+            (transform as RectTransform).SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, screenWidth / 2f);
         }
         private void LateUpdate()
         {
@@ -157,6 +169,10 @@ namespace DaggerfallWorkshop.Game
             bool isWithinDeadzone = Mathf.Abs(deltaPos.x) < joystickRadius * 0.1f && Mathf.Abs(deltaPos.y) < joystickRadius * 0.1f;
             if (JoystickTapsShouldActivateCenterObject && isWithinDeadzone && Time.time-TouchStartTime < .5f)
                 TouchscreenInputManager.TriggerAction(InputManager.Actions.ActivateCenterObject);
+        }
+        void AndroidScreenManager_ScreenResolutionChanged(Resolution newResolution)
+        {
+            UpdateSizeOfRectTF(newResolution.width);
         }
     }
 }

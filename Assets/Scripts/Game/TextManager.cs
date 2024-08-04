@@ -252,6 +252,7 @@ namespace DaggerfallWorkshop.Game
 
             return textDatabases[databaseName].GetValue(textColumn, key);
         }
+
         private string GetAndroidFallbackTextOrError(string databaseName, string key)
         {
             switch (key)

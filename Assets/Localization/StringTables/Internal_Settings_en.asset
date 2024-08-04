@@ -254,6 +254,14 @@ MonoBehaviour:
       120'
     m_Metadata:
       m_Items: []
+  - m_Id: 170425305900507136
+    m_Localized: 'Any
+
+      Landscape
+
+      Portrait'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

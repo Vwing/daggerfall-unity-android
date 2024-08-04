@@ -886,6 +886,25 @@ namespace DaggerfallWorkshop.Game
                     break;
             }
         }
+        /// <summary>
+        /// Applies screen orientation setting.
+        /// </summary>
+        public static void UpdateScreenOrientation()
+        {
+            switch (DaggerfallUnity.Settings.ScreenOrientationMode)
+            {
+                case 0:
+                    AndroidScreenManager.SetOrientationToAny();
+                    break;
+                case 1:
+                default:
+                    AndroidScreenManager.SetOrientationToLandscape();
+                    break;
+                case 2:
+                    AndroidScreenManager.SetOrientationToPortrait();
+                    break;
+            }
+        }
 
         #endregion
 
