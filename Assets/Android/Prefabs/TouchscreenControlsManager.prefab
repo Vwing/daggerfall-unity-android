@@ -1804,6 +1804,8 @@ MonoBehaviour:
   messageText: {fileID: 5926468752544668221}
   buttonYes: {fileID: 4975858027413311704}
   buttonNo: {fileID: 3374949115843485487}
+  buttonYesText: {fileID: 1337867284828794512}
+  buttonNoText: {fileID: 5105819786818510246}
 --- !u!223 &232354739088166215
 Canvas:
   m_ObjectHideFlags: 0
@@ -4162,6 +4164,7 @@ GameObject:
   - component: {fileID: 5944443424093154512}
   - component: {fileID: 7547242008092373769}
   - component: {fileID: 1812929153437349087}
+  - component: {fileID: 6068034956414276844}
   m_Layer: 5
   m_Name: Buttons
   m_TagString: Untagged
@@ -4259,6 +4262,18 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
+--- !u!225 &6068034956414276844
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1629907672108650878}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1716005690247584372
 GameObject:
   m_ObjectHideFlags: 0
@@ -21451,7 +21466,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   renderCamera: {fileID: 2720629017955051797}
   canvas: {fileID: 7325378383950142256}
-  canvasGroup: {fileID: 808268318785932714}
+  canvasGroup: {fileID: 6068034956414276844}
   confirmChangePopup: {fileID: 5003767334326965334}
   editControlsCanvas: {fileID: 776089651579236906}
   joystickCanvas: {fileID: 7483335379871838232}
@@ -22527,7 +22542,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2917262051180271284
 RectTransform:
   m_ObjectHideFlags: 0

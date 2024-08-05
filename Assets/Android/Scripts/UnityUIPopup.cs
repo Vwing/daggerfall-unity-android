@@ -22,11 +22,11 @@ namespace DaggerfallWorkshop.Game
         [SerializeField] private TMPro.TMP_Text messageText;
         [SerializeField] private Button buttonYes;
         [SerializeField] private Button buttonNo;
+        [SerializeField] private TMPro.TMP_Text buttonYesText;
+        [SerializeField] private TMPro.TMP_Text buttonNoText;
 
         private System.Action yesAction;
         private System.Action noAction;
-        private TMPro.TMP_Text buttonYesText;
-        private TMPro.TMP_Text buttonNoText;
 
         private string buttonYesDefaultString;
         private string buttonNoDefaultString;
