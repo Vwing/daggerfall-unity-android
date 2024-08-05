@@ -58,19 +58,21 @@ namespace DaggerfallWorkshop.Game
         private RenderTexture renderTex;
         private TouchscreenButton currentlyEditingButton;
 
-        private void Awake()
+        private bool SetupSingleton()
         {
-            #region singleton
             if (Instance)
             {
                 Debug.LogError("Two TouchscreenInputManager singletons are present!");
                 Destroy(gameObject);
+                return false;
             }
             Instance = this;
-
-            #endregion
-
-            Setup();
+            return true;
+        }
+        private void Awake()
+        {
+            if(SetupSingleton())
+                Setup();
         }
         public void SetupUIRenderTexture()
         {
@@ -80,9 +82,11 @@ namespace DaggerfallWorkshop.Game
                 renderCamera.targetTexture = null;
             }
             renderCamera.aspect = Camera.main.aspect;
-            renderTex = new RenderTexture(Screen.width, Screen.height, 0, RenderTextureFormat.ARGB32);
-            renderTex.depthStencilFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.D24_UNorm_S8_UInt;
-            renderTex.isPowerOfTwo = false;
+            renderTex = new RenderTexture(Screen.width, Screen.height, 0, RenderTextureFormat.ARGB32)
+            {
+                depthStencilFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.D24_UNorm_S8_UInt,
+                isPowerOfTwo = false
+            };
             renderCamera.targetTexture = renderTex;
 
         }

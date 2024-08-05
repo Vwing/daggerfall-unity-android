@@ -191,17 +191,6 @@ namespace DaggerfallWorkshop.Game
             Debug.Log($"TouchscreenLayoutsManager: Writing {layout.name} to {LayoutsPath}");
             string path = Path.Combine(LayoutsPath, layout.name + ".json");
             TouchscreenLayoutConfiguration.WriteToPath(layout, path);
-
-            // write buttons to a special buttons_ subfolder.
-            // {
-            //     string layoutButtonsPath = Path.Combine(LayoutsPath, $"buttons_{layout.name}");
-            //     if(!Directory.Exists(layoutButtonsPath))
-            //         Directory.CreateDirectory(Path.Combine(layoutButtonsPath));
-            //     foreach (var buttonConfig in layout.buttons){
-            //         string buttonPath = Path.Combine(LayoutsPath, buttonConfig.Name + ".json");
-            //         TouchscreenButtonConfiguration.WriteToPath(buttonConfig, buttonPath);
-            //     }
-            // }
         }
         public void SetupUIBasedOnCurrentlyEditingTouchscreenButton(TouchscreenButton touchscreenButton)
         {
@@ -334,9 +323,9 @@ namespace DaggerfallWorkshop.Game
             {
                 var buttonConfig = layoutConfig.buttons[i];
                 if(!buttonConfig.UsesBuiltInTextures){
-                    if(!string.IsNullOrEmpty(buttonConfig.TexturePath) && !buttonConfig.TexturePath.Contains(Path.DirectorySeparatorChar))
+                    if(!string.IsNullOrEmpty(buttonConfig.TexturePath) && !File.Exists(buttonConfig.TexturePath))
                         buttonConfig.TexturePath = Path.Combine(LayoutsPath, layoutConfig.name, "textures", Path.GetFileName(buttonConfig.TexturePath));
-                    if(!string.IsNullOrEmpty(buttonConfig.KnobTexturePath) && !buttonConfig.KnobTexturePath.Contains(Path.DirectorySeparatorChar))
+                    if(!string.IsNullOrEmpty(buttonConfig.KnobTexturePath) && !File.Exists(buttonConfig.KnobTexturePath))
                         buttonConfig.KnobTexturePath = Path.Combine(LayoutsPath, layoutConfig.name, "textures", Path.GetFileName(buttonConfig.KnobTexturePath));
                     layoutConfig.buttons[i] = buttonConfig;
                 }
