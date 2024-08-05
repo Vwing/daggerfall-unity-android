@@ -50,7 +50,7 @@ namespace DaggerfallWorkshop.Game
             noAction?.Invoke();
             Close();
         }
-        public void Open(string text, System.Action yesAction, System.Action noAction = null, string yesButtonString = "", string noButtonString = "")
+        public void Open(string text, System.Action yesAction, System.Action noAction = null, string yesButtonString = "", string noButtonString = "", bool showNoButton = true)
         {
             canvas.enabled = true;
             messageText.text = text;
@@ -59,6 +59,7 @@ namespace DaggerfallWorkshop.Game
 
             buttonYesText.text = string.IsNullOrEmpty(yesButtonString) ? buttonYesDefaultString : yesButtonString;
             buttonNoText.text = string.IsNullOrEmpty(noButtonString) ? buttonNoDefaultString : noButtonString;
+            buttonNo.gameObject.SetActive(showNoButton);
         }
         public void Close()
         {

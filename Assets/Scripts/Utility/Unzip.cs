@@ -21,7 +21,7 @@ namespace DaggerfallWorkshop.Utility
     /// <summary>
     /// Utility class for unzipping zip files
     /// </summary>
-    public static class Unzip
+    public static class ZipFileUtils
     {
         // Call this method with the path to the zip file and the output folder.
         public static string UnzipFile(string zipFilePath, string outputFolderPath)
@@ -71,6 +71,69 @@ namespace DaggerfallWorkshop.Utility
             }
 
             return outputFolderPath;
+        }
+
+        /// <summary>
+        /// Zips the specified file or directory to a given zip file path.
+        /// </summary>
+        /// <param name="inputPath">The file or directory to zip.</param>
+        /// <param name="zipFilePath">The path to the output zip file.</param>
+        /// <param name="compressionLevel">0 - store only to 9 - means best compression</param>
+        public static string ZipFile(string inputPath, string zipFilePath, int compressionLevel = 0)
+        {
+            using (FileStream fsOut = File.Create(zipFilePath))
+            using (ZipOutputStream zipStream = new ZipOutputStream(fsOut))
+            {
+                zipStream.SetLevel(compressionLevel);
+
+                int folderOffset = inputPath.Length + (inputPath.EndsWith("\\") || inputPath.EndsWith("/") ? 0 : 1);
+
+                CompressFolder(inputPath, zipStream, folderOffset);
+
+                zipStream.IsStreamOwner = true; // Makes the Close also Close the underlying stream
+                zipStream.Close();
+            }
+            return zipFilePath;
+        }
+
+        /// <summary>
+        /// Recursively compresses a folder.
+        /// </summary>
+        /// <param name="path">The path to compress.</param>
+        /// <param name="zipStream">The zip output stream.</param>
+        /// <param name="folderOffset">The folder offset.</param>
+        private static void CompressFolder(string path, ZipOutputStream zipStream, int folderOffset)
+        {
+            string[] files = Directory.GetFiles(path);
+            string[] folders = Directory.GetDirectories(path);
+
+            foreach (string filename in files)
+            {
+                FileInfo fi = new FileInfo(filename);
+
+                string entryName = filename.Substring(folderOffset); // Makes the name in zip based on the folder
+                entryName = ZipEntry.CleanName(entryName); // Removes drive from name and fixes slash direction
+                ZipEntry newEntry = new ZipEntry(entryName)
+                {
+                    DateTime = fi.LastWriteTime, // Note the zip format stores 2 second granularity
+                    Size = fi.Length
+                };
+
+                zipStream.PutNextEntry(newEntry);
+
+                // Zip the file in buffered chunks
+                byte[] buffer = new byte[4096];
+                using (FileStream streamReader = File.OpenRead(filename))
+                {
+                    ICSharpCode.SharpZipLib.Core.StreamUtils.Copy(streamReader, zipStream, buffer);
+                }
+                zipStream.CloseEntry();
+            }
+
+            foreach (string folder in folders)
+            {
+                CompressFolder(folder, zipStream, folderOffset);
+            }
         }
     }
 }

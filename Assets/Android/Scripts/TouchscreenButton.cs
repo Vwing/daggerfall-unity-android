@@ -239,7 +239,7 @@ namespace DaggerfallWorkshop.Game
         public TouchscreenButtonConfiguration GetCurrentConfiguration()
         {
 #if UNITY_EDITOR
-            if(string.IsNullOrEmpty(spriteName))
+            if(string.IsNullOrEmpty(spriteName) && string.IsNullOrEmpty(texturePath))
                 LoadSavedSettingsDeprecated();
 #endif
             
@@ -824,7 +824,7 @@ namespace DaggerfallWorkshop.Game
                 TouchscreenButtonEnableDisableManager.Instance.GetAllEnabledButtons().Where(p => !buttonsInDrawer.Contains(p.gameObject) || p == this).ToList().ForEach(p => p.image.color = new Color(1, 1, 1, 0.5f));
             }
             if(!s_hasShownAddToDrawerPopup)
-                TouchscreenInputManager.Instance.ConfirmChangePopup.Open("Tap on the button you would like to add to the drawer.", AddToDrawerOnConfirmation, null, "Okay", "Cancel");
+                TouchscreenInputManager.Instance.PopupMessage.Open("Tap on the button you would like to add to the drawer.", AddToDrawerOnConfirmation, null, "Okay", "Cancel");
             else
                 AddToDrawerOnConfirmation();
         }
@@ -839,7 +839,7 @@ namespace DaggerfallWorkshop.Game
                 TouchscreenButtonEnableDisableManager.Instance.GetAllEnabledButtons().Where(p => !buttonsInDrawer.Contains(p.gameObject) || p == this).ToList().ForEach(p => p.image.color = new Color(1, 1, 1, 0.5f));
             }
             if(!s_hasShownRemoveFromDrawerPopup)
-                TouchscreenInputManager.Instance.ConfirmChangePopup.Open("Tap on the button you would like to remove from the drawer.", RemoveFromDrawerOnConfirmation, null, "Okay", "Cancel");
+                TouchscreenInputManager.Instance.PopupMessage.Open("Tap on the button you would like to remove from the drawer.", RemoveFromDrawerOnConfirmation, null, "Okay", "Cancel");
             else
                 RemoveFromDrawerOnConfirmation();
         }

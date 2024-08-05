@@ -139,7 +139,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         private void PickArena2Folder()
         {
             NativeFilePicker.FilePickedCallback filePickedCallback = new NativeFilePicker.FilePickedCallback(OnFilePicked);
-            NativeFilePicker.PickFile(filePickedCallback);
+            NativeFilePicker.PickFile(filePickedCallback, ".zip");
         }
 
         private bool ValidateArena2Path(string path)
@@ -196,7 +196,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             // extract zip and load the files
             string outputPath = Path.Combine(Paths.PersistentDataPath, daggerfallDataDirName);
             string cachePath = Path.Combine(Application.temporaryCachePath, "DaggerfallArena2Unzipped");
-            Unzip.UnzipFile(filePath, cachePath);
+            ZipFileUtils.UnzipFile(filePath, cachePath);
             bool foundValidFolder = false;
             IEnumerable<string> dirs = Directory.EnumerateDirectories(cachePath, "*", new EnumerationOptions() { RecurseSubdirectories = true });
             dirs = dirs.Prepend(cachePath);

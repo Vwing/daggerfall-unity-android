@@ -46,7 +46,7 @@ namespace DaggerfallWorkshop.Game
         public Camera RenderCamera { get { return renderCamera; } }
         public bool IsEditingControls { get { return editControlsCanvas.enabled; } }
         public TouchscreenButton CurrentlyEditingButton { get { return currentlyEditingButton; } }
-        public UnityUIPopup ConfirmChangePopup { get{ return confirmChangePopup; } }
+        public UnityUIPopup PopupMessage { get{ return confirmChangePopup; } }
         public Slider AlphaSlider{get{return alphaSlider;}}
         public float SavedAlpha { get { return PlayerPrefs.GetFloat("TouchscreenControlsAlpha", 1f); } set { PlayerPrefs.SetFloat("TouchscreenControlsAlpha", value);} }
 
