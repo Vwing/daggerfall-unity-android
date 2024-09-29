@@ -167,7 +167,6 @@ namespace DaggerfallWorkshop.Game
                     File.Move(Path.Combine(LayoutsPath, newLayoutName, oldLayoutName + ".json"), Path.Combine(LayoutsPath, newLayoutName, newLayoutName + ".json"));
                     int layoutDropdownIndex = layoutsDropdown.options.FindIndex(p => p.text == oldLayoutName);
                     layoutsDropdown.options[layoutDropdownIndex].text = newLayoutName;
-                    buttonNameInputField.text = TouchscreenInputManager.Instance.CurrentlyEditingButton.gameObject.name;
                 } catch (Exception e){
                     Debug.LogError(e);
                     TouchscreenInputManager.Instance.PopupMessage.Open($"Error renaming layout: {e}", null, null, "Okay", "", false);
