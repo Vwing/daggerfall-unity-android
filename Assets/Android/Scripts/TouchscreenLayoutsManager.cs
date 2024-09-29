@@ -32,6 +32,9 @@ namespace DaggerfallWorkshop.Game
         [SerializeField] private TMPro.TMP_Dropdown spriteDropdown;
         [SerializeField] private TMPro.TMP_Dropdown knobSpriteDropdown;
 
+        [Header("Assets")]
+        [SerializeField] private TextAsset initialDefaultLayout;
+
         private List<string> cachedSpritePaths = new List<string>();
         private List<string> cachedKnobSpritePaths = new List<string>();
         [System.Serializable]
@@ -214,7 +217,7 @@ namespace DaggerfallWorkshop.Game
         {
             layoutsDropdown.ClearOptions();
             // get directories that have a .json under them named the same as the directory
-            List<string> layoutsInPath = Directory.GetDirectories(LayoutsPath).Where(p => File.Exists(Path.Combine(p, Path.GetFileName(p.TrimEnd('/', '\\')) + ".json"))).ToList();
+            List<string> layoutsInPath = Directory.GetDirectories(LayoutsPath).Where(p => File.Exists(Path.Combine(p, Path.GetFileName(p.TrimEnd('/', '\\')) + ".json"))).Select(s => s.Split(Path.DirectorySeparatorChar).Last()).ToList();
             layoutsDropdown.AddOptions(layoutsInPath);
         }
         private void SetupUI()
@@ -306,8 +309,15 @@ namespace DaggerfallWorkshop.Game
         {
             if(!Directory.Exists(LayoutsPath))
                 Directory.CreateDirectory(LayoutsPath);
-            if(!File.Exists(Path.Combine(LayoutsPath, "default-layout.json"))){
-                WriteLayoutToPath(GetCurrentLayoutConfig());
+            string defaultLayoutPath = Path.Combine(LayoutsPath, "default-layout", "default-layout.json");
+            if(!File.Exists(defaultLayoutPath)){
+                string initialDefaultLayoutPath =Path.Combine(Paths.PersistentDataPath, "initial-default-layout.json");
+                if(!File.Exists(initialDefaultLayoutPath))
+                    File.WriteAllText(initialDefaultLayoutPath, initialDefaultLayout.text);
+                string defaultLayoutText = File.ReadAllText(initialDefaultLayoutPath);
+                Directory.CreateDirectory(Path.Combine(LayoutsPath, "default-layout"));
+                File.WriteAllText(defaultLayoutPath, defaultLayoutText);
+                // WriteLayoutToPath(GetCurrentLayoutConfig());
             }
             LoadLayoutByName("default-layout");
         }

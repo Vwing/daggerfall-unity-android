@@ -22296,6 +22296,8 @@ MonoBehaviour:
   labelAnchorDropdown: {fileID: 402439041273365925}
   spriteDropdown: {fileID: 2858161871778313855}
   knobSpriteDropdown: {fileID: 8486896273288924493}
+  initialDefaultLayout: {fileID: 4900000, guid: 23f83e0228819446596c8c4e3adce616,
+    type: 3}
 --- !u!114 &3188779474701911311
 MonoBehaviour:
   m_ObjectHideFlags: 0
