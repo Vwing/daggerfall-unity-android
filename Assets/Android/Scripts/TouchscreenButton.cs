@@ -238,17 +238,24 @@ namespace DaggerfallWorkshop.Game
         }
         public TouchscreenButtonConfiguration GetCurrentConfiguration()
         {
-#if UNITY_EDITOR
-            if(string.IsNullOrEmpty(spriteName) && string.IsNullOrEmpty(texturePath))
-                LoadSavedSettingsDeprecated();
-#endif
-            
+            // #if UNITY_EDITOR
+            //             if(string.IsNullOrEmpty(spriteName) && string.IsNullOrEmpty(texturePath))
+            //                 LoadSavedSettingsDeprecated();
+            // #endif
+
             TouchscreenButtonConfiguration config = new(
                 gameObject.name, defaultButtonPosition, defaultButtonSizeDelta, GetCurrentButtonType(), gameObject.activeSelf,
-                isUsingBuiltInTextures, texturePath, spriteName, knobTexturePath, knobSpriteName, defaultAction, defaultKeyCode, 
+                isUsingBuiltInTextures, texturePath, spriteName, knobTexturePath, knobSpriteName, defaultAction, defaultKeyCode,
                 GetAnchorType(rectTransform.anchorMin), GetAnchorType(label.rectTransform.anchorMin), canActionBeEdited, canButtonBeRemoved,
                 canButtonBeResized, GetSavedButtonsInMyDrawer(), text.text, isToggleForEditOnScreenControls
-            );
+            )
+            {
+                Position = rectTransform.anchoredPosition,
+                Scale = rectTransform.sizeDelta,
+                ActionMapping = myAction,
+                KeyCodeMapping = myKey
+            };
+
             return config;
         }
         private TouchscreenButtonType GetCurrentButtonType()

@@ -16,6 +16,7 @@ namespace DaggerfallWorkshop.Game
 
         [SerializeField] private Button importLayoutButton;
         [SerializeField] private Button exportLayoutButton;
+        [SerializeField] private Button deleteLayoutButton;
         [SerializeField] private Button importTextureButton;
         [SerializeField] private TMPro.TMP_Dropdown layoutsDropdown;
         [SerializeField] private TMPro.TMP_InputField currentLayoutName;
@@ -48,6 +49,7 @@ namespace DaggerfallWorkshop.Game
         private Dictionary<string, int> acceptedKeyCodes = new Dictionary<string, int>();
 
         public static string LayoutsPath { get { return Path.Combine(Paths.PersistentDataPath, "TouchscreenLayouts"); } }
+        public static string LastSelectedLayout{get{return PlayerPrefs.GetString("TouchscreenLayoutsManager_LastSelectedLayout", "default-layout");} set {PlayerPrefs.SetString("TouchscreenLayoutsManager_LastSelectedLayout", value);}}
 
         private TouchscreenLayoutConfiguration currentlyLoadedLayout;
         private List<string> cachedLayoutNames = new List<string>();
@@ -61,6 +63,7 @@ namespace DaggerfallWorkshop.Game
             currentLayoutName.text = "default-layout";
             importLayoutButton.onClick.AddListener(ImportNewLayout);
             exportLayoutButton.onClick.AddListener(ExportCurrentLayout);
+            deleteLayoutButton.onClick.AddListener(DeleteCurrentLayout);
             importTextureButton.onClick.AddListener(ImportNewButtonTexture);
             currentLayoutName.onEndEdit.AddListener(AttemptRenamingLayout);
             buttonNameInputField.onEndEdit.AddListener(AttemptRenamingButton);
@@ -72,6 +75,7 @@ namespace DaggerfallWorkshop.Game
             labelAnchorDropdown.onValueChanged.AddListener(OnLabelAnchorDropdownValueChanged);
             SetupUI();
             TouchscreenInputManager.Instance.onCurrentlyEditingButtonChanged += SetupUIBasedOnCurrentlyEditingTouchscreenButton;
+            TouchscreenInputManager.Instance.onEditControlsToggled += TouchscreenInputManager_OnEditControlsToggled;
             //Invoke("WriteCurrentLayoutToPath", 1f);
             //Invoke("ImportNewLayout", 1.5f);
         }
@@ -89,6 +93,35 @@ namespace DaggerfallWorkshop.Game
         {
             NativeFilePicker.FilePickedCallback filePickedCallback = new NativeFilePicker.FilePickedCallback(OnButtonTexturePicked);
             NativeFilePicker.PickFile(filePickedCallback, "image/*");
+        }
+        private void DeleteCurrentLayout()
+        {
+            bool isDefaultLayout = currentlyLoadedLayout == null || currentlyLoadedLayout.name == "default-layout";
+
+            void DoDeleteCurrentLayout()
+            {
+                if(isDefaultLayout) {
+                    Directory.Delete(Path.Combine(LayoutsPath, "default-layout"), true);
+                    RegenerateDefaultLayoutIfMissing();
+                    layoutsDropdown.value = 0;
+                    LoadLayoutByName("default-layout");
+                } else {
+                    Directory.Delete(Path.Combine(LayoutsPath, currentlyLoadedLayout.name), true);
+                    int lastSelectedLayoutIndex = layoutsDropdown.options.FindIndex(p => p.text == currentlyLoadedLayout.name);
+                    currentlyLoadedLayout = null;
+                    UpdateLayoutsDropdown();
+                    if(lastSelectedLayoutIndex >= 0 && lastSelectedLayoutIndex < layoutsDropdown.options.Count)
+                        layoutsDropdown.value = lastSelectedLayoutIndex;
+                    else
+                        layoutsDropdown.value = layoutsDropdown.options.Count - 1;
+                    LoadLayoutByName(layoutsDropdown.options[layoutsDropdown.value].text);
+                }
+            }
+            if(isDefaultLayout){
+                TouchscreenInputManager.Instance.PopupMessage.Open($"Delete the default layout, returning all buttons to their initial values?", DoDeleteCurrentLayout, null, "Yes", "No");
+            } else {
+                TouchscreenInputManager.Instance.PopupMessage.Open($"Delete the current layout, {currentlyLoadedLayout.name}?", DoDeleteCurrentLayout, null, "Yes", "No");
+            }
         }
         private void ExportCurrentLayout()
         {
@@ -157,16 +190,21 @@ namespace DaggerfallWorkshop.Game
             string oldLayoutName = currentlyLoadedLayout.name;
             if(string.IsNullOrEmpty(newLayoutName) || newLayoutName == currentlyLoadedLayout.name)
                 currentLayoutName.text = oldLayoutName;
-            else if(currentlyLoadedLayout.buttons.Any(p => p.Name == newLayoutName)) {
+            else if(layoutsDropdown.options.Any(p => p.text == newLayoutName)) {
                 TouchscreenInputManager.Instance.PopupMessage.Open("That layout name is already being used", null, null, "Okay", "", false);
                 currentLayoutName.text = oldLayoutName;
             } else {
                 currentlyLoadedLayout.name = newLayoutName;
                 try{
                     Directory.Move(Path.Combine(LayoutsPath, oldLayoutName), Path.Combine(LayoutsPath, newLayoutName));
-                    File.Move(Path.Combine(LayoutsPath, newLayoutName, oldLayoutName + ".json"), Path.Combine(LayoutsPath, newLayoutName, newLayoutName + ".json"));
                     int layoutDropdownIndex = layoutsDropdown.options.FindIndex(p => p.text == oldLayoutName);
                     layoutsDropdown.options[layoutDropdownIndex].text = newLayoutName;
+                    layoutsDropdown.GetComponentInChildren<TMPro.TMP_Text>().text = newLayoutName;
+                    TouchscreenLayoutConfiguration.WriteToPath(currentlyLoadedLayout, Path.Combine(LayoutsPath, newLayoutName, newLayoutName + ".json"));
+                    File.Delete(Path.Combine(LayoutsPath, newLayoutName, oldLayoutName + ".json"));
+                    
+                    RegenerateDefaultLayoutIfMissing();
+                    UpdateLayoutsDropdown();
                 } catch (Exception e){
                     Debug.LogError(e);
                     TouchscreenInputManager.Instance.PopupMessage.Open($"Error renaming layout: {e}", null, null, "Okay", "", false);
@@ -174,24 +212,38 @@ namespace DaggerfallWorkshop.Game
                 }
             }
         }
-        private void LoadLayoutByName(string layoutName)
+        private bool LoadLayoutByName(string layoutName, bool showErrorPopups = false)
         {
             Debug.Log($"TouchscreenLayoutsManager: Loading {layoutName} from {LayoutsPath}");
             static string getDirName(string dirPath) => Path.GetFileName(dirPath.TrimEnd('/', '\\'));
             // get valid layouts (directories in LayoutsPath that contain a .json named same as dir)
             cachedLayoutNames = Directory.GetDirectories(LayoutsPath).Where(p => File.Exists(Path.Combine(p, getDirName(p) + ".json"))).Select(s => getDirName(s)).ToList();
-            if(!cachedLayoutNames.Contains(layoutName))
-                TouchscreenInputManager.Instance.PopupMessage.Open($"Couldn't find a layout file named {layoutName}.json within a {Path.Combine(LayoutsPath, layoutName)} directory", null, null, "Okay", "", false);
-            else {
+            if(!cachedLayoutNames.Contains(layoutName)){
+                if(showErrorPopups)
+                    TouchscreenInputManager.Instance.PopupMessage.Open($"Couldn't find a layout file named {layoutName}.json within a {Path.Combine(LayoutsPath, layoutName)} directory", null, null, "Okay", "", false);
+                return false;
+            } else {
                 var layout = TouchscreenLayoutConfiguration.ReadFromPath(Path.Combine(LayoutsPath, layoutName, layoutName + ".json"));
                 LoadLayout(layout);
+                currentLayoutName.text = layout.name;
+                LastSelectedLayout = layout.name;
+                SelectDropdownValueForLayoutName(layout.name);
+                return true;
             }
+        }
+        private void SelectDropdownValueForLayoutName(string layoutName)
+        {
+            int dropdownIndex = layoutsDropdown.options.FindIndex(p => p.text == layoutName);
+            if(dropdownIndex >= 0)
+                layoutsDropdown.value = dropdownIndex;
+            else
+                Debug.LogError("Couldn't find layouts dropdown index for " + layoutName);
         }
         private void WriteCurrentLayoutToPath() => WriteLayoutToPath(GetCurrentLayoutConfig());
         private void WriteLayoutToPath(TouchscreenLayoutConfiguration layout)
         {
             Debug.Log($"TouchscreenLayoutsManager: Writing {layout.name} to {LayoutsPath}");
-            string path = Path.Combine(LayoutsPath, layout.name + ".json");
+            string path = Path.Combine(LayoutsPath, layout.name, layout.name + ".json");
             TouchscreenLayoutConfiguration.WriteToPath(layout, path);
         }
         public void SetupUIBasedOnCurrentlyEditingTouchscreenButton(TouchscreenButton touchscreenButton)
@@ -218,6 +270,8 @@ namespace DaggerfallWorkshop.Game
             // get directories that have a .json under them named the same as the directory
             List<string> layoutsInPath = Directory.GetDirectories(LayoutsPath).Where(p => File.Exists(Path.Combine(p, Path.GetFileName(p.TrimEnd('/', '\\')) + ".json"))).Select(s => s.Split(Path.DirectorySeparatorChar).Last()).ToList();
             layoutsDropdown.AddOptions(layoutsInPath);
+            if(currentlyLoadedLayout != null)
+                SelectDropdownValueForLayoutName(currentlyLoadedLayout.name);
         }
         private void SetupUI()
         {
@@ -304,10 +358,17 @@ namespace DaggerfallWorkshop.Game
                 currentlyLoadedLayout.buttons[curButtonIndex].SpriteName = "";
             }
         }
-        public void LoadDefaultLayout()
+        public void LoadLastSelectedOrDefaultLayout()
         {
             if(!Directory.Exists(LayoutsPath))
                 Directory.CreateDirectory(LayoutsPath);
+            RegenerateDefaultLayoutIfMissing();
+            UpdateLayoutsDropdown();
+            if(!LoadLayoutByName(LastSelectedLayout, false))
+                LoadLayoutByName("default-layout");
+        }
+        private void RegenerateDefaultLayoutIfMissing()
+        {            
             string defaultLayoutPath = Path.Combine(LayoutsPath, "default-layout", "default-layout.json");
             if(!File.Exists(defaultLayoutPath)){
                 string initialDefaultLayoutPath =Path.Combine(Paths.PersistentDataPath, "initial-default-layout.json");
@@ -316,12 +377,12 @@ namespace DaggerfallWorkshop.Game
                 string defaultLayoutText = File.ReadAllText(initialDefaultLayoutPath);
                 Directory.CreateDirectory(Path.Combine(LayoutsPath, "default-layout"));
                 File.WriteAllText(defaultLayoutPath, defaultLayoutText);
-                // WriteLayoutToPath(GetCurrentLayoutConfig());
             }
-            LoadLayoutByName("default-layout");
         }
         public void LoadLayout(TouchscreenLayoutConfiguration layoutConfig)
         {
+            if(currentlyLoadedLayout != null && layoutConfig.name != currentlyLoadedLayout.name)
+                WriteCurrentLayoutToPath();
             TouchscreenButtonEnableDisableManager.Instance.ReturnAllButtonsToPool();
             TouchscreenInputManager.Instance.SavedAlpha = layoutConfig.defaultUIAlpha;
             VirtualJoystick.JoystickTapsShouldActivateCenterObject = layoutConfig.screenTapsActivateCenterObject;
@@ -347,6 +408,7 @@ namespace DaggerfallWorkshop.Game
         public TouchscreenLayoutConfiguration GetCurrentLayoutConfig()
         {
             var layout = new TouchscreenLayoutConfiguration(){
+                name = currentlyLoadedLayout != null ? currentlyLoadedLayout.name : "default-layout",
                 defaultUIAlpha = TouchscreenInputManager.Instance.SavedAlpha,
                 screenTapsActivateCenterObject = VirtualJoystick.JoystickTapsShouldActivateCenterObject,
                 leftJoystickEnabled = TouchscreenButtonEnableDisableManager.Instance.IsLeftJoystickEnabled,
@@ -467,6 +529,11 @@ namespace DaggerfallWorkshop.Game
             {
                 TouchscreenInputManager.Instance.CurrentlyEditingButton.SetLabelAnchor((TouchscreenButtonAnchor)newVal);
             }
+        }
+        private void TouchscreenInputManager_OnEditControlsToggled(bool isOn)
+        {
+            if(!isOn && currentlyLoadedLayout != null)
+                WriteCurrentLayoutToPath();
         }
     }
     [System.Serializable]

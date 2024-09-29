@@ -22283,6 +22283,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   importLayoutButton: {fileID: 1065440844170062601}
   exportLayoutButton: {fileID: 7794375416447218729}
+  deleteLayoutButton: {fileID: 1569960107328068276}
   importTextureButton: {fileID: 2647692940315727443}
   layoutsDropdown: {fileID: 6811300413456457454}
   currentLayoutName: {fileID: 1878139268428225175}

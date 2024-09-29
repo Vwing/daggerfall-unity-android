@@ -119,7 +119,7 @@ namespace DaggerfallWorkshop.Game
             joystickTapsActivateCenterObjectToggle.onValueChanged.AddListener(OnJoystickTapsToggleChanged);
 
 
-            TouchscreenLayoutsManager.Instance.LoadDefaultLayout();
+            TouchscreenLayoutsManager.Instance.LoadLastSelectedOrDefaultLayout();
         }
         private void Update()
         {
