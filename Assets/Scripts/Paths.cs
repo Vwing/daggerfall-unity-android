@@ -14,6 +14,7 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using ICSharpCode.SharpZipLib.Zip;
+using DaggerfallWorkshop.Game;
 namespace DaggerfallWorkshop
 {
     public sealed class Paths
@@ -23,6 +24,7 @@ namespace DaggerfallWorkshop
         public static string DataPath => lazy.Value.dataPath;
         public static string PersistentDataPath => lazy.Value.persistentDataPath;
         public static string StoragePath => lazy.Value.storagePath;
+        public static string LayoutsPath => TouchscreenLayoutsManager.LayoutsPath;
 
         private string streamingAssetsPath;
         private string dataPath;

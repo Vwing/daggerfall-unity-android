@@ -99,10 +99,11 @@ namespace DaggerfallWorkshop.Game
         private bool isDrawerOpen = true;
 
         private bool isUsingBuiltInTextures = true;
-        private string texturePath = "knob";
+        private string textureFileName = "knob";
         private string spriteName = "";
-        private string knobTexturePath = "";
+        private string knobFileName = "";
         private string knobSpriteName = "";
+        private string layoutParentName = "";
 
         protected override void Start()
         {
@@ -150,51 +151,6 @@ namespace DaggerfallWorkshop.Game
                 UpdateButtonTransform();
             }
         }
-        private void LoadSavedSettingsDeprecated()
-        {
-            defaultButtonSizeDelta = rectTransform.sizeDelta;
-            defaultButtonPosition = rectTransform.anchoredPosition;
-            defaultAction = myAction;
-            defaultKeyCode = myKey;
-
-            defaultAction = myAction;
-            defaultAction = myAction;
-            defaultKeyCode = myKey;
-
-            rectTransform.anchoredPosition = GetSavedPosition();
-            rectTransform.sizeDelta = GetSavedSizeDelta();
-            myAction = GetSavedAction();
-            myKey = GetSavedKey();
-
-            myLastAction = myAction;
-            myLastKey = myKey;
-            UpdateLabelText();
-            resizeButton.gameObject.SetActive(false);
-
-            if(isButtonDrawer){
-                buttonsInDrawer.AddRange(GetSavedButtonsInMyDrawer().Select(s => TouchscreenButtonEnableDisableManager.Instance.GetButtonBehaviour(s).gameObject));
-                buttonsInDrawer.ForEach(delegate(GameObject but)
-                {
-                    but.transform.SetParent(buttonDrawerParent, true); 
-                    but.GetComponent<RectTransform>().anchoredPosition = but.GetComponent<TouchscreenButton>().GetSavedPosition();
-                });
-                CloseDrawer();
-            }
-
-            isUsingBuiltInTextures = true;
-            texturePath = "linux_buttons_sheet";
-            spriteName = ((Image)targetGraphic).sprite.name;
-            if (!GetComponent<StaticTouchscreenJoystickOrDPad>().enabled)
-            {
-                knobTexturePath = "";
-                knobSpriteName = "";
-            }
-            else
-            {
-                knobTexturePath = "linux_buttons_sheet";
-                knobSpriteName = GetComponent<StaticTouchscreenJoystickOrDPad>().knob.GetComponent<Image>().sprite?.name;
-            }
-        }
         public void ApplyConfiguration(TouchscreenButtonConfiguration config)
         {
             SetButtonType(config.ButtonType, config.ButtonsInDrawer);
@@ -206,6 +162,7 @@ namespace DaggerfallWorkshop.Game
             myKey = config.KeyCodeMapping;
             myLastAction = myAction;
             myLastKey = myKey;
+            layoutParentName = config.LayoutParentName;
 
             defaultButtonPosition = config.DefaultPosition;
             rectTransform.anchoredPosition = config.Position;
@@ -215,15 +172,15 @@ namespace DaggerfallWorkshop.Game
             canActionBeEdited = config.CanButtonBeEdited;
             canButtonBeResized = config.CanButtonBeResized;
             gameObject.name = config.Name;
+            isUsingBuiltInTextures = config.UsesBuiltInTextures;
+            textureFileName = config.TextureFileName;
+            spriteName = config.SpriteName;
+            knobFileName = config.KnobTextureFileName;
+            knobSpriteName = config.KnobSpriteName;
             ((Image)targetGraphic).sprite = config.LoadSprite();
             targetGraphic.rectTransform.anchorMin = Vector2.zero;
             targetGraphic.rectTransform.anchorMax = Vector2.one;
             targetGraphic.rectTransform.sizeDelta = Vector2.zero;
-            isUsingBuiltInTextures = config.UsesBuiltInTextures;
-            texturePath = config.TexturePath;
-            spriteName = config.SpriteName;
-            knobTexturePath = config.TexturePath;
-            knobSpriteName = config.KnobSpriteName;
 
             gameObject.SetActive(config.IsEnabled);
             text.text = config.Text;
@@ -236,18 +193,14 @@ namespace DaggerfallWorkshop.Game
             if (config.IsToggleForEditOnScreenControls)
                 Debug.Log($"{config.Position} {config.DefaultPosition} {rectTransform.anchoredPosition}");
         }
-        public TouchscreenButtonConfiguration GetCurrentConfiguration()
+        public TouchscreenButtonConfiguration GetCurrentConfiguration(string layoutParentName = null)
         {
-            // #if UNITY_EDITOR
-            //             if(string.IsNullOrEmpty(spriteName) && string.IsNullOrEmpty(texturePath))
-            //                 LoadSavedSettingsDeprecated();
-            // #endif
-
             TouchscreenButtonConfiguration config = new(
                 gameObject.name, defaultButtonPosition, defaultButtonSizeDelta, GetCurrentButtonType(), gameObject.activeSelf,
-                isUsingBuiltInTextures, texturePath, spriteName, knobTexturePath, knobSpriteName, defaultAction, defaultKeyCode,
-                GetAnchorType(rectTransform.anchorMin), GetAnchorType(label.rectTransform.anchorMin), canActionBeEdited, canButtonBeRemoved,
-                canButtonBeResized, GetSavedButtonsInMyDrawer(), text.text, isToggleForEditOnScreenControls
+                isUsingBuiltInTextures, Path.GetFileName(textureFileName), spriteName, Path.GetFileName(knobFileName), knobSpriteName, defaultAction, 
+                defaultKeyCode, GetAnchorType(rectTransform.anchorMin), GetAnchorType(label.rectTransform.anchorMin), canActionBeEdited, 
+                canButtonBeRemoved, canButtonBeResized, GetSavedButtonsInMyDrawer(), text.text, isToggleForEditOnScreenControls, 
+                layoutParentName ?? this.layoutParentName
             )
             {
                 Position = rectTransform.anchoredPosition,

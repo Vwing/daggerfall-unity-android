@@ -28,8 +28,12 @@ public class TouchscreenCanvasUXController : MonoBehaviour
         leftJoystickToggle.onValueChanged.AddListener(delegate(bool b) { UpdateUIUX(); });
         rightJoystickToggle.onValueChanged.AddListener(delegate(bool b) { UpdateUIUX(); });
         selectedButtonTypeDropdown.onValueChanged.AddListener(delegate(int i) {UpdateUIUX();});
+        TouchscreenInputManager.Instance.onCurrentlyEditingButtonChanged += TouchscreenInputManager_onCurrentlyEditingButtonChanged;
     }
-
+    private void OnDestroy()
+    {
+        TouchscreenInputManager.Instance.onCurrentlyEditingButtonChanged -= TouchscreenInputManager_onCurrentlyEditingButtonChanged;
+    }
     private void UpdateUIUX()
     {
         switch((TouchscreenButtonType)selectedButtonTypeDropdown.value){
@@ -63,4 +67,5 @@ public class TouchscreenCanvasUXController : MonoBehaviour
         SetCGEnabled(rightJoystickSliderCG, rightJoystickToggle.isOn);
         SetCGEnabled(touchscreenSensitivitySliderCG, isConfigPanelExpanded);
     }
+    private void TouchscreenInputManager_onCurrentlyEditingButtonChanged(TouchscreenButton newButton) => UpdateUIUX();
 }

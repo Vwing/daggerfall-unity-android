@@ -32,9 +32,9 @@ namespace DaggerfallWorkshop.Game
         [SerializeField][JsonProperty] private string actionMapping;
         [SerializeField][JsonProperty] private string keyCodeMapping;
         [SerializeField][JsonProperty] private bool usesBuiltInTextures;
-        [SerializeField][JsonProperty] private string texturePath;
+        [SerializeField][JsonProperty] private string textureFileName;
         [SerializeField][JsonProperty] private string spriteName;
-        [SerializeField][JsonProperty] private string knobTexturePath;
+        [SerializeField][JsonProperty] private string knobTextureFileName;
         [SerializeField][JsonProperty] private string knobSpriteName;
         [SerializeField][JsonProperty] private string buttonsInDrawer;
         [SerializeField][JsonProperty] private string text;
@@ -90,10 +90,19 @@ namespace DaggerfallWorkshop.Game
             set { keyCodeMapping = value.ToString(); }
         }
         [JsonIgnore] public bool UsesBuiltInTextures { get { return usesBuiltInTextures; } set { usesBuiltInTextures = value; } }
-        [JsonIgnore] public string TexturePath { get { return texturePath; } set { texturePath = value; } }
+        [JsonIgnore] public string TextureFileName { get { return textureFileName; } set { textureFileName = value; } }
         [JsonIgnore] public string SpriteName { get { return spriteName; } set { spriteName = value; } }
-        [JsonIgnore] public string KnobTexturePath { get { return knobTexturePath; } set { knobTexturePath = value; } }
+        [JsonIgnore] public string KnobTextureFileName { get { return knobTextureFileName; } set { knobTextureFileName = value; } }
         [JsonIgnore] public string KnobSpriteName { get { return knobSpriteName; } set { knobSpriteName = value; } }
+
+        private string _layoutParentName;
+        [JsonIgnore] public string LayoutParentName
+        { 
+            get {return _layoutParentName ?? TouchscreenLayoutsManager.Instance?.CurrentlyLoadedLayout?.name ?? "default-layout"; } // this is hacky
+            set {_layoutParentName = value;} 
+        }
+        [JsonIgnore] public string TextureFilePath { get {return UsesBuiltInTextures ? textureFileName : Path.Combine(Paths.LayoutsPath, LayoutParentName, "textures", textureFileName);}}
+        [JsonIgnore] public string KnobTextureFilePath { get {return UsesBuiltInTextures ? knobTextureFileName : Path.Combine(Paths.LayoutsPath, LayoutParentName, "textures", knobTextureFileName);} }
         [JsonIgnore]
         public List<string> ButtonsInDrawer
         {
@@ -103,11 +112,11 @@ namespace DaggerfallWorkshop.Game
 
         public TouchscreenButtonConfiguration(string name, Vector2 defaultPosition, Vector2 defaultScale,
             TouchscreenButtonType buttonType = TouchscreenButtonType.Button, bool isEnabled = true, bool usesBuiltInTexture = true,
-            string texturePath = "knob", string spriteName = "", string knobTexturePath = "", string knobSpriteName = "",
+            string textureFileName = "knob", string spriteName = "", string knobTextureFileName = "", string knobSpriteName = "",
             InputManager.Actions defaultActionMapping = InputManager.Actions.Unknown, KeyCode defaultKeyCodeMapping = KeyCode.None,
             TouchscreenButtonAnchor anchor = TouchscreenButtonAnchor.MiddleMiddle, TouchscreenButtonAnchor labelAnchor = TouchscreenButtonAnchor.TopMiddle,
             bool canButtonBeEdited = true, bool canButtonBeRemoved = true, bool canButtonBeResized = true, List<string> buttonsInDrawer = null,
-            string text = "", bool isToggleForEditOnScreenControls = false)
+            string text = "", bool isToggleForEditOnScreenControls = false, string layoutParentName = "")
         {
             this.Name = name;
             this.ButtonType = buttonType;
@@ -122,23 +131,37 @@ namespace DaggerfallWorkshop.Game
             this.DefaultActionMapping = this.ActionMapping = defaultActionMapping;
             this.DefaultKeyCodeMapping = this.KeyCodeMapping = defaultKeyCodeMapping;
             this.UsesBuiltInTextures = usesBuiltInTexture;
-            this.TexturePath = texturePath;
+            this.TextureFileName = textureFileName;
             this.SpriteName = spriteName;
-            this.KnobTexturePath = knobTexturePath;
+            this.KnobTextureFileName = knobTextureFileName;
             this.KnobSpriteName = knobSpriteName;
             this.ButtonsInDrawer = buttonsInDrawer;
             this.Text = text;
             this.IsToggleForEditOnScreenControls = isToggleForEditOnScreenControls;
+            this.LayoutParentName = layoutParentName;
         }
         public Sprite LoadSprite(bool isKnob = false)
         {
-            string texPath = isKnob ? KnobTexturePath : TexturePath;
-            string spriteName = isKnob ? KnobSpriteName : SpriteName;
+            string texPath;
+            string spriteName;
+            try{
+                texPath = isKnob ? KnobTextureFilePath : TextureFilePath;
+                spriteName = isKnob ? KnobSpriteName : SpriteName;
+            } catch (Exception e) {
+                // Path.Combine(Paths.LayoutsPath, LayoutParentName, "textures", textureFileName)
+                Debug.LogError($"Combined path: {Paths.LayoutsPath} {LayoutParentName} textures {textureFileName}");
+                throw e;
+            }
             if (UsesBuiltInTextures)
             {
                 if (!string.IsNullOrEmpty(spriteName))
                 {
-                    return Resources.LoadAll<Sprite>(texPath).FirstOrDefault(p => p.name == spriteName);
+                    try{
+                        return Resources.LoadAll<Sprite>(texPath).FirstOrDefault(p => p.name == spriteName);
+                    } catch (Exception e){
+                        Debug.LogError($"{texPath}: {e}");
+                        return null;
+                    }
                 }
                 else
                 {

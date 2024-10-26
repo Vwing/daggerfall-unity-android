@@ -51,6 +51,8 @@ namespace DaggerfallWorkshop.Game
         public static string LayoutsPath { get { return Path.Combine(Paths.PersistentDataPath, "TouchscreenLayouts"); } }
         public static string LastSelectedLayout{get{return PlayerPrefs.GetString("TouchscreenLayoutsManager_LastSelectedLayout", "default-layout");} set {PlayerPrefs.SetString("TouchscreenLayoutsManager_LastSelectedLayout", value);}}
 
+        public TouchscreenLayoutConfiguration CurrentlyLoadedLayout {get{return currentlyLoadedLayout;}}
+
         private TouchscreenLayoutConfiguration currentlyLoadedLayout;
         private List<string> cachedLayoutNames = new List<string>();
 
@@ -134,28 +136,24 @@ namespace DaggerfallWorkshop.Game
                 Directory.Delete(cachePath, true);
             string folderToZipPath = Path.Combine(cachePath, currentlyLoadedLayout.name);
             Directory.CreateDirectory(folderToZipPath);
+            Directory.CreateDirectory(Path.Combine(folderToZipPath, "textures"));
 
             // copy the textures to cache
-            string exportedTexturesFolder = Path.Combine(cachePath, currentlyLoadedLayout.name);
             for(int i = 0; i < exportedConfig.buttons.Count; ++i){
                 if(!exportedConfig.buttons[i].UsesBuiltInTextures){
-                    if(File.Exists(exportedConfig.buttons[i].TexturePath)){
-                        string texFileName = Path.GetFileName(exportedConfig.buttons[i].TexturePath);
-                        File.Copy(exportedConfig.buttons[i].TexturePath, Path.Combine(exportedTexturesFolder,texFileName), true);
-                        exportedConfig.buttons[i].TexturePath = texFileName;
+                    if(File.Exists(exportedConfig.buttons[i].TextureFilePath)){
+                        string exportPath = Path.Combine(folderToZipPath, "textures", exportedConfig.buttons[i].TextureFileName);
+                        File.Copy(exportedConfig.buttons[i].TextureFilePath, exportPath, true);
                     }
-                    if(File.Exists(exportedConfig.buttons[i].KnobTexturePath)){
-                        string texFileName = Path.GetFileName(exportedConfig.buttons[i].KnobTexturePath);
-                        File.Copy(exportedConfig.buttons[i].KnobTexturePath, Path.Combine(exportedTexturesFolder,texFileName), true);
-                        exportedConfig.buttons[i].KnobTexturePath = texFileName;
+                    if(File.Exists(exportedConfig.buttons[i].KnobTextureFilePath)){
+                        string exportPath = Path.Combine(folderToZipPath, "textures", exportedConfig.buttons[i].KnobTextureFileName);
+                        File.Copy(exportedConfig.buttons[i].KnobTextureFilePath, exportPath, true);
                     }
-                    exportedConfig.buttons[i].SpriteName = "";
-                    exportedConfig.buttons[i].KnobSpriteName = "";
                 }
             }
 
             // write the json to cache
-            File.WriteAllText(Path.Combine(folderToZipPath, currentlyLoadedLayout.name), TouchscreenLayoutConfiguration.Serialize(exportedConfig));
+            TouchscreenLayoutConfiguration.WriteToPath(exportedConfig, Path.Combine(folderToZipPath, currentlyLoadedLayout.name, ".json"));
             
             // zip it all up
             string zipPath = folderToZipPath.TrimEnd(Path.DirectorySeparatorChar) + ".zip";
@@ -269,6 +267,7 @@ namespace DaggerfallWorkshop.Game
             layoutsDropdown.ClearOptions();
             // get directories that have a .json under them named the same as the directory
             List<string> layoutsInPath = Directory.GetDirectories(LayoutsPath).Where(p => File.Exists(Path.Combine(p, Path.GetFileName(p.TrimEnd('/', '\\')) + ".json"))).Select(s => s.Split(Path.DirectorySeparatorChar).Last()).ToList();
+            Debug.Log(layoutsInPath.Count + "Layouts in Layouts Path: " + LayoutsPath);
             layoutsDropdown.AddOptions(layoutsInPath);
             if(currentlyLoadedLayout != null)
                 SelectDropdownValueForLayoutName(currentlyLoadedLayout.name);
@@ -324,16 +323,16 @@ namespace DaggerfallWorkshop.Game
             TMPro.TMP_Dropdown dropdown = isKnob ? knobSpriteDropdown : spriteDropdown;
             dropdown.ClearOptions();
             List<BuiltInSpriteConfig> builtIns = isKnob ? builtInKnobSprites : builtInSprites;
-            List<string> externals = isKnob ? cachedKnobSpritePaths : cachedSpritePaths;
-            externals.Clear();
-            externals.AddRange(imageSearchPatterns.SelectMany(s => Directory.GetFiles(LayoutsPath, s, SearchOption.AllDirectories)).ToList());
+            cachedSpritePaths.Clear();
+            string curLayoutPath = Path.Combine(LayoutsPath, currentlyLoadedLayout.name);
+            cachedSpritePaths.AddRange(imageSearchPatterns.SelectMany(s => Directory.GetFiles(curLayoutPath, s, SearchOption.AllDirectories)).ToList());
             
             dropdown.onValueChanged.RemoveListener(isKnob ? OnKnobSpriteDropdownChanged : OnSpriteDropdownValueChanged);
             List<string> options = new List<string>();
-            options.AddRange(builtIns.Select(s => string.IsNullOrEmpty(s.spriteName) ? s.textureName : $"{s.textureName}_{s.spriteName}"));
-            options.AddRange(externals.Select(s => {
-                string texParentLayout = Path.GetFileName(Path.GetDirectoryName(s.Replace("/textures", "").Replace("\\textures", "")));
-                return $"{texParentLayout}_{Path.GetFileNameWithoutExtension(s)}";
+            options.AddRange(builtIns.Select(s => string.IsNullOrEmpty(s.spriteName) ? s.textureName : $"{s.spriteName}"));
+            options.AddRange(cachedSpritePaths.Select(s => {
+                // string texParentLayout = Path.GetFileName(Path.GetDirectoryName(s.Replace("/textures", "").Replace("\\textures", "")));
+                return $"{Path.GetFileNameWithoutExtension(s)}";
             }));
             dropdown.AddOptions(options);
             dropdown.onValueChanged.AddListener(isKnob ? OnKnobSpriteDropdownChanged : OnSpriteDropdownValueChanged);
@@ -341,22 +340,31 @@ namespace DaggerfallWorkshop.Game
         private void ChangeCurrentButtonSprite(int spriteOptionIndex, bool isKnob)
         {
             List<BuiltInSpriteConfig> builtInSpriteConfigs = isKnob ? builtInKnobSprites : builtInSprites;
-            List<string> externalSpritePaths = isKnob ? cachedKnobSpritePaths : cachedSpritePaths;
             string currentlyEditingButtonName = TouchscreenInputManager.Instance.CurrentlyEditingButton.gameObject.name;
+            int curButtonIndex = currentlyLoadedLayout.buttons.FindIndex(p => p.Name == currentlyEditingButtonName);
             if(spriteOptionIndex < builtInSpriteConfigs.Count){
                 BuiltInSpriteConfig newSpriteConfig = builtInSpriteConfigs[spriteOptionIndex];
-                int curButtonIndex = currentlyLoadedLayout.buttons.FindIndex(p => p.Name == currentlyEditingButtonName);
                 currentlyLoadedLayout.buttons[curButtonIndex].UsesBuiltInTextures = true;
-                currentlyLoadedLayout.buttons[curButtonIndex].TexturePath = newSpriteConfig.textureName;
-                currentlyLoadedLayout.buttons[curButtonIndex].SpriteName = newSpriteConfig.spriteName;
+                if(isKnob){
+                    currentlyLoadedLayout.buttons[curButtonIndex].KnobTextureFileName = newSpriteConfig.textureName;
+                    currentlyLoadedLayout.buttons[curButtonIndex].KnobSpriteName = newSpriteConfig.spriteName;
+                } else {
+                    currentlyLoadedLayout.buttons[curButtonIndex].TextureFileName = newSpriteConfig.textureName;
+                    currentlyLoadedLayout.buttons[curButtonIndex].SpriteName = newSpriteConfig.spriteName;
+                }
             } else {
                 spriteOptionIndex -= builtInSpriteConfigs.Count;
-                string newSpritePath = externalSpritePaths[spriteOptionIndex];
-                int curButtonIndex = currentlyLoadedLayout.buttons.FindIndex(p => p.Name == currentlyEditingButtonName);
+                string newSpritePath = cachedSpritePaths[spriteOptionIndex];
                 currentlyLoadedLayout.buttons[curButtonIndex].UsesBuiltInTextures = false;
-                currentlyLoadedLayout.buttons[curButtonIndex].TexturePath = newSpritePath;
-                currentlyLoadedLayout.buttons[curButtonIndex].SpriteName = "";
+                if(isKnob){
+                    currentlyLoadedLayout.buttons[curButtonIndex].KnobTextureFileName = Path.GetFileName(newSpritePath);
+                    currentlyLoadedLayout.buttons[curButtonIndex].KnobSpriteName = "";
+                } else {
+                    currentlyLoadedLayout.buttons[curButtonIndex].TextureFileName = Path.GetFileName(newSpritePath);
+                    currentlyLoadedLayout.buttons[curButtonIndex].SpriteName = "";
+                }
             }
+            TouchscreenInputManager.Instance.CurrentlyEditingButton.ApplyConfiguration(currentlyLoadedLayout.buttons[curButtonIndex]);
         }
         public void LoadLastSelectedOrDefaultLayout()
         {
@@ -393,10 +401,10 @@ namespace DaggerfallWorkshop.Game
             {
                 var buttonConfig = layoutConfig.buttons[i];
                 if(!buttonConfig.UsesBuiltInTextures){
-                    if(!string.IsNullOrEmpty(buttonConfig.TexturePath) && !File.Exists(buttonConfig.TexturePath))
-                        buttonConfig.TexturePath = Path.Combine(LayoutsPath, layoutConfig.name, "textures", Path.GetFileName(buttonConfig.TexturePath));
-                    if(!string.IsNullOrEmpty(buttonConfig.KnobTexturePath) && !File.Exists(buttonConfig.KnobTexturePath))
-                        buttonConfig.KnobTexturePath = Path.Combine(LayoutsPath, layoutConfig.name, "textures", Path.GetFileName(buttonConfig.KnobTexturePath));
+                    if(!string.IsNullOrEmpty(buttonConfig.TextureFileName) && !File.Exists(buttonConfig.TextureFileName))
+                        buttonConfig.TextureFileName = Path.Combine(LayoutsPath, layoutConfig.name, "textures", Path.GetFileName(buttonConfig.TextureFileName));
+                    if(!string.IsNullOrEmpty(buttonConfig.KnobTextureFileName) && !File.Exists(buttonConfig.KnobTextureFileName))
+                        buttonConfig.KnobTextureFileName = Path.Combine(LayoutsPath, layoutConfig.name, "textures", Path.GetFileName(buttonConfig.KnobTextureFileName));
                     layoutConfig.buttons[i] = buttonConfig;
                 }
                 TouchscreenButtonEnableDisableManager.Instance.AddButtonFromPool(buttonConfig);
@@ -407,13 +415,14 @@ namespace DaggerfallWorkshop.Game
         }
         public TouchscreenLayoutConfiguration GetCurrentLayoutConfig()
         {
+            string layoutName = name = currentlyLoadedLayout != null ? currentlyLoadedLayout.name : "default-layout";
             var layout = new TouchscreenLayoutConfiguration(){
-                name = currentlyLoadedLayout != null ? currentlyLoadedLayout.name : "default-layout",
+                name = layoutName,
                 defaultUIAlpha = TouchscreenInputManager.Instance.SavedAlpha,
                 screenTapsActivateCenterObject = VirtualJoystick.JoystickTapsShouldActivateCenterObject,
                 leftJoystickEnabled = TouchscreenButtonEnableDisableManager.Instance.IsLeftJoystickEnabled,
                 rightJoystickEnabled = TouchscreenButtonEnableDisableManager.Instance.IsRightJoystickEnabled,
-                buttons = TouchscreenButtonEnableDisableManager.Instance.GetAllButtons().Select(s => s.GetCurrentConfiguration()).ToList()
+                buttons = TouchscreenButtonEnableDisableManager.Instance.GetAllButtons().Select(s => s.GetCurrentConfiguration(layoutName)).ToList()
             };
             layout.buttons.Sort(new TouchscreenButtonConfigurationComparer());
             return layout;
@@ -582,7 +591,14 @@ namespace DaggerfallWorkshop.Game
         {
             try
             {
-                return JsonConvert.SerializeObject(layout, Formatting.Indented);
+                // List<TouchscreenButtonConfiguration> prevButtons = layout.buttons.ToList();
+                // layout.buttons.ForEach(p => {
+                //     p.TexturePath = Path.GetFileName(p.TexturePath);
+                //     p.KnobTexturePath = Path.GetFileName(p.KnobTexturePath);
+                // });
+                // layout.buttons = prevButtons;
+                string serializedLayout = JsonConvert.SerializeObject(layout, Formatting.Indented);
+                return serializedLayout;
             }
             catch (Exception e)
             {

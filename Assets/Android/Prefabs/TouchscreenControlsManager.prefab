@@ -3069,9 +3069,9 @@ MonoBehaviour:
   m_fontSize: 14
   m_fontSizeBase: 14
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 0
+  m_fontSizeMax: 14
   m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
@@ -4854,9 +4854,9 @@ MonoBehaviour:
   m_fontSize: 14
   m_fontSizeBase: 14
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 0
+  m_fontSizeMax: 14
   m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
@@ -11149,9 +11149,9 @@ MonoBehaviour:
   m_fontSize: 14
   m_fontSizeBase: 14
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 0
+  m_fontSizeMax: 14
   m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
@@ -15968,9 +15968,9 @@ MonoBehaviour:
   m_fontSize: 14
   m_fontSizeBase: 14
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 0
+  m_fontSizeMax: 14
   m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
@@ -16299,9 +16299,9 @@ MonoBehaviour:
   m_fontSize: 14
   m_fontSizeBase: 14
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 0
+  m_fontSizeMax: 14
   m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
@@ -16971,9 +16971,9 @@ MonoBehaviour:
   m_fontSize: 14
   m_fontSizeBase: 14
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 0
+  m_fontSizeMax: 14
   m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
@@ -18009,9 +18009,9 @@ MonoBehaviour:
   m_fontSize: 14
   m_fontSizeBase: 14
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 0
+  m_fontSizeMax: 14
   m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
@@ -18265,9 +18265,9 @@ MonoBehaviour:
   m_fontSize: 14
   m_fontSizeBase: 14
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 0
+  m_fontSizeMax: 14
   m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
@@ -18763,9 +18763,9 @@ MonoBehaviour:
   m_fontSize: 14
   m_fontSizeBase: 14
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 0
+  m_fontSizeMax: 14
   m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
@@ -22287,8 +22287,50 @@ MonoBehaviour:
   importTextureButton: {fileID: 2647692940315727443}
   layoutsDropdown: {fileID: 6811300413456457454}
   currentLayoutName: {fileID: 1878139268428225175}
-  builtInSprites: []
-  builtInKnobSprites: []
+  builtInSprites:
+  - textureName: linux_buttons
+    spriteName: button_blank
+  - textureName: linux_buttons
+    spriteName: button_up
+  - textureName: linux_buttons
+    spriteName: button_left
+  - textureName: linux_buttons
+    spriteName: button_right
+  - textureName: linux_buttons
+    spriteName: button_down
+  - textureName: linux_buttons
+    spriteName: button_north
+  - textureName: linux_buttons
+    spriteName: button_west
+  - textureName: linux_buttons
+    spriteName: button_east
+  - textureName: linux_buttons
+    spriteName: button_south
+  - textureName: linux_buttons
+    spriteName: button_select
+  - textureName: linux_buttons
+    spriteName: button_start
+  - textureName: linux_buttons
+    spriteName: button_triggerleft
+  - textureName: linux_buttons
+    spriteName: button_triggerright
+  - textureName: linux_buttons
+    spriteName: button_zl
+  - textureName: linux_buttons
+    spriteName: button_zr
+  - textureName: linux_buttons
+    spriteName: dpad
+  - textureName: linux_buttons
+    spriteName: joystick
+  - textureName: linux_buttons
+    spriteName: button_mode
+  builtInKnobSprites:
+  - textureName: knob
+    spriteName: 
+  - textureName: linux_buttons
+    spriteName: joystick_left_knob
+  - textureName: linux_buttons
+    spriteName: joystick_right_knob
   actionMappingDropdown: {fileID: 71924089765068735}
   keycodeDropdown: {fileID: 2701889145187263299}
   buttonNameInputField: {fileID: 5941940032509570420}
