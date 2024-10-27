@@ -153,7 +153,7 @@ namespace DaggerfallWorkshop.Game
             }
 
             // write the json to cache
-            TouchscreenLayoutConfiguration.WriteToPath(exportedConfig, Path.Combine(folderToZipPath, currentlyLoadedLayout.name, ".json"));
+            TouchscreenLayoutConfiguration.WriteToPath(exportedConfig, Path.Combine(folderToZipPath, currentlyLoadedLayout.name + ".json"));
             
             // zip it all up
             string zipPath = folderToZipPath.TrimEnd(Path.DirectorySeparatorChar) + ".zip";
@@ -257,6 +257,12 @@ namespace DaggerfallWorkshop.Game
                 buttonTypeDropdown.value = buttonTypeDropdown.options.FindIndex(p => p.text == buttonConfig.ButtonType.ToString());
                 anchorDropdown.value = anchorDropdown.options.FindIndex(p => p.text == buttonConfig.Anchor.ToString());
                 labelAnchorDropdown.value = labelAnchorDropdown.options.FindIndex(p => p.text == buttonConfig.LabelAnchor.ToString());
+                spriteDropdown.onValueChanged.RemoveListener(OnSpriteDropdownValueChanged);
+                knobSpriteDropdown.onValueChanged.RemoveListener(OnKnobSpriteDropdownChanged);
+                SyncSpriteDropdownValueToCurrentButtonSprite(true);
+                SyncSpriteDropdownValueToCurrentButtonSprite(false);
+                spriteDropdown.onValueChanged.AddListener(OnSpriteDropdownValueChanged);
+                knobSpriteDropdown.onValueChanged.AddListener(OnKnobSpriteDropdownChanged);
                 //spriteDropdown.value = spriteDropdown.options.FindIndex(p => p.text == buttonConfig.LabelAnchor.ToString());
                 //knobSpriteDropdown.value = knobSpriteDropdown.options.FindIndex(p => p.text == buttonConfig.LabelAnchor.ToString());
 
@@ -327,7 +333,8 @@ namespace DaggerfallWorkshop.Game
             string curLayoutPath = Path.Combine(LayoutsPath, currentlyLoadedLayout.name);
             cachedSpritePaths.AddRange(imageSearchPatterns.SelectMany(s => Directory.GetFiles(curLayoutPath, s, SearchOption.AllDirectories)).ToList());
             
-            dropdown.onValueChanged.RemoveListener(isKnob ? OnKnobSpriteDropdownChanged : OnSpriteDropdownValueChanged);
+            dropdown.onValueChanged.RemoveListener(OnKnobSpriteDropdownChanged);
+            dropdown.onValueChanged.RemoveListener(OnSpriteDropdownValueChanged);
             List<string> options = new List<string>();
             options.AddRange(builtIns.Select(s => string.IsNullOrEmpty(s.spriteName) ? s.textureName : $"{s.spriteName}"));
             options.AddRange(cachedSpritePaths.Select(s => {
@@ -335,7 +342,23 @@ namespace DaggerfallWorkshop.Game
                 return $"{Path.GetFileNameWithoutExtension(s)}";
             }));
             dropdown.AddOptions(options);
+            SyncSpriteDropdownValueToCurrentButtonSprite(isKnob);
             dropdown.onValueChanged.AddListener(isKnob ? OnKnobSpriteDropdownChanged : OnSpriteDropdownValueChanged);
+        }
+        private void SyncSpriteDropdownValueToCurrentButtonSprite(bool isKnob)
+        {
+            TMPro.TMP_Dropdown dropdown = isKnob ? knobSpriteDropdown : spriteDropdown;
+            if(TouchscreenInputManager.Instance.CurrentlyEditingButton != null){
+                string currentlyEditingButtonName = TouchscreenInputManager.Instance.CurrentlyEditingButton.gameObject.name;
+                int curButtonIndex = currentlyLoadedLayout.buttons.FindIndex(p => p.Name == currentlyEditingButtonName);
+                var curButton = currentlyLoadedLayout.buttons[curButtonIndex];
+                if(curButton.UsesBuiltInTextures){
+                    dropdown.value = dropdown.options.FindIndex(p => p.text == (isKnob ? curButton.KnobSpriteName : curButton.SpriteName));
+                } else {
+                    string texName = isKnob ? Path.GetFileNameWithoutExtension(curButton.KnobTextureFileName) : Path.GetFileNameWithoutExtension(curButton.TextureFileName);
+                    dropdown.value = dropdown.options.FindLastIndex(p => p.text == texName);
+                }
+            }
         }
         private void ChangeCurrentButtonSprite(int spriteOptionIndex, bool isKnob)
         {
@@ -400,13 +423,8 @@ namespace DaggerfallWorkshop.Game
             for(int i = 0; i < layoutConfig.buttons.Count; ++i)
             {
                 var buttonConfig = layoutConfig.buttons[i];
-                if(!buttonConfig.UsesBuiltInTextures){
-                    if(!string.IsNullOrEmpty(buttonConfig.TextureFileName) && !File.Exists(buttonConfig.TextureFileName))
-                        buttonConfig.TextureFileName = Path.Combine(LayoutsPath, layoutConfig.name, "textures", Path.GetFileName(buttonConfig.TextureFileName));
-                    if(!string.IsNullOrEmpty(buttonConfig.KnobTextureFileName) && !File.Exists(buttonConfig.KnobTextureFileName))
-                        buttonConfig.KnobTextureFileName = Path.Combine(LayoutsPath, layoutConfig.name, "textures", Path.GetFileName(buttonConfig.KnobTextureFileName));
-                    layoutConfig.buttons[i] = buttonConfig;
-                }
+                buttonConfig.LayoutParentName = layoutConfig.name;
+                layoutConfig.buttons[i] = buttonConfig;
                 TouchscreenButtonEnableDisableManager.Instance.AddButtonFromPool(buttonConfig);
             }
             DaggerfallGC.ThrottledUnloadUnusedAssets();
@@ -440,21 +458,22 @@ namespace DaggerfallWorkshop.Game
 
             foreach (string file in Directory.GetFiles(extractedPath, "*.json", SearchOption.AllDirectories))
             {
-                string fileNameNoExt = Path.GetFileNameWithoutExtension(file);
+                string layoutName = Path.GetFileNameWithoutExtension(file);
                 string fileParentDir = Path.GetDirectoryName(file);
                 if(TouchscreenLayoutConfiguration.ReadFromPath(file) != null)
                 {
                     // this is the directory level that we want to copy over to layouts path!
                     void onConfirmOverwrite() {
-                        string layoutPath = Path.Combine(LayoutsPath, fileNameNoExt);
-                        foreach(string file2 in Directory.GetFiles(fileParentDir, "", SearchOption.AllDirectories)){
-                            string newFile2Path = file2.Replace(fileParentDir, layoutPath);
+                        string layoutPath = Path.Combine(LayoutsPath, layoutName);
+                        Debug.Log($"{extractedPath}\n\n{fileParentDir}\n\n{file}\n\n{layoutPath}");
+                        foreach(string file2 in Directory.GetFiles(extractedPath, "*", SearchOption.AllDirectories)){
+                            string newFile2Path = file2.Replace(extractedPath, layoutPath);
                             Directory.CreateDirectory(Path.GetDirectoryName(newFile2Path));
                             File.Copy(file2, newFile2Path, true);
                         }
                     }
                     // but we'd better check if it already exists, and notify the user if so
-                    if(Directory.Exists(Path.Combine(LayoutsPath, fileNameNoExt)))
+                    if(Directory.Exists(Path.Combine(LayoutsPath, layoutName)))
                         TouchscreenInputManager.Instance.PopupMessage.Open("This layout name already exists! Overwrite the layout?", onConfirmOverwrite, null, "Overwrite", "Cancel");
                     else
                         onConfirmOverwrite();
@@ -463,7 +482,8 @@ namespace DaggerfallWorkshop.Game
                     Directory.Delete(cachePath, true);
 
                     // load the new layout
-                    LoadLayoutByName(fileNameNoExt);
+                    UpdateLayoutsDropdown();
+                    LoadLayoutByName(layoutName);
                     return; // We're done. Return early
                 }
             }
