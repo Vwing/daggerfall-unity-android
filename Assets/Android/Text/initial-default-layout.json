@@ -928,7 +928,7 @@
       "keyCodeMapping": "None",
       "usesBuiltInTextures": true,
       "textureFileName": "linux_buttons",
-      "spriteName": "hamburger_button_sprite",
+      "spriteName": "hamburger_menu",
       "knobTextureFileName": "linux_buttons",
       "knobSpriteName": "",
       "buttonsInDrawer": "",

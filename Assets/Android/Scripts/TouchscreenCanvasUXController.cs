@@ -17,6 +17,7 @@ public class TouchscreenCanvasUXController : MonoBehaviour
     [SerializeField] private CanvasGroup touchscreenSensitivitySliderCG;
     [SerializeField] private GameObject selectedButtonKnobSpriteDropdownGO;
     [SerializeField] private GameObject selectedButtonJoystickSliderGO;
+    [SerializeField] private GameObject selectedButtonDeleteButtonGO;
     [SerializeField] private float configPanelUnexpandedHeight = 334.3f;
     [SerializeField] private float configPanelExpandedHeight = 383.4f;
     [SerializeField] private float selectedButtonAdvancedUnexpandedHeight = 329f;
@@ -29,6 +30,7 @@ public class TouchscreenCanvasUXController : MonoBehaviour
         rightJoystickToggle.onValueChanged.AddListener(delegate(bool b) { UpdateUIUX(); });
         selectedButtonTypeDropdown.onValueChanged.AddListener(delegate(int i) {UpdateUIUX();});
         TouchscreenInputManager.Instance.onCurrentlyEditingButtonChanged += TouchscreenInputManager_onCurrentlyEditingButtonChanged;
+        UpdateUIUX();
     }
     private void OnDestroy()
     {
@@ -66,6 +68,7 @@ public class TouchscreenCanvasUXController : MonoBehaviour
         SetCGEnabled(leftJoystickSliderCG, leftJoystickToggle.isOn);
         SetCGEnabled(rightJoystickSliderCG, rightJoystickToggle.isOn);
         SetCGEnabled(touchscreenSensitivitySliderCG, isConfigPanelExpanded);
+        selectedButtonDeleteButtonGO.SetActive(TouchscreenInputManager.Instance.CurrentlyEditingButton != null);
     }
     private void TouchscreenInputManager_onCurrentlyEditingButtonChanged(TouchscreenButton newButton) => UpdateUIUX();
 }

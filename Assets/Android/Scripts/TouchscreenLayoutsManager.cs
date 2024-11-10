@@ -14,10 +14,14 @@ namespace DaggerfallWorkshop.Game
     {
         public static TouchscreenLayoutsManager Instance{get; private set;}
 
+        public static event System.Action<string> LayoutLoaded;
+
         [SerializeField] private Button importLayoutButton;
         [SerializeField] private Button exportLayoutButton;
         [SerializeField] private Button deleteLayoutButton;
         [SerializeField] private Button importTextureButton;
+        [SerializeField] private Button createNewButtonButton;
+        [SerializeField] private Button deleteSelectedButtonButton;
         [SerializeField] private TMPro.TMP_Dropdown layoutsDropdown;
         [SerializeField] private TMPro.TMP_InputField currentLayoutName;
         [SerializeField] private List<BuiltInSpriteConfig> builtInSprites = new List<BuiltInSpriteConfig>();
@@ -67,6 +71,8 @@ namespace DaggerfallWorkshop.Game
             exportLayoutButton.onClick.AddListener(ExportCurrentLayout);
             deleteLayoutButton.onClick.AddListener(DeleteCurrentLayout);
             importTextureButton.onClick.AddListener(ImportNewButtonTexture);
+            createNewButtonButton.onClick.AddListener(CreateNewButtonInLayout);
+            deleteSelectedButtonButton.onClick.AddListener(DeleteCurrentlySelectedButtonFromLayout);
             currentLayoutName.onEndEdit.AddListener(AttemptRenamingLayout);
             buttonNameInputField.onEndEdit.AddListener(AttemptRenamingButton);
             layoutsDropdown.onValueChanged.AddListener(OnLayoutsDropdownValueChanged);
@@ -86,6 +92,16 @@ namespace DaggerfallWorkshop.Game
             if(TouchscreenInputManager.Instance)
                 TouchscreenInputManager.Instance.onCurrentlyEditingButtonChanged -= SetupUIBasedOnCurrentlyEditingTouchscreenButton;
         }
+
+        public void SetButtonEnabled(string buttonName, bool enabled)
+        {
+            int indx = currentlyLoadedLayout.buttons.FindIndex(p => p.Name == buttonName);
+            if(indx >= 0){
+                currentlyLoadedLayout.buttons[indx].IsEnabled = enabled;
+                WriteCurrentLayoutToPath();
+            }
+        }
+
         private void ImportNewLayout()
         {
             NativeFilePicker.FilePickedCallback filePickedCallback = new NativeFilePicker.FilePickedCallback(OnLayoutFilePicked);
@@ -179,8 +195,33 @@ namespace DaggerfallWorkshop.Game
                 TouchscreenInputManager.Instance.PopupMessage.Open("That button name is already being used in this layout.", null, null, "Okay", "", false);
                 buttonNameInputField.text = curButton.gameObject.name;
             } else {
+                string oldButtonName = curButton.gameObject.name;
                 curButton.gameObject.name = newButtonName;
+                int buttIndex = currentlyLoadedLayout.buttons.FindIndex(p => p.Name == oldButtonName);
+                currentlyLoadedLayout.buttons[buttIndex].Name = newButtonName;
                 WriteCurrentLayoutToPath();
+            }
+        }
+
+        private void CreateNewButtonInLayout()
+        {
+            TouchscreenButtonConfiguration newButtonConfig = new("new-button-" + UnityEngine.Random.Range(100000, 999999).ToString(), 
+                new Vector2(70, -100), new Vector2(70, 70), TouchscreenButtonType.Button, true, true, "linux_buttons", "button_blank", 
+                "", "", InputManager.Actions.ToggleConsole);
+            var newButton = TouchscreenButtonEnableDisableManager.Instance.AddButtonFromPool(newButtonConfig);
+            WriteCurrentLayoutToPath();
+            LoadLayoutByName(currentLayoutName.text);
+            TouchscreenInputManager.Instance.EditTouchscreenButton(newButton);
+        }
+        private void DeleteCurrentlySelectedButtonFromLayout()
+        {
+            TouchscreenButton curButton = TouchscreenInputManager.Instance.CurrentlyEditingButton;
+            if(curButton)
+            {
+                TouchscreenInputManager.Instance.EditTouchscreenButton(null);
+                TouchscreenButtonEnableDisableManager.Instance.ReturnButtonToPool(curButton);
+                WriteCurrentLayoutToPath();
+                LoadLayoutByName(currentLayoutName.text);
             }
         }
         private void AttemptRenamingLayout(string newLayoutName)
@@ -430,6 +471,8 @@ namespace DaggerfallWorkshop.Game
             DaggerfallGC.ThrottledUnloadUnusedAssets();
 
             currentlyLoadedLayout = layoutConfig;
+
+            LayoutLoaded?.Invoke(layoutConfig.name);
         }
         public TouchscreenLayoutConfiguration GetCurrentLayoutConfig()
         {

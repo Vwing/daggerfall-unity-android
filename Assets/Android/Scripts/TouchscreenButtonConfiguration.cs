@@ -112,7 +112,7 @@ namespace DaggerfallWorkshop.Game
 
         public TouchscreenButtonConfiguration(string name, Vector2 defaultPosition, Vector2 defaultScale,
             TouchscreenButtonType buttonType = TouchscreenButtonType.Button, bool isEnabled = true, bool usesBuiltInTexture = true,
-            string textureFileName = "knob", string spriteName = "", string knobTextureFileName = "", string knobSpriteName = "",
+            string textureFileName = "linux_buttons", string spriteName = "button_blank", string knobTextureFileName = "", string knobSpriteName = "",
             InputManager.Actions defaultActionMapping = InputManager.Actions.Unknown, KeyCode defaultKeyCodeMapping = KeyCode.None,
             TouchscreenButtonAnchor anchor = TouchscreenButtonAnchor.MiddleMiddle, TouchscreenButtonAnchor labelAnchor = TouchscreenButtonAnchor.TopMiddle,
             bool canButtonBeEdited = true, bool canButtonBeRemoved = true, bool canButtonBeResized = true, List<string> buttonsInDrawer = null,

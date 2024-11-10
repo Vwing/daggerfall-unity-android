@@ -14,6 +14,7 @@
     "com.unity.textmeshpro": "3.0.9",
     "com.unity.timeline": "1.2.18",
     "com.unity.toolchain.macos-arm64-linux-x86_64": "2.0.3",
+    "com.unity.toolchain.macos-x86_64-linux-x86_64": "2.0.10",
     "com.unity.toolchain.win-x86_64-linux-x86_64": "2.0.4",
     "com.unity.ugui": "1.0.0",
     "com.unity.modules.ai": "1.0.0",

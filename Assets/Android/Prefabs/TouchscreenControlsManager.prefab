@@ -813,7 +813,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: 0, y: 134.99998}
+  m_AnchoredPosition: {x: 100, y: 134.99998}
   m_SizeDelta: {x: 200, y: 60}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &821234709259709695
@@ -2206,7 +2206,6 @@ RectTransform:
   m_Children:
   - {fileID: 6995090686073534761}
   - {fileID: 2076558892170604389}
-  - {fileID: 8065680784173999145}
   - {fileID: 8820084903659841601}
   - {fileID: 9103183259688258377}
   - {fileID: 4874952630807189092}
@@ -7479,13 +7478,13 @@ RectTransform:
   m_Children:
   - {fileID: 2129491778370087676}
   - {fileID: 3671480201291951181}
-  m_Father: {fileID: 3319413605244461905}
+  m_Father: {fileID: 4560529768018328971}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 1, y: 1}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -12, y: -69}
-  m_SizeDelta: {x: 93.1, y: 57.4}
-  m_Pivot: {x: 1, y: 0}
+  m_AnchorMin: {x: 0.5, y: 0}
+  m_AnchorMax: {x: 0.5, y: 0}
+  m_AnchoredPosition: {x: 102, y: 71}
+  m_SizeDelta: {x: 200, y: 60}
+  m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &6587570559989038732
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -8417,7 +8416,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: -106.50015, y: 71}
+  m_AnchoredPosition: {x: -106.5002, y: 134}
   m_SizeDelta: {x: 200, y: 60}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &7126391778265927608
@@ -10503,7 +10502,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: 102, y: 71}
+  m_AnchoredPosition: {x: -106.5002, y: 71}
   m_SizeDelta: {x: 200, y: 60}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &3316912228808894013
@@ -12327,6 +12326,7 @@ RectTransform:
   - {fileID: 5617508951995449823}
   - {fileID: 2363984504241510584}
   - {fileID: 9019633002130353879}
+  - {fileID: 8065680784173999145}
   m_Father: {fileID: 3082762142869851511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
@@ -16007,6 +16007,41 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!1 &6388133873082514467
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3539040106590284222}
+  m_Layer: 5
+  m_Name: ButtonsPool
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &3539040106590284222
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6388133873082514467}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5319304667535795015}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &6403048802208460219
 GameObject:
   m_ObjectHideFlags: 0
@@ -21007,6 +21042,7 @@ RectTransform:
   - {fileID: 1303989203093321372}
   - {fileID: 2069132668773279053}
   - {fileID: 5944443424093154512}
+  - {fileID: 3539040106590284222}
   - {fileID: 331666969234178365}
   - {fileID: 831945755324828775}
   m_Father: {fileID: 6728781951398533823}
@@ -22229,6 +22265,7 @@ MonoBehaviour:
   buttonPrefabReference: {fileID: 824395575733351886, guid: 2cab95263d5794de0a5c67954d890948,
     type: 3}
   buttonsParent: {fileID: 5944443424093154512}
+  buttonsPoolParent: {fileID: 3539040106590284222}
   confirmationPopup: {fileID: 5003767334326965334}
   disableCurrentlyEditingButtonButton: {fileID: 6380235252373066810}
   enableNewButtonDropdown: {fileID: 1531151121734542615}
@@ -22285,6 +22322,8 @@ MonoBehaviour:
   exportLayoutButton: {fileID: 7794375416447218729}
   deleteLayoutButton: {fileID: 1569960107328068276}
   importTextureButton: {fileID: 2647692940315727443}
+  createNewButtonButton: {fileID: 4800026937913324849}
+  deleteSelectedButtonButton: {fileID: 7178884463165068356}
   layoutsDropdown: {fileID: 6811300413456457454}
   currentLayoutName: {fileID: 1878139268428225175}
   builtInSprites:
@@ -22324,9 +22363,11 @@ MonoBehaviour:
     spriteName: joystick
   - textureName: linux_buttons
     spriteName: button_mode
+  - textureName: linux_buttons
+    spriteName: hamburger_menu
   builtInKnobSprites:
-  - textureName: knob
-    spriteName: 
+  - textureName: linux_buttons
+    spriteName: knob
   - textureName: linux_buttons
     spriteName: joystick_left_knob
   - textureName: linux_buttons
@@ -22363,6 +22404,7 @@ MonoBehaviour:
   touchscreenSensitivitySliderCG: {fileID: 2794519284365483496}
   selectedButtonKnobSpriteDropdownGO: {fileID: 8047890172177193683}
   selectedButtonJoystickSliderGO: {fileID: 5094613242598588954}
+  selectedButtonDeleteButtonGO: {fileID: 2936889999985560286}
   configPanelUnexpandedHeight: 334.3
   configPanelExpandedHeight: 383.4
   selectedButtonAdvancedUnexpandedHeight: 329
@@ -24082,7 +24124,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 186, y: -41.199993}
-  m_SizeDelta: {x: 161.4, y: 30}
+  m_SizeDelta: {x: 226.5, y: 30}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!222 &8204788713187984548
 CanvasRenderer:

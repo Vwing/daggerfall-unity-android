@@ -61,6 +61,7 @@ namespace DaggerfallWorkshop.Game
         #endregion
         [SerializeField] private GameObject buttonPrefabReference;
         [SerializeField] private RectTransform buttonsParent;
+        [SerializeField] private RectTransform buttonsPoolParent;
         [SerializeField] private UnityUIPopup confirmationPopup;
         [SerializeField] private Button disableCurrentlyEditingButtonButton;
         [SerializeField] private TMPro.TMP_Dropdown enableNewButtonDropdown;
@@ -71,32 +72,6 @@ namespace DaggerfallWorkshop.Game
         private Dictionary<string, bool> allButtonDefaultValues = new Dictionary<string, bool>();
 
         private bool hasShownPopup = false;
-        public void ReturnAllButtonsToPool()
-        {
-            foreach(var b in allButtons){
-                if(b){
-                    b.image.sprite = null;
-                    b.GetComponent<StaticTouchscreenJoystickOrDPad>().knob.GetComponent<Image>().sprite = null;
-                    b.gameObject.SetActive(false);
-                    buttonsPool.Add(b);
-                }
-            }
-            allButtons.Clear();
-        }
-        public void AddButtonFromPool(TouchscreenButtonConfiguration buttonConfig)
-        {
-            TouchscreenButton button;
-            if(buttonsPool.Count == 0){
-                button = GameObject.Instantiate(buttonPrefabReference, Vector3.zero, Quaternion.identity, buttonsParent).GetComponent<TouchscreenButton>();
-            }
-            else
-            {
-                button = buttonsPool[0];
-                buttonsPool.RemoveAt(0);
-            }
-            button.ApplyConfiguration(buttonConfig);
-            allButtons.Add(button);
-        }
         private void Awake()
         {
             if (!SetupSingleton())
@@ -115,6 +90,8 @@ namespace DaggerfallWorkshop.Game
             enableNewButtonDropdown.onValueChanged.AddListener(EnableNewButtonFromDropdown);
             leftJoystickToggle.onValueChanged.AddListener(OnLeftJoystickToggleValueChanged);
             rightJoystickToggle.onValueChanged.AddListener(OnRightJoystickToggleValueChanged);
+
+            TouchscreenLayoutsManager.LayoutLoaded += TouchscreenLayoutsManager_LayoutLoaded;
         }
         private void Start()
         {
@@ -124,6 +101,54 @@ namespace DaggerfallWorkshop.Game
         {
             if (TouchscreenInputManager.Instance)
                 TouchscreenInputManager.Instance.onResetButtonTransformsToDefaultValues -= ResetAllButtonsToDefault;
+            TouchscreenLayoutsManager.LayoutLoaded -= TouchscreenLayoutsManager_LayoutLoaded;
+        }
+        public void ReturnAllButtonsToPool()
+        {
+            List<TouchscreenButton> allButtonsCopy = new(allButtons);
+            foreach(var b in allButtonsCopy){
+                ReturnButtonToPool(b);
+            }
+            allButtons.Clear();
+        }
+        public void ReturnButtonToPool(TouchscreenButton butt)
+        {
+            if(!butt)
+                return;
+            butt.image.sprite = null;
+            butt.GetComponent<StaticTouchscreenJoystickOrDPad>().knob.GetComponent<Image>().sprite = null;
+            butt.gameObject.SetActive(false);
+            buttonsPool.Add(butt);
+            butt.transform.SetParent(buttonsPoolParent, true);
+            allButtons.Remove(butt);
+        }
+        public TouchscreenButton AddButtonFromPool(TouchscreenButtonConfiguration buttonConfig)
+        {
+            TouchscreenButton button;
+            if(buttonsPool.Count == 0){
+                button = GameObject.Instantiate(buttonPrefabReference, Vector3.zero, Quaternion.identity, buttonsParent).GetComponent<TouchscreenButton>();
+            }
+            else
+            {
+                button = buttonsPool[0];
+                buttonsPool.RemoveAt(0);
+                button.gameObject.SetActive(true);
+                button.transform.SetParent(buttonsParent, true);
+            }
+            button.ApplyConfiguration(buttonConfig);
+            allButtons.Add(button);
+            return button;
+        }
+        public void DeleteButton(TouchscreenButton butt)
+        {
+            allButtons.Remove(butt);
+            allButtonDefaultValues.Remove(butt.gameObject.name);
+            buttonsPool.Remove(butt);
+            GameObject.Destroy(butt.gameObject);
+        }
+        public void RemoveNullButtons()
+        {
+            allButtons.RemoveAll(p => p == null);
         }
         public List<TouchscreenButton> GetAllEnabledButtons()
         {
@@ -156,10 +181,10 @@ namespace DaggerfallWorkshop.Game
         /// <summary>
         /// Sets a button's gameobject enabled or disabled, and saves that value for next game load
         /// </summary>
-        public void SetButtonEnabled(Button button, bool enabled)
+        public void SetButtonEnabled(TouchscreenButton button, bool enabled)
         {
             button.gameObject.SetActive(enabled);
-            SaveIsButtonEnabled(button.gameObject.name, enabled);
+            TouchscreenLayoutsManager.Instance.SetButtonEnabled(button.gameObject.name, enabled);
             UpdateEnableNewButtonDropdown();
         }
 
@@ -194,7 +219,7 @@ namespace DaggerfallWorkshop.Game
         private void EnableNewButtonFromDropdown(int val)
         {
             var option = enableNewButtonDropdown.options[val];
-            Button selectedButton = allButtons.Find(p => p.gameObject.name == option.text);
+            TouchscreenButton selectedButton = allButtons.Find(p => p.gameObject.name == option.text);
             if (selectedButton)
             {
                 SetButtonEnabled(selectedButton, true);
@@ -225,6 +250,11 @@ namespace DaggerfallWorkshop.Game
         {
             rightJoystick.isInMouseLookMode = !newVal;
             IsRightJoystickEnabled = newVal;
+        }
+
+        private void TouchscreenLayoutsManager_LayoutLoaded(string newLayoutName)
+        {
+            UpdateEnableNewButtonDropdown();
         }
     }
 }

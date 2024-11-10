@@ -113,8 +113,8 @@ TextureImporter:
       name: dpad
       rect:
         serializedVersion: 2
-        x: 115
-        y: 170
+        x: 73
+        y: 175
         width: 32
         height: 32
       alignment: 0
@@ -134,8 +134,8 @@ TextureImporter:
       name: button_mode
       rect:
         serializedVersion: 2
-        x: 160
-        y: 170
+        x: 106
+        y: 175
         width: 32
         height: 32
       alignment: 0
@@ -155,8 +155,8 @@ TextureImporter:
       name: joystick
       rect:
         serializedVersion: 2
-        x: 16
-        y: 131
+        x: 1
+        y: 142
         width: 32
         height: 32
       alignment: 0
@@ -176,8 +176,8 @@ TextureImporter:
       name: button_zr
       rect:
         serializedVersion: 2
-        x: 112
-        y: 131
+        x: 70
+        y: 142
         width: 32
         height: 32
       alignment: 0
@@ -197,8 +197,8 @@ TextureImporter:
       name: button_zl
       rect:
         serializedVersion: 2
-        x: 160
-        y: 131
+        x: 106
+        y: 142
         width: 32
         height: 32
       alignment: 0
@@ -218,8 +218,8 @@ TextureImporter:
       name: button_triggerleft
       rect:
         serializedVersion: 2
-        x: 16
-        y: 99
+        x: 1
+        y: 124
         width: 32
         height: 16
       alignment: 0
@@ -239,8 +239,8 @@ TextureImporter:
       name: button_triggerright
       rect:
         serializedVersion: 2
-        x: 64
-        y: 99
+        x: 36
+        y: 124
         width: 32
         height: 16
       alignment: 0
@@ -260,8 +260,8 @@ TextureImporter:
       name: button_select
       rect:
         serializedVersion: 2
-        x: 115
-        y: 99
+        x: 74
+        y: 124
         width: 26
         height: 16
       alignment: 0
@@ -281,8 +281,8 @@ TextureImporter:
       name: button_start
       rect:
         serializedVersion: 2
-        x: 163
-        y: 99
+        x: 109
+        y: 124
         width: 26
         height: 16
       alignment: 0
@@ -302,8 +302,8 @@ TextureImporter:
       name: button_south
       rect:
         serializedVersion: 2
-        x: 16
-        y: 51
+        x: 1
+        y: 91
         width: 32
         height: 32
       alignment: 0
@@ -323,8 +323,8 @@ TextureImporter:
       name: button_east
       rect:
         serializedVersion: 2
-        x: 64
-        y: 51
+        x: 36
+        y: 91
         width: 32
         height: 32
       alignment: 0
@@ -344,8 +344,8 @@ TextureImporter:
       name: button_west
       rect:
         serializedVersion: 2
-        x: 112
-        y: 51
+        x: 71
+        y: 91
         width: 32
         height: 32
       alignment: 0
@@ -365,8 +365,8 @@ TextureImporter:
       name: button_north
       rect:
         serializedVersion: 2
-        x: 160
-        y: 51
+        x: 106
+        y: 91
         width: 32
         height: 32
       alignment: 0
@@ -386,8 +386,8 @@ TextureImporter:
       name: joystick_left_knob
       rect:
         serializedVersion: 2
-        x: 57
-        y: 137
+        x: 36
+        y: 156
         width: 18
         height: 18
       alignment: 0
@@ -407,8 +407,8 @@ TextureImporter:
       name: joystick_right_knob
       rect:
         serializedVersion: 2
-        x: 83
-        y: 137
+        x: 51
+        y: 141
         width: 18
         height: 18
       alignment: 0
@@ -428,8 +428,8 @@ TextureImporter:
       name: button_up
       rect:
         serializedVersion: 2
-        x: 16
-        y: 10
+        x: 1
+        y: 58
         width: 32
         height: 32
       alignment: 0
@@ -449,8 +449,8 @@ TextureImporter:
       name: button_right
       rect:
         serializedVersion: 2
-        x: 65
-        y: 10
+        x: 36
+        y: 58
         width: 32
         height: 32
       alignment: 0
@@ -470,8 +470,8 @@ TextureImporter:
       name: button_down
       rect:
         serializedVersion: 2
-        x: 112
-        y: 10
+        x: 71
+        y: 58
         width: 32
         height: 32
       alignment: 0
@@ -491,8 +491,8 @@ TextureImporter:
       name: button_left
       rect:
         serializedVersion: 2
-        x: 160
-        y: 10
+        x: 106
+        y: 58
         width: 32
         height: 32
       alignment: 0
@@ -512,8 +512,8 @@ TextureImporter:
       name: button_blank
       rect:
         serializedVersion: 2
-        x: 16
-        y: 170
+        x: 1
+        y: 175
         width: 32
         height: 32
       alignment: 0
@@ -533,8 +533,8 @@ TextureImporter:
       name: knob
       rect:
         serializedVersion: 2
-        x: 64
-        y: 170
+        x: 36
+        y: 175
         width: 32
         height: 32
       alignment: 0
@@ -546,6 +546,27 @@ TextureImporter:
       bones: []
       spriteID: d40ff56c88985494bac25292d80543a0
       internalID: -1734073853
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: hamburger_menu
+      rect:
+        serializedVersion: 2
+        x: 1
+        y: 25
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6d320e2fd828b4ce999a3829811450fa
+      internalID: -1013633714
       vertices: []
       indices: 
       edges: []
@@ -578,6 +599,7 @@ TextureImporter:
       button_zl: 306893514
       button_zr: -525889725
       dpad: 136484422
+      hamburger_menu: -1013633714
       joystick: -986790513
       joystick_left_knob: 1208766975
       joystick_right: 1996604764

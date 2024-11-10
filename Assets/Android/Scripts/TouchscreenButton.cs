@@ -177,10 +177,11 @@ namespace DaggerfallWorkshop.Game
             spriteName = config.SpriteName;
             knobFileName = config.KnobTextureFileName;
             knobSpriteName = config.KnobSpriteName;
-            ((Image)targetGraphic).sprite = config.LoadSprite();
+            ((Image)targetGraphic).sprite = config.LoadSprite(false);
             targetGraphic.rectTransform.anchorMin = Vector2.zero;
             targetGraphic.rectTransform.anchorMax = Vector2.one;
             targetGraphic.rectTransform.sizeDelta = Vector2.zero;
+            transform.Find("Knob").GetComponent<Image>().sprite = config.LoadSprite(true);
 
             gameObject.SetActive(config.IsEnabled);
             text.text = config.Text;
@@ -192,6 +193,9 @@ namespace DaggerfallWorkshop.Game
 
             if (config.IsToggleForEditOnScreenControls)
                 Debug.Log($"{config.Position} {config.DefaultPosition} {rectTransform.anchoredPosition}");
+
+            // zero-out the z position
+            rectTransform.transform.localPosition = new Vector3(rectTransform.transform.localPosition.x, rectTransform.transform.localPosition.y, 0);
         }
         public TouchscreenButtonConfiguration GetCurrentConfiguration(string layoutParentName = null)
         {
