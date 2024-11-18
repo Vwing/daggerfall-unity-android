@@ -13,6 +13,7 @@ namespace DaggerfallWorkshop.Game
     {
         [SerializeField][JsonProperty] private string name;
         [SerializeField][JsonProperty] private string buttonType;
+        [SerializeField][JsonProperty] private bool defaultIsEnabled;
         [SerializeField][JsonProperty] private bool isEnabled;
         [SerializeField][JsonProperty] private bool canButtonBeEdited;
         [SerializeField][JsonProperty] private bool canButtonBeRemoved;
@@ -36,20 +37,23 @@ namespace DaggerfallWorkshop.Game
         [SerializeField][JsonProperty] private string spriteName;
         [SerializeField][JsonProperty] private string knobTextureFileName;
         [SerializeField][JsonProperty] private string knobSpriteName;
-        [SerializeField][JsonProperty] private string buttonsInDrawer;
+        [SerializeField][JsonProperty] private List<string> buttonsInDrawer;
         [SerializeField][JsonProperty] private string text;
+        [SerializeField][JsonProperty] private float joystickSensitivity;
         [SerializeField][JsonProperty] private bool isToggleForEditOnScreenControls;
 
 
         [JsonIgnore] public string Name { get { return name; } set { name = value; } }
         [JsonIgnore] public string Text { get { return text; } set { text = value; } }
         [JsonIgnore] public bool IsToggleForEditOnScreenControls { get { return isToggleForEditOnScreenControls; } set { isToggleForEditOnScreenControls = value; } }
+        [JsonIgnore] public float JoystickSensitivity { get { return joystickSensitivity; } set { joystickSensitivity = value; } }
         [JsonIgnore]
         public TouchscreenButtonType ButtonType
         {
             get { return (TouchscreenButtonType)Enum.Parse(typeof(TouchscreenButtonType), buttonType); }
             set { buttonType = value.ToString(); }
         }
+        [JsonIgnore] public bool DefaultIsEnabled { get { return defaultIsEnabled; } set { defaultIsEnabled = value; } }
         [JsonIgnore] public bool IsEnabled { get { return isEnabled; } set { isEnabled = value; } }
         [JsonIgnore] public bool CanButtonBeEdited { get { return canButtonBeEdited; } set { canButtonBeEdited = value; } }
         [JsonIgnore] public bool CanButtonBeRemoved { get { return canButtonBeRemoved; } set { canButtonBeRemoved = value; } }
@@ -103,15 +107,14 @@ namespace DaggerfallWorkshop.Game
         }
         [JsonIgnore] public string TextureFilePath { get {return UsesBuiltInTextures ? textureFileName : Path.Combine(Paths.LayoutsPath, LayoutParentName, "textures", textureFileName);}}
         [JsonIgnore] public string KnobTextureFilePath { get {return UsesBuiltInTextures ? knobTextureFileName : Path.Combine(Paths.LayoutsPath, LayoutParentName, "textures", knobTextureFileName);} }
-        [JsonIgnore]
-        public List<string> ButtonsInDrawer
+        [JsonIgnore] public List<string> ButtonsInDrawer
         {
-            get { return buttonsInDrawer.Split(new char[] { ',', ' ' }).ToList(); }
-            set { buttonsInDrawer = value == null ? "" : string.Join(',', value); }
+            get { return buttonsInDrawer; }
+            set { buttonsInDrawer = value ?? new List<string>(); }
         }
 
         public TouchscreenButtonConfiguration(string name, Vector2 defaultPosition, Vector2 defaultScale,
-            TouchscreenButtonType buttonType = TouchscreenButtonType.Button, bool isEnabled = true, bool usesBuiltInTexture = true,
+            TouchscreenButtonType buttonType = TouchscreenButtonType.Button, bool defaultIsEnabled = true, bool usesBuiltInTexture = true,
             string textureFileName = "linux_buttons", string spriteName = "button_blank", string knobTextureFileName = "", string knobSpriteName = "",
             InputManager.Actions defaultActionMapping = InputManager.Actions.Unknown, KeyCode defaultKeyCodeMapping = KeyCode.None,
             TouchscreenButtonAnchor anchor = TouchscreenButtonAnchor.MiddleMiddle, TouchscreenButtonAnchor labelAnchor = TouchscreenButtonAnchor.TopMiddle,
@@ -120,7 +123,7 @@ namespace DaggerfallWorkshop.Game
         {
             this.Name = name;
             this.ButtonType = buttonType;
-            this.IsEnabled = isEnabled;
+            this.DefaultIsEnabled = this.IsEnabled = defaultIsEnabled;
             this.CanButtonBeEdited = canButtonBeEdited;
             this.CanButtonBeRemoved = canButtonBeRemoved;
             this.CanButtonBeResized = canButtonBeResized;

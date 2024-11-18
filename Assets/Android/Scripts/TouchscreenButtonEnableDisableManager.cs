@@ -8,43 +8,6 @@ namespace DaggerfallWorkshop.Game
 {
     public class TouchscreenButtonEnableDisableManager : MonoBehaviour
     {
-        #region PlayerPrefs
-        public static bool LoadIsButtonEnabled(string buttonName, out bool isEnabled)
-        {
-            string key = "IsTouchscreenButtonEnabled_" + buttonName;
-            if (!PlayerPrefs.HasKey(key))
-            {
-                isEnabled = false;
-                return false;
-            }
-            else
-            {
-                isEnabled = PlayerPrefs.GetInt(key) == 1;
-                return true;
-            }
-        }
-        public static void SaveIsButtonEnabled(string buttonName, bool isEnabled)
-        {
-            string key = "IsTouchscreenButtonEnabled_" + buttonName;
-            PlayerPrefs.SetInt(key, isEnabled ? 1 : 0);
-        }
-        public static void DeleteIsButtonEnabled(string buttonName)
-        {
-            string key = "IsTouchscreenButtonEnabled_" + buttonName;
-            PlayerPrefs.DeleteKey(key);
-        }
-        public bool IsLeftJoystickEnabled
-        {
-            get { return PlayerPrefs.GetInt("IsTouchscreenButtonEnabled_LeftJoystick", 1) != 0; }
-            set { PlayerPrefs.SetInt("IsTouchscreenButtonEnabled_LeftJoystick", value ? 1 : 0); }
-        }
-        public bool IsRightJoystickEnabled
-        {
-            get { return PlayerPrefs.GetInt("IsTouchscreenButtonEnabled_RightJoystick", 1) != 0; }
-            set { PlayerPrefs.SetInt("IsTouchscreenButtonEnabled_RightJoystick", value ? 1 : 0); }
-        }
-        #endregion
-
         #region Singleton
         public static TouchscreenButtonEnableDisableManager Instance { get; private set; }
         private bool SetupSingleton()
@@ -59,6 +22,17 @@ namespace DaggerfallWorkshop.Game
             return true;
         }
         #endregion
+
+        #region Properties
+
+        public bool IsLeftJoystickEnabled { get; set; }
+        public bool IsRightJoystickEnabled { get; set; }
+
+        public RectTransform ButtonsParent {get{return buttonsParent;}}
+        public RectTransform ButtonsPoolParent {get{return buttonsPoolParent;}}
+
+        #endregion
+
         [SerializeField] private GameObject buttonPrefabReference;
         [SerializeField] private RectTransform buttonsParent;
         [SerializeField] private RectTransform buttonsPoolParent;
@@ -71,7 +45,7 @@ namespace DaggerfallWorkshop.Game
         [SerializeField] private VirtualJoystick leftJoystick, rightJoystick;
         private Dictionary<string, bool> allButtonDefaultValues = new Dictionary<string, bool>();
 
-        private bool hasShownPopup = false;
+        private bool hasShownPopup = true; // set to false if you want to show a popup to the user when disabling a button
         private void Awake()
         {
             if (!SetupSingleton())
@@ -93,14 +67,8 @@ namespace DaggerfallWorkshop.Game
 
             TouchscreenLayoutsManager.LayoutLoaded += TouchscreenLayoutsManager_LayoutLoaded;
         }
-        private void Start()
-        {
-            TouchscreenInputManager.Instance.onResetButtonTransformsToDefaultValues += ResetAllButtonsToDefault;
-        }
         private void OnDestroy()
         {
-            if (TouchscreenInputManager.Instance)
-                TouchscreenInputManager.Instance.onResetButtonTransformsToDefaultValues -= ResetAllButtonsToDefault;
             TouchscreenLayoutsManager.LayoutLoaded -= TouchscreenLayoutsManager_LayoutLoaded;
         }
         public void ReturnAllButtonsToPool()
@@ -168,17 +136,6 @@ namespace DaggerfallWorkshop.Game
         }
 
         /// <summary>
-        /// Deletes all saved enabled/disabled statuses for buttons.
-        /// Sets all buttons enabled or disabled depending on their default value
-        /// </summary>
-        public void ResetAllButtonsToDefault()
-        {
-            foreach (Button button in allButtons)
-                DeleteIsButtonEnabled(button.gameObject.name);
-            PlayerPrefs.Save();
-            UpdateAllButtonsEnabledStatus();
-        }
-        /// <summary>
         /// Sets a button's gameobject enabled or disabled, and saves that value for next game load
         /// </summary>
         public void SetButtonEnabled(TouchscreenButton button, bool enabled)
@@ -191,18 +148,10 @@ namespace DaggerfallWorkshop.Game
         // sets all buttons enabled or disabled depending on their saved value
         private void UpdateAllButtonsEnabledStatus()
         {
-            foreach (Button button in allButtons)
+            foreach (TouchscreenButton button in allButtons)
             {
-                if (LoadIsButtonEnabled(button.gameObject.name, out bool isButtonEnabled))
-                {
-                    // set to saved value
-                    button.gameObject.SetActive(isButtonEnabled);
-                }
-                else
-                {
-                    // set to default value
-                    button.gameObject.SetActive(allButtonDefaultValues[button.gameObject.name]);
-                }
+                var buttonConfig = button.GetCurrentConfiguration();
+                button.gameObject.SetActive(buttonConfig.IsEnabled);
             }
             UpdateEnableNewButtonDropdown();
         }
@@ -255,6 +204,11 @@ namespace DaggerfallWorkshop.Game
         private void TouchscreenLayoutsManager_LayoutLoaded(string newLayoutName)
         {
             UpdateEnableNewButtonDropdown();
+
+            leftJoystick.isInMouseLookMode = !IsLeftJoystickEnabled;
+            rightJoystick.isInMouseLookMode = !IsRightJoystickEnabled;
+            leftJoystickToggle.isOn = IsLeftJoystickEnabled;
+            rightJoystickToggle.isOn = IsRightJoystickEnabled;
         }
     }
 }

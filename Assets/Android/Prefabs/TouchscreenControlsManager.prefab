@@ -7068,7 +7068,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 256.5, y: 4.999878}
+  m_AnchoredPosition: {x: 256.5, y: 4.999939}
   m_SizeDelta: {x: 542.5, y: 265.3}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &3368747779906130165
@@ -22380,6 +22380,7 @@ MonoBehaviour:
   labelAnchorDropdown: {fileID: 402439041273365925}
   spriteDropdown: {fileID: 2858161871778313855}
   knobSpriteDropdown: {fileID: 8486896273288924493}
+  selectedJoystickSensitivitySlider: {fileID: 7557375135488931953}
   initialDefaultLayout: {fileID: 4900000, guid: 23f83e0228819446596c8c4e3adce616,
     type: 3}
 --- !u!114 &3188779474701911311
@@ -23861,7 +23862,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -249, y: 4.999878}
+  m_AnchoredPosition: {x: -249, y: 4.999939}
   m_SizeDelta: {x: 450, y: 383.4}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &1212707320617675860
@@ -28021,7 +28022,7 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Sprite
       value: 
-      objectReference: {fileID: 21300000, guid: f0d728e2059c649b990b6b71e0d5b0a4,
+      objectReference: {fileID: -1013633714, guid: 4ea4ea459ebd04b39ba202aadb8b3ec0,
         type: 3}
     - target: {fileID: 2093595456864780420, guid: 2cab95263d5794de0a5c67954d890948,
         type: 3}
@@ -31628,12 +31629,12 @@ PrefabInstance:
     - target: {fileID: 6930433440068948349, guid: 2cab95263d5794de0a5c67954d890948,
         type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 278.70007
+      value: 278.7001
       objectReference: {fileID: 0}
     - target: {fileID: 6930433440068948349, guid: 2cab95263d5794de0a5c67954d890948,
         type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 399.59998
+      value: 399.6
       objectReference: {fileID: 0}
     - target: {fileID: 6930433440068948349, guid: 2cab95263d5794de0a5c67954d890948,
         type: 3}

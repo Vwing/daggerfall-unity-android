@@ -107,15 +107,13 @@ namespace DaggerfallWorkshop.Game
             if (!isTouching)
                 return;
             Vector2 backgroundPosScreenSpace = 
-                RectTransformUtility.WorldToScreenPoint(myCam, background.position 
-                + background.transform.parent.TransformVector(
+                RectTransformUtility.WorldToScreenPoint(myCam, background.position + background.transform.parent.TransformVector(
                     Vector2.Scale(new Vector2(background.rect.width, background.rect.height), new Vector2(0.5f, 0.5f) - background.pivot)));
             Vector2 direction = eventData.position - backgroundPosScreenSpace;
             Vector2 touchVector = Vector2.ClampMagnitude(direction / joystickRadius, 1f);
             inputVector = isDPad ? SnapTo8Directions(touchVector) : SnapSoftlyTo8Directions(touchVector);
             Vector2 knobPosScreenSpace =  backgroundPosScreenSpace + (isDPad ? inputVector : touchVector) * joystickRadius;
             if (RectTransformUtility.ScreenPointToLocalPointInRectangle(knob.parent as RectTransform, knobPosScreenSpace, myCam, out Vector2 knobPos))
-                // knob.localPosition = knobPos + Vector2.Scale(new Vector2(background.rect.width, background.rect.height), new Vector2(0.5f, 0.5f) - background.pivot);
                 knob.localPosition = knobPos;
             UpdateVirtualAxes(inputVector);
         }

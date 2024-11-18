@@ -36,6 +36,7 @@ namespace DaggerfallWorkshop.Game
         [SerializeField] private TMPro.TMP_Dropdown labelAnchorDropdown;
         [SerializeField] private TMPro.TMP_Dropdown spriteDropdown;
         [SerializeField] private TMPro.TMP_Dropdown knobSpriteDropdown;
+        [SerializeField] private Slider selectedJoystickSensitivitySlider;
 
         [Header("Assets")]
         [SerializeField] private TextAsset initialDefaultLayout;
@@ -81,6 +82,7 @@ namespace DaggerfallWorkshop.Game
             buttonTypeDropdown.onValueChanged.AddListener(OnButtonTypeDropdownValueChanged);
             anchorDropdown.onValueChanged.AddListener(OnButtonAnchorDropdownValueChanged);
             labelAnchorDropdown.onValueChanged.AddListener(OnLabelAnchorDropdownValueChanged);
+            selectedJoystickSensitivitySlider.onValueChanged.AddListener(OnSelectedJoystickSensitivityChanged);
             SetupUI();
             TouchscreenInputManager.Instance.onCurrentlyEditingButtonChanged += SetupUIBasedOnCurrentlyEditingTouchscreenButton;
             TouchscreenInputManager.Instance.onEditControlsToggled += TouchscreenInputManager_OnEditControlsToggled;
@@ -207,7 +209,7 @@ namespace DaggerfallWorkshop.Game
         {
             TouchscreenButtonConfiguration newButtonConfig = new("new-button-" + UnityEngine.Random.Range(100000, 999999).ToString(), 
                 new Vector2(70, -100), new Vector2(70, 70), TouchscreenButtonType.Button, true, true, "linux_buttons", "button_blank", 
-                "", "", InputManager.Actions.ToggleConsole);
+                "", "", InputManager.Actions.Unknown);
             var newButton = TouchscreenButtonEnableDisableManager.Instance.AddButtonFromPool(newButtonConfig);
             WriteCurrentLayoutToPath();
             LoadLayoutByName(currentLayoutName.text);
@@ -278,7 +280,8 @@ namespace DaggerfallWorkshop.Game
             else
                 Debug.LogError("Couldn't find layouts dropdown index for " + layoutName);
         }
-        private void WriteCurrentLayoutToPath() => WriteLayoutToPath(GetCurrentLayoutConfig());
+        public void WriteCurrentLayoutToPath() => WriteLayoutToPath(GetCurrentLayoutConfig());
+        public void ReloadCurrentLayout() => LoadLayoutByName(currentlyLoadedLayout.name);
         private void WriteLayoutToPath(TouchscreenLayoutConfiguration layout)
         {
             Debug.Log($"TouchscreenLayoutsManager: Writing {layout.name} to {LayoutsPath}");
@@ -343,7 +346,7 @@ namespace DaggerfallWorkshop.Game
             // Add button type options
             buttonTypeDropdown.ClearOptions();
             options.Clear();
-            for (int i = 0; i <= (int)TouchscreenButtonType.CameraDPad; ++i)
+            for (int i = 0; i <= (int)TouchscreenButtonType.Drawer; ++i)
                 options.Add(((TouchscreenButtonType)i).ToString());
             buttonTypeDropdown.AddOptions(options);
 
@@ -456,7 +459,7 @@ namespace DaggerfallWorkshop.Game
             if(currentlyLoadedLayout != null && layoutConfig.name != currentlyLoadedLayout.name)
                 WriteCurrentLayoutToPath();
             TouchscreenButtonEnableDisableManager.Instance.ReturnAllButtonsToPool();
-            TouchscreenInputManager.Instance.SavedAlpha = layoutConfig.defaultUIAlpha;
+            TouchscreenInputManager.Instance.SetUIAlpha(layoutConfig.defaultUIAlpha);
             VirtualJoystick.JoystickTapsShouldActivateCenterObject = layoutConfig.screenTapsActivateCenterObject;
             TouchscreenButtonEnableDisableManager.Instance.IsLeftJoystickEnabled = layoutConfig.leftJoystickEnabled;
             TouchscreenButtonEnableDisableManager.Instance.IsRightJoystickEnabled = layoutConfig.rightJoystickEnabled;
@@ -468,7 +471,7 @@ namespace DaggerfallWorkshop.Game
                 layoutConfig.buttons[i] = buttonConfig;
                 TouchscreenButtonEnableDisableManager.Instance.AddButtonFromPool(buttonConfig);
             }
-            DaggerfallGC.ThrottledUnloadUnusedAssets();
+            // DaggerfallGC.ThrottledUnloadUnusedAssets();
 
             currentlyLoadedLayout = layoutConfig;
 
@@ -479,7 +482,7 @@ namespace DaggerfallWorkshop.Game
             string layoutName = name = currentlyLoadedLayout != null ? currentlyLoadedLayout.name : "default-layout";
             var layout = new TouchscreenLayoutConfiguration(){
                 name = layoutName,
-                defaultUIAlpha = TouchscreenInputManager.Instance.SavedAlpha,
+                defaultUIAlpha = TouchscreenInputManager.Instance.UIAlpha,
                 screenTapsActivateCenterObject = VirtualJoystick.JoystickTapsShouldActivateCenterObject,
                 leftJoystickEnabled = TouchscreenButtonEnableDisableManager.Instance.IsLeftJoystickEnabled,
                 rightJoystickEnabled = TouchscreenButtonEnableDisableManager.Instance.IsRightJoystickEnabled,
@@ -561,16 +564,22 @@ namespace DaggerfallWorkshop.Game
         private void OnSpriteDropdownValueChanged(int newVal)
         {
             ChangeCurrentButtonSprite(newVal, false);
+
+            WriteCurrentLayoutToPath();
         }
         private void OnKnobSpriteDropdownChanged(int newVal)
         {
             ChangeCurrentButtonSprite(newVal, true);
+
+            WriteCurrentLayoutToPath();
         }
         private void OnEditControlsDropdownValueChanged(int newVal)
         {
             if (TouchscreenInputManager.Instance.CurrentlyEditingButton)
             {
                 TouchscreenInputManager.Instance.CurrentlyEditingButton.myAction = (InputManager.Actions)newVal;
+
+                WriteCurrentLayoutToPath();
             }
         }
         private void OnEditControlsKeyCodeDropdownValueChanged(int newVal)
@@ -579,6 +588,8 @@ namespace DaggerfallWorkshop.Game
             {
                 KeyCode newKey = (KeyCode)acceptedKeyCodes[keycodeDropdown.options[newVal].text];
                 TouchscreenInputManager.Instance.CurrentlyEditingButton.myKey = newKey;
+
+                WriteCurrentLayoutToPath();
             }
         }
         private void OnButtonTypeDropdownValueChanged(int newVal)
@@ -586,6 +597,8 @@ namespace DaggerfallWorkshop.Game
             if (TouchscreenInputManager.Instance.CurrentlyEditingButton)
             {
                 TouchscreenInputManager.Instance.CurrentlyEditingButton.SetButtonType((TouchscreenButtonType)newVal);
+
+                WriteCurrentLayoutToPath();
             }
         }
         private void OnButtonAnchorDropdownValueChanged(int newVal)
@@ -593,6 +606,8 @@ namespace DaggerfallWorkshop.Game
             if (TouchscreenInputManager.Instance.CurrentlyEditingButton)
             {
                 TouchscreenInputManager.Instance.CurrentlyEditingButton.SetButtonAnchor((TouchscreenButtonAnchor)newVal);
+
+                WriteCurrentLayoutToPath();
             }
         }
         private void OnLabelAnchorDropdownValueChanged(int newVal)
@@ -600,6 +615,17 @@ namespace DaggerfallWorkshop.Game
             if (TouchscreenInputManager.Instance.CurrentlyEditingButton)
             {
                 TouchscreenInputManager.Instance.CurrentlyEditingButton.SetLabelAnchor((TouchscreenButtonAnchor)newVal);
+
+                WriteCurrentLayoutToPath();
+            }
+        }
+        private void OnSelectedJoystickSensitivityChanged(float value)
+        {
+            if (TouchscreenInputManager.Instance.CurrentlyEditingButton)
+            {
+                TouchscreenInputManager.Instance.CurrentlyEditingButton.SetJoystickSensitivity(value);
+
+                WriteCurrentLayoutToPath();
             }
         }
         private void TouchscreenInputManager_OnEditControlsToggled(bool isOn)

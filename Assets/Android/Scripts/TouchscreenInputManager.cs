@@ -14,7 +14,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UI;
 using System.Collections;
-using System.Linq;
 
 namespace DaggerfallWorkshop.Game
 {
@@ -48,8 +47,7 @@ namespace DaggerfallWorkshop.Game
         public TouchscreenButton CurrentlyEditingButton { get { return currentlyEditingButton; } }
         public UnityUIPopup PopupMessage { get{ return confirmChangePopup; } }
         public Slider AlphaSlider{get{return alphaSlider;}}
-        public float SavedAlpha { get { return PlayerPrefs.GetFloat("TouchscreenControlsAlpha", 1f); } set { PlayerPrefs.SetFloat("TouchscreenControlsAlpha", value);} }
-
+        public float UIAlpha { get{return canvasGroup.alpha;} set{canvasGroup.alpha = value;}}
         public event System.Action<bool> onEditControlsToggled;
         public event System.Action<TouchscreenButton> onCurrentlyEditingButtonChanged;
         public event System.Action onResetButtonActionsToDefaultValues;
@@ -73,6 +71,11 @@ namespace DaggerfallWorkshop.Game
         {
             if(SetupSingleton())
                 Setup();
+        }
+        public void SetUIAlpha(float val)
+        {
+            alphaSlider.value = val;
+            UIAlpha = val;
         }
         public void SetupUIRenderTexture()
         {
@@ -108,7 +111,6 @@ namespace DaggerfallWorkshop.Game
 
             alphaSlider.maxValue = 1;
             alphaSlider.minValue = 0.15f;
-            canvasGroup.alpha = alphaSlider.value = SavedAlpha;
 
             joystickTapsActivateCenterObjectToggle.isOn = VirtualJoystick.JoystickTapsShouldActivateCenterObject;
 
@@ -117,7 +119,6 @@ namespace DaggerfallWorkshop.Game
             editControlsBackgroundButton.onClick.AddListener(OnEditControlsBackgroundClicked);
             alphaSlider.onValueChanged.AddListener(OnAlphaSliderValueChanged);
             joystickTapsActivateCenterObjectToggle.onValueChanged.AddListener(OnJoystickTapsToggleChanged);
-
 
             TouchscreenLayoutsManager.Instance.LoadLastSelectedOrDefaultLayout();
         }
@@ -162,12 +163,26 @@ namespace DaggerfallWorkshop.Game
         private void OnResetButtonTransformsButtonClicked()
         {
             //if (!resetButtonTransformsButton.WasDragging)
-            confirmChangePopup.Open("Do you want to reset the button positions, sizes, and enabled statuses to their default values?", onResetButtonTransformsToDefaultValues);
+            confirmChangePopup.Open("Do you want to reset the button positions, sizes, and enabled statuses to their default values?", OnResetButtonTransformsButtonClickedConfirmed);
+        }
+        private void OnResetButtonTransformsButtonClickedConfirmed()
+        {
+            onResetButtonTransformsToDefaultValues?.Invoke();
+
+            TouchscreenLayoutsManager.Instance.WriteCurrentLayoutToPath();
+            TouchscreenLayoutsManager.Instance.ReloadCurrentLayout();
         }
         private void OnResetButtonMappingsButtonClicked()
         {
             //if (!resetButtonMappingsButton.WasDragging)
-            confirmChangePopup.Open("Do you want to reset the button action mappings to their default values?", onResetButtonActionsToDefaultValues);
+            confirmChangePopup.Open("Do you want to reset the button action mappings to their default values?", OnResetButtonMappingsButtonClickedConfirmed);
+        }
+        private void OnResetButtonMappingsButtonClickedConfirmed()
+        {
+            onResetButtonActionsToDefaultValues?.Invoke();
+
+            TouchscreenLayoutsManager.Instance.WriteCurrentLayoutToPath();
+            TouchscreenLayoutsManager.Instance.ReloadCurrentLayout();
         }
         public void OnEditTouchscreenControlsButtonClicked(TouchscreenButton editControlsButton)
         {
@@ -181,8 +196,7 @@ namespace DaggerfallWorkshop.Game
         }
         private void OnAlphaSliderValueChanged(float newVal)
         {
-            SavedAlpha = newVal;
-            canvasGroup.alpha = newVal;
+            UIAlpha = newVal;
         }
         private void OnJoystickTapsToggleChanged(bool val){
             VirtualJoystick.JoystickTapsShouldActivateCenterObject = val;
