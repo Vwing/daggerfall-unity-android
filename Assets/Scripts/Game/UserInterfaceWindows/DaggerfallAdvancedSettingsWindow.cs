@@ -381,9 +381,13 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             terrainDistance = AddSlider(rightPanel, "terrainDistance", 1, 4, DaggerfallUnity.Settings.TerrainDistance);
             shadowResolutionMode = AddSlider(rightPanel, "shadowResolutionMode",
                 DaggerfallUnity.Settings.ShadowResolutionMode, TextManager.Instance.GetLocalizedTextList("shadowResolutionModes", TextCollections.TextSettings));
-            screenOrientationMode = AddSlider(rightPanel, "screenOrientationMode",
-                DaggerfallUnity.Settings.ScreenOrientationMode, TextManager.Instance.GetLocalizedTextList("screenOrientationModes", TextCollections.TextSettings));
-            screenOrientationMode.OnMouseUp += ScreenOrientation_OnScroll;
+
+            // ---- DISABLING SCREEN ORIENTATION SLIDER FOR NOW. Todo: Make portrait mode work on device ----
+            //screenOrientationMode = AddSlider(rightPanel, "screenOrientationMode",
+            //    DaggerfallUnity.Settings.ScreenOrientationMode, TextManager.Instance.GetLocalizedTextList("screenOrientationModes", TextCollections.TextSettings));
+            //screenOrientationMode.OnMouseUp += ScreenOrientation_OnScroll;
+
+
             dungeonLightShadows = AddCheckbox(rightPanel, "dungeonLightShadows", DaggerfallUnity.Settings.DungeonLightShadows);
             interiorLightShadows = AddCheckbox(rightPanel, "interiorLightShadows", DaggerfallUnity.Settings.InteriorLightShadows);
             exteriorLightShadows = AddCheckbox(rightPanel, "exteriorLightShadows", DaggerfallUnity.Settings.ExteriorLightShadows);
@@ -515,7 +519,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             DaggerfallUnity.Settings.FieldOfView = fovSlider.Value;
             DaggerfallUnity.Settings.TerrainDistance = terrainDistance.Value;
             DaggerfallUnity.Settings.ShadowResolutionMode = shadowResolutionMode.ScrollIndex;
-            DaggerfallUnity.Settings.ScreenOrientationMode = screenOrientationMode.ScrollIndex;
+
+            // ---- DISABLING SCREEN ORIENTATION SLIDER FOR NOW. Todo: Make portrait mode work on device ----
+            //DaggerfallUnity.Settings.ScreenOrientationMode = screenOrientationMode.ScrollIndex;
+
             DaggerfallUnity.Settings.DungeonLightShadows = dungeonLightShadows.IsChecked;
             DaggerfallUnity.Settings.InteriorLightShadows = interiorLightShadows.IsChecked;
             DaggerfallUnity.Settings.ExteriorLightShadows = exteriorLightShadows.IsChecked;
