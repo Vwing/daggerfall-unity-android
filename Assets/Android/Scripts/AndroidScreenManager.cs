@@ -14,16 +14,14 @@ namespace DaggerfallWorkshop.Game
         public static event System.Action<Resolution> ScreenResolutionChanged;
         private Resolution lastResolution;
 
-        private void Awake()
+        private void Start()
         {
-            DaggerfallUnity.Settings.ResolutionWidth = Screen.width;
-            DaggerfallUnity.Settings.ResolutionHeight = Screen.height;
-            lastResolution = new Resolution() { width = Screen.width, height = Screen.height };
+            lastResolution = new Resolution() { width = DaggerfallUnity.Settings.ResolutionWidth, height = DaggerfallUnity.Settings.ResolutionHeight };
         }
         private void Update()
         {
-            int x = Screen.width;
-            int y = Screen.height;
+            int x = DaggerfallUnity.Settings.ResolutionWidth;
+            int y = DaggerfallUnity.Settings.ResolutionHeight;
             if (x != lastResolution.width || y != lastResolution.height){
                 // looks like the resolution changed. Let's update the daggerfall unity resolution
                 SetResolution(x, y);
@@ -33,8 +31,8 @@ namespace DaggerfallWorkshop.Game
         public static void SetResolution(int x, int y)
         {
             Debug.Log("AndroidScreenManager: Current screen updated to new resolution");
-            DaggerfallUnity.Settings.ResolutionWidth = x;
-            DaggerfallUnity.Settings.ResolutionHeight = y;
+            //DaggerfallUnity.Settings.ResolutionWidth = x;
+            //DaggerfallUnity.Settings.ResolutionHeight = y;
 
             SettingsManager.SetScreenResolution(x, y, true);
             var allCams = FindObjectsOfType<Camera>();

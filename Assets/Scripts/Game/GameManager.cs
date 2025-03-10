@@ -891,6 +891,9 @@ namespace DaggerfallWorkshop.Game
         /// </summary>
         public static void UpdateScreenOrientation()
         {
+            Debug.LogWarning("Updating screen orientation currently disabled");
+            return; // disabled for now
+
             switch (DaggerfallUnity.Settings.ScreenOrientationMode)
             {
                 case 0:
