@@ -377,8 +377,8 @@ namespace DaggerfallWorkshop
         }
         public static void SetScreenResolution(int width, int height, FullScreenMode fullscreenMode)
         {
-            int screenWidth = Application.isMobilePlatform || AndroidUtils.IsRunningInSimulator ? Screen.currentResolution.width : Screen.width;
-            int screenHeight = Application.isMobilePlatform || AndroidUtils.IsRunningInSimulator ? Screen.currentResolution.height : Screen.height;
+            int screenWidth = AScreen.width;
+            int screenHeight = AScreen.height;
             if (width > height && screenWidth < screenHeight || height > width && screenHeight < screenWidth)
             {
                 Debug.LogFormat("Switching {0} and {1}", width, height);

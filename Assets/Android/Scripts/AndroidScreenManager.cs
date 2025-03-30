@@ -5,6 +5,23 @@ using UnityEngine;
 
 namespace DaggerfallWorkshop.Game
 {
+    public static class AScreen
+    {
+        /// <summary>
+        /// Platform-independent screen width
+        /// </summary>
+        public static int width
+        {
+            get { return Application.isMobilePlatform || AndroidUtils.IsRunningInSimulator ? Screen.currentResolution.width : Screen.width; }
+        }
+        /// <summary>
+        /// Platform-independent screen height
+        /// </summary>
+        public static int height
+        {
+            get { return Application.isMobilePlatform || AndroidUtils.IsRunningInSimulator ? Screen.currentResolution.height : Screen.height; }
+        }
+    }
 
     /// <summary>
     /// Handles Android's Screen stuff like resolution setting and orientation
@@ -20,8 +37,8 @@ namespace DaggerfallWorkshop.Game
         }
         private void Update()
         {
-            int x = Application.isMobilePlatform || AndroidUtils.IsRunningInSimulator ? Screen.currentResolution.width : Screen.width;
-            int y = Application.isMobilePlatform || AndroidUtils.IsRunningInSimulator ? Screen.currentResolution.height : Screen.height;
+            int x = AScreen.width;
+            int y = AScreen.height;
             if (x != lastResolution.width || y != lastResolution.height){
                 // looks like the resolution changed. Let's update the daggerfall unity resolution
                 SetResolution(x, y);

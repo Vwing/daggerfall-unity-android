@@ -373,7 +373,7 @@ namespace DaggerfallWorkshop.Game
             timeClosedInputMessageBox = Time.realtimeSinceStartup;
 
             if(baseScreenResolution == null)
-                baseScreenResolution = new Vector2Int(Mathf.Max(Screen.width, Screen.height), Mathf.Min(Screen.width, Screen.height));
+                baseScreenResolution = new Vector2Int(Mathf.Max(AScreen.width, AScreen.height), Mathf.Min(AScreen.width, AScreen.height));
 
             SetupSingleton();
         }

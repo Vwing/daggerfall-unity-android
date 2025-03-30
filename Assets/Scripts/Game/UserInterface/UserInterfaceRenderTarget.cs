@@ -195,15 +195,15 @@ namespace DaggerfallWorkshop.Game.UserInterface
         void CheckTargetTexture()
         {
             // Use either screen or custom dimensions
-            int width = (customWidth == 0) ? Screen.width : customWidth;
-            int height = (customHeight == 0) ? Screen.height : customHeight;
+            int width = (customWidth == 0) ? AScreen.width : customWidth;
+            int height = (customHeight == 0) ? AScreen.height : customHeight;
             targetSize = new Vector2(width, height);
 
             // Set custom panel root size and scale
             // Unity likes to scale drawing to render texture by current screen dimensions
             // This is a hack to use panel scaling to compensate
-            float scaleX = (float)Screen.width / (float)CustomWidth;
-            float scaleY = (float)Screen.height / (float)CustomHeight;
+            float scaleX = (float)AScreen.width / (float)CustomWidth;
+            float scaleY = (float)AScreen.height / (float)CustomHeight;
             parentPanel.RootSize = targetSize;
             parentPanel.Scale = new Vector2(scaleX, scaleY);
             parentPanel.AutoSize = AutoSizeModes.None;

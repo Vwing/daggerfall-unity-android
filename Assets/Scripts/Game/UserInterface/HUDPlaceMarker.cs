@@ -1,4 +1,4 @@
-﻿// Project:         Daggerfall Unity
+// Project:         Daggerfall Unity
 // Copyright:       Copyright (C) 2009-2023 Daggerfall Workshop
 // Web Site:        http://www.dfworkshop.net
 // License:         MIT License (http://www.opensource.org/licenses/mit-license.php)
@@ -87,13 +87,13 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 switch (DaggerfallUnity.Settings.RetroRenderingMode)
                 {
                     case 0: // Off
-                        panelPos = new Vector2(screenPos.x / LocalScale.x, (Screen.height - screenPos.y) / LocalScale.y);
+                        panelPos = new Vector2(screenPos.x / LocalScale.x, (AScreen.height - screenPos.y) / LocalScale.y);
                         break;
                     case 1: // 320x200
-                        panelPos = new Vector2(screenPos.x * 2, Screen.height / LocalScale.y - screenPos.y * 2 - largeHUDHeight / LocalScale.y);
+                        panelPos = new Vector2(screenPos.x * 2, AScreen.height / LocalScale.y - screenPos.y * 2 - largeHUDHeight / LocalScale.y);
                         break;
                     case 2: // 640x400
-                        panelPos = new Vector2(screenPos.x, Screen.height / LocalScale.y - screenPos.y - largeHUDHeight / LocalScale.y);
+                        panelPos = new Vector2(screenPos.x, AScreen.height / LocalScale.y - screenPos.y - largeHUDHeight / LocalScale.y);
                         break;
                 }
                     

@@ -337,7 +337,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             Vector4 scissorRect;
             Rect myRect = this.Rectangle;
-            Rect screenRect = new Rect(0, 0, Screen.width, Screen.height);
+            Rect screenRect = new Rect(0, 0, AScreen.width, AScreen.height);
             scissorRect.x = xMinScreen / screenRect.width;
             scissorRect.y = xMaxScreen / screenRect.width;
             scissorRect.z = 1.0f - yMaxScreen / screenRect.height;

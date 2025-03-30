@@ -56,7 +56,7 @@ namespace DaggerfallWorkshop.Utility
                 // Shrink viewport to area not occupied by docked large HUD
                 // Check size every frame as HUD height can change (e.g. resizing window, changing resolution)
                 HUDLarge largeHUD = DaggerfallUI.Instance.DaggerfallHUD.LargeHUD;
-                float hudHeight = largeHUD.ScreenHeight / Screen.height;
+                float hudHeight = largeHUD.ScreenHeight / AScreen.height;
                 Rect rect = new Rect(0, hudHeight, 1, 1 - hudHeight);
                 SetViewport(rect);
             }
@@ -106,7 +106,7 @@ namespace DaggerfallWorkshop.Utility
                 // Works from ideal 16:10 > 4:3 upscale (1600x1200 or 5x width, 6x height, 20% higher) and ratios into actual screen area
 
                 // Start with screen height at 6x classic to get a ratio
-                heightRatio = Screen.height / 6f / 200f;
+                heightRatio = AScreen.height / 6f / 200f;
 
                 // Then determine 5x classic width at this ratio
                 viewWidth = (int)(320f * 5f * heightRatio);
@@ -116,27 +116,27 @@ namespace DaggerfallWorkshop.Utility
                 // Upscale 320x200 6x in both dimensions to 1920x1200, a very common 16:10 resolution, then ratio into actual screen area
 
                 // Start with screen height at 6x classic to get a ratio
-                heightRatio = Screen.height / 6f / 200f;
+                heightRatio = AScreen.height / 6f / 200f;
 
                 // Then determine 6x classic width at this ratio
                 viewWidth = (int)(320f * 6f * heightRatio);
             }
 
             // Get pillarbox width offset to centre viewport horizontally
-            int pillarWidth = (Screen.width - viewWidth) / 2;
+            int pillarWidth = (AScreen.width - viewWidth) / 2;
 
             // Handle docked large HUD
             float hudHeight = DaggerfallUnity.Settings.LargeHUD && DaggerfallUnity.Settings.LargeHUDDocked
-                                ? DaggerfallUI.Instance.DaggerfallHUD.LargeHUD.ScreenHeight / Screen.height
+                                ? DaggerfallUI.Instance.DaggerfallHUD.LargeHUD.ScreenHeight / AScreen.height
                                 : 0;
 
             // Set final viewport area
-            float x = (float)pillarWidth / Screen.width;
+            float x = (float)pillarWidth / AScreen.width;
             float h = 1 - x * 2;
             Rect rect = new Rect(x, hudHeight, h, 1.0f - hudHeight);
 
             // Get screen rect and pass over to UI so it can treat this viewport as entire screen space
-            Rect adjustedScreenRect = new Rect(pillarWidth, 0, Screen.width - pillarWidth * 2, Screen.height);
+            Rect adjustedScreenRect = new Rect(pillarWidth, 0, AScreen.width - pillarWidth * 2, AScreen.height);
             DaggerfallUI.Instance.CustomScreenRect = adjustedScreenRect;
 
             // After adjusting output viewport pillarbox bars won't be cleared automatically

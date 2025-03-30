@@ -82,7 +82,7 @@ namespace DaggerfallWorkshop.Game
                 defaultButtonPosition = rectTransform.anchoredPosition;
                 defaultAction = myAction;
 
-                snapScale = Mathf.RoundToInt(k_defaultSnapScaleAt1080p * (Mathf.Min(Screen.height, Screen.width) / 1080f));
+                snapScale = Mathf.RoundToInt(k_defaultSnapScaleAt1080p * (Mathf.Min(AScreen.height, AScreen.width) / 1080f));
 
                 rectTransform.anchoredPosition = GetSavedPosition();
                 rectTransform.sizeDelta = GetSavedSizeDelta();
@@ -289,11 +289,11 @@ namespace DaggerfallWorkshop.Game
                 {
                     newPos.y = lastAnchoredPos.y;
                 }
-                if (screenRect.xMax >= Screen.width)
+                if (screenRect.xMax >= AScreen.width)
                 {
                     newPos.x = lastAnchoredPos.x;
                 }
-                if (screenRect.yMax >= Screen.height)
+                if (screenRect.yMax >= AScreen.height)
                 {
                     newPos.y = lastAnchoredPos.y;
                 }

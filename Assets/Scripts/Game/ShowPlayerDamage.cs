@@ -44,7 +44,7 @@ namespace DaggerfallWorkshop.Game
                 if (alphaFadeValue > 0)
                 {
                     Color color = new Color(1, 0, 0, alphaFadeValue);
-                    DaggerfallUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), damageTexture, ScaleMode.StretchToFill, true, color);
+                    DaggerfallUI.DrawTexture(new Rect(0, 0, AScreen.width, AScreen.height), damageTexture, ScaleMode.StretchToFill, true, color);
                 }
                 else
                 {

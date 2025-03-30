@@ -85,7 +85,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             if (useCustomVideo = VideoReplacement.TryImportMovie(PlayOnStart, out customVideo))
             {
                 // Play custom video
-                customVideo.Size = new Vector2(Screen.width, Screen.height);
+                customVideo.Size = new Vector2(AScreen.width, AScreen.height);
                 NativePanel.Components.Add(customVideo);
                 DoHideCursor(hideCursor);
 

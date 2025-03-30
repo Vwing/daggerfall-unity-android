@@ -1697,10 +1697,10 @@ namespace DaggerfallWorkshop.Game
                     controllerCursorPosition.y += JoystickCursorSensitivity * controllerCursorVerticalSpeed * vertj * Time.unscaledDeltaTime;
                 }
 
-                controllerCursorPosition.x = Mathf.Clamp(controllerCursorPosition.x, 0, Screen.width);
-                controllerCursorPosition.y = Mathf.Clamp(controllerCursorPosition.y, 0, Screen.height);
+                controllerCursorPosition.x = Mathf.Clamp(controllerCursorPosition.x, 0, AScreen.width);
+                controllerCursorPosition.y = Mathf.Clamp(controllerCursorPosition.y, 0, AScreen.height);
 
-                controllerCursorRect = new Rect(controllerCursorPosition.x, Screen.height - controllerCursorPosition.y, controllerCursorWidth, controllerCursorHeight);
+                controllerCursorRect = new Rect(controllerCursorPosition.x, AScreen.height - controllerCursorPosition.y, controllerCursorWidth, controllerCursorHeight);
             }
         }
 

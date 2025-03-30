@@ -79,7 +79,7 @@ namespace DaggerfallWorkshop.Game
                 renderCamera.targetTexture = null;
             }
             renderCamera.aspect = Camera.main.aspect;
-            renderTex = new RenderTexture(Screen.width, Screen.height, 0, RenderTextureFormat.ARGB32);
+            renderTex = new RenderTexture(AScreen.width, AScreen.height, 0, RenderTextureFormat.ARGB32);
             renderTex.depthStencilFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.D24_UNorm_S8_UInt;
             renderTex.isPowerOfTwo = false;
             renderCamera.targetTexture = renderTex;
@@ -146,7 +146,7 @@ namespace DaggerfallWorkshop.Game
             if (IsTouchscreenActive)
             {
                 GUI.depth = 0;
-                DaggerfallUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), renderTex, ScaleMode.ScaleAndCrop, true);
+                DaggerfallUI.DrawTexture(new Rect(0, 0, AScreen.width, AScreen.height), renderTex, ScaleMode.ScaleAndCrop, true);
             }
         }
 

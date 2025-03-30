@@ -1147,8 +1147,8 @@ namespace DaggerfallWorkshop.Game.Serialization
             // TODO: Hide UI for screenshot or use a different method
             yield return new WaitForEndOfFrame();
             yield return new WaitForEndOfFrame();
-            Texture2D screenshot = new Texture2D(Screen.width, Screen.height);
-            screenshot.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
+            Texture2D screenshot = new Texture2D(AScreen.width, AScreen.height);
+            screenshot.ReadPixels(new Rect(0, 0, AScreen.width, AScreen.height), 0, 0);
             screenshot.Apply();
 
             //// Restore UI after screenshot
