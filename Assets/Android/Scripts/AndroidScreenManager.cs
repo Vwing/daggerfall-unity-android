@@ -16,16 +16,18 @@ namespace DaggerfallWorkshop.Game
 
         private void Start()
         {
-            lastResolution = new Resolution() { width = DaggerfallUnity.Settings.ResolutionWidth, height = DaggerfallUnity.Settings.ResolutionHeight };
+            lastResolution = new Resolution() { width = 0, height = 0 };
         }
         private void Update()
         {
-            int x = DaggerfallUnity.Settings.ResolutionWidth;
-            int y = DaggerfallUnity.Settings.ResolutionHeight;
+            int x = Application.isMobilePlatform || AndroidUtils.IsRunningInSimulator ? Screen.currentResolution.width : Screen.width;
+            int y = Application.isMobilePlatform || AndroidUtils.IsRunningInSimulator ? Screen.currentResolution.height : Screen.height;
             if (x != lastResolution.width || y != lastResolution.height){
                 // looks like the resolution changed. Let's update the daggerfall unity resolution
                 SetResolution(x, y);
                 lastResolution = new Resolution() { width = x, height = y };
+
+                GameManager.UpdateScreenOrientation();
             }
         }
         public static void SetResolution(int x, int y)

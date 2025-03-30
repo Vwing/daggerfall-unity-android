@@ -373,11 +373,34 @@ namespace DaggerfallWorkshop
 
         public static void SetScreenResolution(int width, int height, bool isFullscreen)
         {
-            Screen.SetResolution(width, height, isFullscreen);
-            Camera.main.ResetAspect();
+            SetScreenResolution(width, height, isFullscreen ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed);
         }
         public static void SetScreenResolution(int width, int height, FullScreenMode fullscreenMode)
         {
+            int screenWidth = Application.isMobilePlatform || AndroidUtils.IsRunningInSimulator ? Screen.currentResolution.width : Screen.width;
+            int screenHeight = Application.isMobilePlatform || AndroidUtils.IsRunningInSimulator ? Screen.currentResolution.height : Screen.height;
+            if (width > height && screenWidth < screenHeight || height > width && screenHeight < screenWidth)
+            {
+                Debug.LogFormat("Switching {0} and {1}", width, height);
+                int temp = width;
+                width = height;
+                height = temp;
+            }
+            float originalAspectRatio = (float)screenWidth / screenHeight;
+            float newAspectRatio = (float)width / height;
+
+            if (Math.Abs(originalAspectRatio - newAspectRatio) > 0.01f)
+            {
+                if (newAspectRatio > originalAspectRatio)
+                {
+                    height = Mathf.RoundToInt(width / originalAspectRatio);
+                }
+                else
+                {
+                    width = Mathf.RoundToInt(height * originalAspectRatio);
+                }
+            }
+
             Screen.SetResolution(width, height, fullscreenMode);
             Camera.main.ResetAspect();
         }
