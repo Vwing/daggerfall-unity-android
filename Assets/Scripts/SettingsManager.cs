@@ -382,9 +382,7 @@ namespace DaggerfallWorkshop
             if (width > height && screenWidth < screenHeight || height > width && screenHeight < screenWidth)
             {
                 Debug.LogFormat("Switching {0} and {1}", width, height);
-                int temp = width;
-                width = height;
-                height = temp;
+                (height, width) = (width, height);
             }
             float originalAspectRatio = (float)screenWidth / screenHeight;
             float newAspectRatio = (float)width / height;
