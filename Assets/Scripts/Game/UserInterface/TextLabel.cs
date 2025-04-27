@@ -238,9 +238,12 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             // 1) Bind your SDF material
             var mat = font.GetMaterial();
+            Vector4 scissorRect = (UseRestrictedRenderArea) ? GetRestrictedRenderScissorRect() : new Vector4(0, 1, 0, 1);
+            mat.SetVector("_ScissorRect", scissorRect);
+
             mat.SetTexture("_MainTex",    font.SDFInfo.atlasTexture);
             mat.SetColor("_Color",        textColor);
-            mat.SetFloat("_SmoothRange",  0.1f);
+            // mat.SetFloat("_SmoothRange",  0.1f);
             mat.SetPass(0);
 
             // 2) Inverted pixel matrix: y=0 at top
@@ -256,6 +259,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             // 4) One GL.Begin/End for everything
             GL.Begin(GL.QUADS);
+            GL.Color(textColor);
             foreach (var g in glyphLayout)
             {
                 // ——— skip spaces so they render as empty gaps ———
@@ -308,7 +312,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             // Exit if no layout
             if (glyphLayout.Count == 0)
                 return;
-            
+
             if(font.IsSDFCapable){
                 DrawLabelSingleCall();
                 return;

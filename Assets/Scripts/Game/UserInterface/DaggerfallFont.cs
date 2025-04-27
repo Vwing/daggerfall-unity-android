@@ -547,26 +547,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             }
 
             // Set live font info
-            fi.atlasTexture = MakeAtlasReadable(tmpFont.atlasTexture);
-
             sdfFontInfo = fi;
-        }
-        Texture2D MakeAtlasReadable(Texture2D srcAtlas)
-        {
-            // Create an empty Texture2D with the same size & format, no mipmaps
-            var dst = new Texture2D(
-                srcAtlas.width,
-                srcAtlas.height,
-                srcAtlas.format,
-                false  // no mipmaps
-            );
-            
-            // Copy all mip levels / faces from src to dst entirely on the GPU
-            // This never modifies RenderTexture.active
-            Graphics.CopyTexture(srcAtlas, dst);
-
-            // dst is now a standalone, readable Texture2D you can safely call GetPixels() on
-            return dst;
         }
 
         /// <summary>
