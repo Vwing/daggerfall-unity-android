@@ -218,6 +218,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             // Use StringReader to read the StringBuilder line by line
             using StringReader reader = new(localizedBook.Content.ToString());
             string line;
+
             while ((line = reader.ReadLine()) != null)
             {
                 TextFile.Token[] lineTokens = DaggerfallStringTableImporter.ConvertStringToRSCTokens(line);

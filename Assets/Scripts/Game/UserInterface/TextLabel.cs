@@ -231,11 +231,88 @@ namespace DaggerfallWorkshop.Game.UserInterface
             DrawLabel();
         }
 
+        void DrawLabelSingleCall()
+        {
+            if (glyphLayout.Count == 0)
+                return;
+
+            // 1) Bind your SDF material
+            var mat = font.GetMaterial();
+            mat.SetTexture("_MainTex",    font.SDFInfo.atlasTexture);
+            mat.SetColor("_Color",        textColor);
+            mat.SetFloat("_SmoothRange",  0.1f);
+            mat.SetPass(0);
+
+            // 2) Inverted pixel matrix: y=0 at top
+            GL.PushMatrix();
+            GL.LoadPixelMatrix(0, Screen.width, Screen.height, 0);
+
+            // 3) Precompute constants
+            float scaleY   = LocalScale.y * textScale;
+            float scaleX   = LocalScale.x * textScale;
+            float glyphH   = font.GlyphHeight * scaleY;
+            // restore that little “-2 px” lift
+            float baseline = font.SDFInfo.baseline - 2 * scaleY;
+
+            // 4) One GL.Begin/End for everything
+            GL.Begin(GL.QUADS);
+            foreach (var g in glyphLayout)
+            {
+                // ——— skip spaces so they render as empty gaps ———
+                if (g.code == ' ')
+                    continue;
+
+                var info = font.SDFInfo.glyphs[g.code];
+                if (info.size.x <= 0 || info.size.y <= 0)
+                    continue;
+
+                // how big is this quad in pixels?
+                float sdfScale = font.GetSDFGlyphScalingRatio(scaleY);
+                float w = info.size.x * sdfScale;
+                float h = info.size.y * sdfScale;
+
+                // compute its top-left
+                float x = Rectangle.x 
+                        + g.x * scaleX 
+                        + info.offset.x * sdfScale;
+
+                float rawDestY = glyphH 
+                            + baseline 
+                            - info.offset.y * sdfScale 
+                            - g.y * scaleY;
+                float y = Rectangle.y + rawDestY;
+
+                // pixel-perfect rounding
+                x = Mathf.Round(x);
+                y = Mathf.Round(y);
+
+                // flip UV Y because we inverted the pixel matrix
+                Rect uv = info.rect;
+                float u0 = uv.xMin, u1 = uv.xMax;
+                float v0 = uv.yMax, v1 = uv.yMin;
+
+                // emit the quad (TL, TR, BR, BL)
+                GL.TexCoord2(u0, v0);  GL.Vertex3(x,     y,     0);
+                GL.TexCoord2(u1, v0);  GL.Vertex3(x + w, y,     0);
+                GL.TexCoord2(u1, v1);  GL.Vertex3(x + w, y + h, 0);
+                GL.TexCoord2(u0, v1);  GL.Vertex3(x,     y + h, 0);
+            }
+            GL.End();
+
+            // 5) Clean up
+            GL.PopMatrix();
+        }
+
         void DrawLabel()
         {
             // Exit if no layout
             if (glyphLayout.Count == 0)
                 return;
+            
+            if(font.IsSDFCapable){
+                DrawLabelSingleCall();
+                return;
+            }
 
             // Set render area
             Material material = font.GetMaterial();
