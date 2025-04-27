@@ -246,12 +246,14 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             versionLabel.HorizontalAlignment = HorizontalAlignment.Right;
             versionLabel.ShadowPosition = Vector2.zero;
             versionLabel.TextColor = secondaryTextColor;
-            versionLabel.Text = VersionInfo.DaggerfallUnityVersion;
+            versionLabel.Text = VersionInfo.DaggerfallUnityVersionPlatformIndependent;
             browserPanel.Components.Add(versionLabel);
 
             // Add help text
 #if UNITY_ANDROID
             findArena2Tip = GetText("findArena2TipAndroid");
+            if(string.IsNullOrEmpty(findArena2Tip) || findArena2Tip == "<TextError-NotFound>")
+                findArena2Tip = "Need help? Click here to join the Lysandus Tomb DFU Fan Server. We have a #dfu-android channel.";
 #else
             findArena2Tip = GetText("findArena2Tip");
 #endif
@@ -513,7 +515,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
             // Add version text
             TextLabel versionLabel = new TextLabel(DaggerfallUI.DefaultFont);
-            versionLabel.Text = string.Format("{0} v{1}", char.ToUpper(VersionInfo.DaggerfallUnityStatus[0]) + VersionInfo.DaggerfallUnityStatus.Substring(1), VersionInfo.DaggerfallUnityVersion);
+            versionLabel.Text = string.Format("{0} v{1}", char.ToUpper(VersionInfo.DaggerfallUnityStatus[0]) + VersionInfo.DaggerfallUnityStatus.Substring(1), VersionInfo.DaggerfallUnityVersionPlatformIndependent);
             versionLabel.Position = new Vector2(0, 40);
             versionLabel.TextScale = 1.0f;
             versionLabel.HorizontalAlignment = HorizontalAlignment.Center;

@@ -10,6 +10,7 @@
 //
 
 using System;
+using UnityEngine;
 
 public static class VersionInfo
 {
@@ -20,7 +21,9 @@ public static class VersionInfo
     public const string DaggerfallUnityVersion = "1.1.1";
     public const string DaggerfallToolsForUnityVersion = "1.9.2";
 
-    public const string DaggerfallUnityForAndroidVersion = "1.1.1.3.rc2";
+    public const string DaggerfallUnityForAndroidVersion = "1.1.1.5";
+
+    public static string DaggerfallUnityVersionPlatformIndependent => Application.isMobilePlatform ? DaggerfallUnityForAndroidVersion : DaggerfallUnityVersion;
 
     public const string BaselineUnityVersion = "2022.3.30f1";
 }
