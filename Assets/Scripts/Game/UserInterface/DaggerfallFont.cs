@@ -135,6 +135,16 @@ namespace DaggerfallWorkshop.Game.UserInterface
             get { return sdfFontInfo.Value; }
         }
 
+        public Texture2D AtlasTexture
+        {
+            get { return atlasTexture; }
+        }
+
+        public Rect[] AtlasRects
+        {
+            get { return atlasRects; }
+        }
+
         #endregion
 
         #region Constructors
