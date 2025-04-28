@@ -280,10 +280,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         + g.x * scaleX 
                         + info.offset.x * sdfScale;
 
-                float rawDestY = glyphH 
-                            + baseline 
-                            - info.offset.y * sdfScale 
-                            - g.y * scaleY;
+                float rawDestY = (glyphH + baseline) // Base position relative to TextLabel top
+                                + g.y * scaleY        // Vertical offset from top of TextLabel
+                                - info.offset.y * sdfScale; // Glyph-specific vertical adjustment
                 float y = Rectangle.y + rawDestY;
 
                 // pixel-perfect rounding
