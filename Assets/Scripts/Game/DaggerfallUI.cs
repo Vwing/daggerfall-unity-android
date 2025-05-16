@@ -373,7 +373,7 @@ namespace DaggerfallWorkshop.Game
             timeClosedInputMessageBox = Time.realtimeSinceStartup;
 
             if(baseScreenResolution == null)
-                baseScreenResolution = new Vector2Int(Screen.width, Screen.height);
+                baseScreenResolution = new Vector2Int(Mathf.Max(AScreen.width, AScreen.height), Mathf.Min(AScreen.width, AScreen.height));
 
             SetupSingleton();
         }
@@ -1402,7 +1402,7 @@ namespace DaggerfallWorkshop.Game
         /// <returns>All supported distinct resolutions.</returns>
         public static Resolution[] GetDistinctResolutions()
         {
-            if(Application.isMobilePlatform || AndroidUtils.IsRunningInSimulator)
+            if (Application.isMobilePlatform || AndroidUtils.IsRunningInSimulator)
             {
                 Debug.Log("Getting distinct resolutions for mobile platform");
                 Vector2Int maxRes = baseScreenResolution ?? new Vector2Int(1920, 1080);

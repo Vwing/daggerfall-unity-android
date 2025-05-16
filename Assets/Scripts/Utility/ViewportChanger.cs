@@ -56,7 +56,7 @@ namespace DaggerfallWorkshop.Utility
                 // Shrink viewport to area not occupied by docked large HUD
                 // Check size every frame as HUD height can change (e.g. resizing window, changing resolution)
                 HUDLarge largeHUD = DaggerfallUI.Instance.DaggerfallHUD.LargeHUD;
-                float hudHeight = largeHUD.ScreenHeight / Screen.height;
+                float hudHeight = largeHUD.ScreenHeight / AScreen.height;
                 Rect rect = new Rect(0, hudHeight, 1, 1 - hudHeight);
                 SetViewport(rect);
             }
@@ -95,57 +95,59 @@ namespace DaggerfallWorkshop.Utility
 
         void SetRetroAspectViewport()
         {
-            float heightRatio = 0;
-            int viewWidth = 0;
-            RetroModeAspects aspect = (RetroModeAspects)DaggerfallUnity.Settings.RetroModeAspectCorrection;
-            if (aspect == RetroModeAspects.FourThree)
-            {
-                // Classic rendered at 320x200 (Mode13h/16:10) but was typically displayed on 4:3 monitors (e.g. 320x240)
-                // In this environment display output signal was stretched 20% higher in vertical dimension
-                // This setting scales output viewport to simulate resulting aspect ratio in this environment
-                // Works from ideal 16:10 > 4:3 upscale (1600x1200 or 5x width, 6x height, 20% higher) and ratios into actual screen area
-
-                // Start with screen height at 6x classic to get a ratio
-                heightRatio = Screen.height / 6f / 200f;
-
-                // Then determine 5x classic width at this ratio
-                viewWidth = (int)(320f * 5f * heightRatio);
-            }
-            else if (aspect == RetroModeAspects.SixteenTen)
-            {
-                // Upscale 320x200 6x in both dimensions to 1920x1200, a very common 16:10 resolution, then ratio into actual screen area
-
-                // Start with screen height at 6x classic to get a ratio
-                heightRatio = Screen.height / 6f / 200f;
-
-                // Then determine 6x classic width at this ratio
-                viewWidth = (int)(320f * 6f * heightRatio);
-            }
-
-            // Get pillarbox width offset to centre viewport horizontally
-            int pillarWidth = (Screen.width - viewWidth) / 2;
-
-            // Handle docked large HUD
-            float hudHeight = DaggerfallUnity.Settings.LargeHUD && DaggerfallUnity.Settings.LargeHUDDocked
-                                ? DaggerfallUI.Instance.DaggerfallHUD.LargeHUD.ScreenHeight / Screen.height
+            // Get HUD height in pixels (if docked)
+            int hudPixels = DaggerfallUnity.Settings.LargeHUD && DaggerfallUnity.Settings.LargeHUDDocked
+                                ? (int)DaggerfallUI.Instance.DaggerfallHUD.LargeHUD.ScreenHeight
                                 : 0;
+            RetroModeAspects aspect = (RetroModeAspects)DaggerfallUnity.Settings.RetroModeAspectCorrection;
 
-            // Set final viewport area
-            float x = (float)pillarWidth / Screen.width;
-            float h = 1 - x * 2;
-            Rect rect = new Rect(x, hudHeight, h, 1.0f - hudHeight);
+            float targetAspect = (aspect == RetroModeAspects.FourThree) ? (4f / 3f) : (16f / 10f);
+            float screenAspect = AScreen.width / (float) AScreen.height;
 
-            // Get screen rect and pass over to UI so it can treat this viewport as entire screen space
-            Rect adjustedScreenRect = new Rect(pillarWidth, 0, Screen.width - pillarWidth * 2, Screen.height);
-            DaggerfallUI.Instance.CustomScreenRect = adjustedScreenRect;
-
-            // After adjusting output viewport pillarbox bars won't be cleared automatically
-            // Use camera with -1 depth covering entire viewport to clear black first
-            // This camera renders nothing, just clears screen black before custom viewport drawn centred in screen
-            if (retroClearerCamera && !retroClearerCamera.gameObject.activeSelf)
-                retroClearerCamera.gameObject.SetActive(true);
-
-            SetViewport(rect);
+            if (screenAspect < targetAspect)
+            {
+                // For portrait mode, use full width and compute content height to preserve the target aspect ratio.
+                // Full width is used, so content height is derived from the aspect ratio.
+                float contentHeight = AScreen.width / targetAspect;
+                // Calculate available vertical space (screen height minus docked HUD area)
+                float availableHeight = AScreen.height - hudPixels;
+                // Center content vertically by adding equal letterbox bars at top and bottom
+                float letterHeight = (availableHeight - contentHeight) / 2f;
+                // Create a normalized viewport rect (x=0, full width)
+                Rect rect = new Rect(0, (hudPixels + letterHeight) / (float)AScreen.height, 1, contentHeight / (float)AScreen.height);
+                // Also update the UI's custom screen rect (in pixels)
+                DaggerfallUI.Instance.CustomScreenRect = new Rect(0, hudPixels + letterHeight, AScreen.width, contentHeight);
+                // Activate retro clearer camera if necessary
+                if (retroClearerCamera && !retroClearerCamera.gameObject.activeSelf)
+                    retroClearerCamera.gameObject.SetActive(true);
+                SetViewport(rect);
+            }
+            else
+            {
+                // Landscape mode: use the original approach, which calculates pillarboxing.
+                float heightRatio = 0;
+                int viewWidth = 0;
+                if (aspect == RetroModeAspects.FourThree)
+                {
+                    heightRatio = AScreen.height / 6f / 200f;
+                    viewWidth = (int)(320f * 5f * heightRatio);
+                }
+                else if (aspect == RetroModeAspects.SixteenTen)
+                {
+                    heightRatio = AScreen.height / 6f / 200f;
+                    viewWidth = (int)(320f * 6f * heightRatio);
+                }
+                int pillarWidth = (AScreen.width - viewWidth) / 2;
+                float hudNormalized = hudPixels / (float)AScreen.height;
+                float normalizedX = (float)pillarWidth / AScreen.width;
+                float normalizedWidth = 1 - normalizedX * 2;
+                Rect rect = new Rect(normalizedX, hudNormalized, normalizedWidth, 1.0f - hudNormalized);
+                DaggerfallUI.Instance.CustomScreenRect = new Rect(pillarWidth, 0, AScreen.width - pillarWidth * 2, AScreen.height);
+                if (retroClearerCamera && !retroClearerCamera.gameObject.activeSelf)
+                    retroClearerCamera.gameObject.SetActive(true);
+                SetViewport(rect);
+            }
         }
+
     }
 }

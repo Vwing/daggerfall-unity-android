@@ -196,7 +196,7 @@ namespace DaggerfallWorkshop.Game
             mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
             player = transform.gameObject;
             _gesture = new Gesture();
-            _longestDim = Math.Max(Screen.width, Screen.height);
+            _longestDim = Math.Max(AScreen.width, AScreen.height);
             SetMelee(ScreenWeapon);
         }
 

@@ -36,6 +36,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+
+using DaggerfallWorkshop.Game;
 #endregion
 
 namespace __ExternalAssets
@@ -232,8 +234,8 @@ namespace __ExternalAssets
         /// </param>
         public static Texture2D CameraTexture(Color color)
         {
-            Texture2D texture = new Texture2D(Screen.width, Screen.height, TextureFormat.ARGB32, false);
-            Color[] colors = new Color[Screen.width * Screen.height];
+            Texture2D texture = new Texture2D(AScreen.width, AScreen.height, TextureFormat.ARGB32, false);
+            Color[] colors = new Color[AScreen.width * AScreen.height];
             for (int i = 0; i < colors.Length; i++)
             {
                 colors[i] = color;

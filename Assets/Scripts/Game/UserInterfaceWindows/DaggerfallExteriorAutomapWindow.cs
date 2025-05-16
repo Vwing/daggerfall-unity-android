@@ -727,7 +727,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             // check mouse input and assign actions
             if (leftMouseDownOnPanelAutomap)
             {
-                Vector2 mousePosition = new Vector2(InputManager.Instance.MousePosition.x, Screen.height - InputManager.Instance.MousePosition.y);
+                Vector2 mousePosition = new Vector2(InputManager.Instance.MousePosition.x, AScreen.height - InputManager.Instance.MousePosition.y);
 
                 float dragSpeedCompensated;
                 dragSpeedCompensated = dragSpeed * cameraExteriorAutomap.orthographicSize; // * cameraExteriorAutomap.transform.position.y;
@@ -740,7 +740,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
             if (rightMouseDownOnPanelAutomap)
             {
-                Vector2 mousePosition = new Vector2(InputManager.Instance.MousePosition.x, Screen.height - InputManager.Instance.MousePosition.y);
+                Vector2 mousePosition = new Vector2(InputManager.Instance.MousePosition.x, AScreen.height - InputManager.Instance.MousePosition.y);
 
                 Vector2 bias = mousePosition - oldMousePosition;
 
@@ -1333,7 +1333,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             if (alreadyInMouseDown)
                 return;
 
-            Vector2 mousePosition = new Vector2(InputManager.Instance.MousePosition.x, Screen.height - InputManager.Instance.MousePosition.y);
+            Vector2 mousePosition = new Vector2(InputManager.Instance.MousePosition.x, AScreen.height - InputManager.Instance.MousePosition.y);
             oldMousePosition = mousePosition;
             leftMouseDownOnPanelAutomap = true;
             alreadyInMouseDown = true;
@@ -1350,7 +1350,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             if (alreadyInRightMouseDown)
                 return;
 
-            Vector2 mousePosition = new Vector2(InputManager.Instance.MousePosition.x, Screen.height - InputManager.Instance.MousePosition.y);
+            Vector2 mousePosition = new Vector2(InputManager.Instance.MousePosition.x, AScreen.height - InputManager.Instance.MousePosition.y);
             oldMousePosition = mousePosition;
             rightMouseDownOnPanelAutomap = true;
             alreadyInRightMouseDown = true;

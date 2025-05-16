@@ -355,7 +355,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             if (DaggerfallUI.Instance.DaggerfallHUD != null && DaggerfallUI.Instance.DaggerfallHUD.LargeHUD.Enabled)
             {
                 float startY = icon.Position.y;
-                float offset = Screen.height - (int)DaggerfallUI.Instance.DaggerfallHUD.LargeHUD.Rectangle.height;
+                float offset = AScreen.height - (int)DaggerfallUI.Instance.DaggerfallHUD.LargeHUD.Rectangle.height;
                 float localY = (offset / LocalScale.y) - 18;
                 if (localY < startY)
                     icon.Position = new Vector2(icon.Position.x, (int)localY);

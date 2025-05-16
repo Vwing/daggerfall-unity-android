@@ -231,12 +231,176 @@ namespace DaggerfallWorkshop.Game.UserInterface
             DrawLabel();
         }
 
+        void DrawLabelSingleCallSDF()
+        {
+            if (glyphLayout.Count == 0)
+                return;
+
+            // 1) Bind your SDF material
+            var mat = font.GetMaterial();
+            Vector4 scissorRect = (UseRestrictedRenderArea) ? GetRestrictedRenderScissorRect() : new Vector4(0, 1, 0, 1);
+            mat.SetVector("_ScissorRect", scissorRect);
+
+            mat.SetTexture("_MainTex",    font.SDFInfo.atlasTexture);
+            mat.SetColor("_Color",        textColor);
+            // mat.SetFloat("_SmoothRange",  0.1f);
+            mat.SetPass(0);
+
+            // 2) Inverted pixel matrix: y=0 at top
+            GL.PushMatrix();
+            GL.LoadPixelMatrix(0, Screen.width, Screen.height, 0);
+
+            // 3) Precompute constants
+            float scaleY   = LocalScale.y * textScale;
+            float scaleX   = LocalScale.x * textScale;
+            float glyphH   = font.GlyphHeight * scaleY;
+            // restore that little “-2 px” lift
+            float baseline = font.SDFInfo.baseline - 2 * scaleY;
+
+            // 4) One GL.Begin/End for everything
+            GL.Begin(GL.QUADS);
+            GL.Color(textColor);
+            foreach (var g in glyphLayout)
+            {
+                // ——— skip spaces so they render as empty gaps ———
+                if (g.code == ' ')
+                    continue;
+
+                var info = font.SDFInfo.glyphs[g.code];
+                if (info.size.x <= 0 || info.size.y <= 0)
+                    continue;
+
+                // how big is this quad in pixels?
+                float sdfScale = font.GetSDFGlyphScalingRatio(scaleY);
+                float w = info.size.x * sdfScale;
+                float h = info.size.y * sdfScale;
+
+                // compute its top-left
+                float x = Rectangle.x 
+                        + g.x * scaleX 
+                        + info.offset.x * sdfScale;
+
+                float rawDestY = (glyphH + baseline) // Base position relative to TextLabel top
+                                + g.y * scaleY        // Vertical offset from top of TextLabel
+                                - info.offset.y * sdfScale; // Glyph-specific vertical adjustment
+                float y = Rectangle.y + rawDestY;
+
+                // pixel-perfect rounding
+                x = Mathf.Round(x);
+                y = Mathf.Round(y);
+
+                // flip UV Y because we inverted the pixel matrix
+                Rect uv = info.rect;
+                float u0 = uv.xMin, u1 = uv.xMax;
+                float v0 = uv.yMax, v1 = uv.yMin;
+
+                // emit the quad (TL, TR, BR, BL)
+                GL.TexCoord2(u0, v0);  GL.Vertex3(x,     y,     0);
+                GL.TexCoord2(u1, v0);  GL.Vertex3(x + w, y,     0);
+                GL.TexCoord2(u1, v1);  GL.Vertex3(x + w, y + h, 0);
+                GL.TexCoord2(u0, v1);  GL.Vertex3(x,     y + h, 0);
+            }
+            GL.End();
+
+            // 5) Clean up
+            GL.PopMatrix();
+        }
+
+        void DrawLabelSingleCallClassic()
+        {
+            if (glyphLayout.Count == 0)
+                return;
+
+            Material mat = DaggerfallUI.Instance.PixelFontMaterial;
+
+            Vector4 scissorRect = (UseRestrictedRenderArea) ? GetRestrictedRenderScissorRect() : new Vector4(0, 1, 0, 1);
+            mat.SetVector("_ScissorRect", scissorRect);
+            mat.SetTexture("_MainTex", font.AtlasTexture);
+            mat.SetColor("_Color", textColor);
+            mat.SetColor(UIShaderParam._Color, textColor);
+            
+            mat.SetPass(0);
+
+            // 2) Inverted pixel matrix: y=0 at top
+            GL.PushMatrix();
+            GL.LoadPixelMatrix(0, Screen.width, Screen.height, 0);
+
+            // 3) Precompute constants
+            float scaleX = LocalScale.x * textScale;
+            float scaleY = LocalScale.y * textScale;
+            // For classic fonts, height is usually uniform based on font.GlyphHeight
+            float h = Mathf.Round(font.GlyphHeight * scaleY); // Rounded height for all glyphs
+
+            // 4) One GL.Begin/End for everything
+            GL.Begin(GL.QUADS);
+            GL.Color(textColor); // Set current vertex color for all subsequent vertices
+
+            foreach (var g in glyphLayout)
+            {
+                // Skip spaces
+                if (g.code == ' ')
+                    continue;
+
+                // Get glyph index (handle potential out-of-range)
+                int glyphIndex = g.code - font.AsciiStart;
+                if (glyphIndex < 0 || glyphIndex >= font.AtlasRects.Length)
+                    continue; // Skip if code is outside the font's range
+
+                // Get UV rectangle from the font's atlas map
+                Rect uvRect = font.AtlasRects[glyphIndex];
+
+                // Calculate width based on layout data (g.width)
+                float w = Mathf.Round(g.width * scaleX);
+
+                // Compute top-left screen position
+                // Uses g.x, g.y from layout directly, similar to original multi-call DrawLabel
+                float x = Rectangle.x
+                        + (g.x + HorzPixelScrollOffset) * scaleX; // Include horizontal scroll
+
+                float y = Rectangle.y
+                        + g.y * scaleY; // g.y seems to be the top offset already
+
+                // Pixel-perfect rounding for position
+                x = Mathf.Round(x);
+                y = Mathf.Round(y);
+
+                // Get UVs and flip V because we inverted the pixel matrix
+                float u0 = uvRect.xMin, u1 = uvRect.xMax;
+                float v0 = uvRect.yMax, v1 = uvRect.yMin; // Flipped V
+
+                // Emit the quad (TL, TR, BR, BL)
+                GL.TexCoord2(u0, v0); GL.Vertex3(x, y, 0);
+                GL.TexCoord2(u1, v0); GL.Vertex3(x + w, y, 0);
+                GL.TexCoord2(u1, v1); GL.Vertex3(x + w, y + h, 0);
+                GL.TexCoord2(u0, v1); GL.Vertex3(x, y + h, 0);
+            }
+            GL.End();
+
+            // 5) Clean up
+            GL.PopMatrix();
+        }
+
         void DrawLabel()
         {
             // Exit if no layout
             if (glyphLayout.Count == 0)
                 return;
 
+            try{
+                if(font.IsSDFCapable){
+                    DrawLabelSingleCallSDF();
+                }
+                else{
+                    DrawLabelSingleCallClassic();
+                }
+            } catch (Exception e){
+                Debug.LogError(e);
+                DrawLabelMultiCall();
+            }
+
+        }
+        void DrawLabelMultiCall()
+        {
             // Set render area
             Material material = font.GetMaterial();
             Vector4 scissorRect = (UseRestrictedRenderArea) ? GetRestrictedRenderScissorRect() : new Vector4(0, 1, 0, 1);
@@ -337,7 +501,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             Vector4 scissorRect;
             Rect myRect = this.Rectangle;
-            Rect screenRect = new Rect(0, 0, Screen.width, Screen.height);
+            Rect screenRect = new Rect(0, 0, AScreen.width, AScreen.height);
             scissorRect.x = xMinScreen / screenRect.width;
             scissorRect.y = xMaxScreen / screenRect.width;
             scissorRect.z = 1.0f - yMaxScreen / screenRect.height;

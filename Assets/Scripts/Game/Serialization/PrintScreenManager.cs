@@ -94,8 +94,8 @@ namespace DaggerfallWorkshop.Game.Serialization
 
             string path = Path.Combine(UnityScreenshotsPath, name + fileExtension);
 
-            Texture2D pic = new Texture2D(Screen.width, Screen.height);
-            pic.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
+            Texture2D pic = new Texture2D(AScreen.width, AScreen.height);
+            pic.ReadPixels(new Rect(0, 0, AScreen.width, AScreen.height), 0, 0);
             pic.Apply();
             byte[] bytes = pic.EncodeToJPG();
 

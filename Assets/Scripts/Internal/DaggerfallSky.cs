@@ -190,9 +190,9 @@ namespace DaggerfallWorkshop
         private void UpdateSkyRects()
         {
             Vector3 angles = mainCamera.transform.eulerAngles;
-            float width = (int)(Screen.width * skyScale);
-            float height = Screen.height * skyScale;
-            float halfScreenWidth = Screen.width * 0.5f;
+            float width = (int)(AScreen.width * skyScale);
+            float height = AScreen.height * skyScale;
+            float halfScreenWidth = AScreen.width * 0.5f;
 
             // Scroll left-right
             float westOffset;
@@ -231,7 +231,7 @@ namespace DaggerfallWorkshop
 
             // Scroll up-down
             // "baseScrollY" puts the bottom of the fake sky at the center of the screen.
-            float baseScrollY = -(height - Screen.height) - (Screen.height / 2);
+            float baseScrollY = -(height - AScreen.height) - (AScreen.height / 2);
 
             // Zoom of the camera (1.0 at fov=90).
             float zoom = 1f / Mathf.Tan((mainCamera.fieldOfView * 0.50f) * Mathf.Deg2Rad);
@@ -239,7 +239,7 @@ namespace DaggerfallWorkshop
 
             // Y-shearing is the percent of the screen height to translate Y coordinates by.
             float yShear = (Mathf.Tan(angleXRadians) * zoom) * 0.50f;
-            float scrollY = Mathf.Clamp(baseScrollY - (yShear * Screen.height), -height, 0f);
+            float scrollY = Mathf.Clamp(baseScrollY - (yShear * AScreen.height), -height, 0f);
 
             westRect = new Rect(westOffset, scrollY, width, height);
             eastRect = new Rect(eastOffset, scrollY, width, height);
@@ -254,7 +254,7 @@ namespace DaggerfallWorkshop
             myCamera.rect = mainCamera.rect;
 
             GL.PushMatrix();
-            GL.LoadPixelMatrix(0, Screen.width, Screen.height, 0);
+            GL.LoadPixelMatrix(0, AScreen.width, AScreen.height, 0);
 
             // Draw sky hemispheres
             Graphics.DrawTexture(westRect, westTexture, fullTextureRect, 0, 0, 0, 0, SkyTintColor * SkyColorScale, null);

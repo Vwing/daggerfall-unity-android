@@ -149,15 +149,15 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             // Ensure tooltip inside screen area
             Rect rect = Rectangle;
-            if (rect.xMax > Screen.width)
+            if (rect.xMax > AScreen.width)
             {
-                float difference = (rect.xMax - Screen.width) * 1f / LocalScale.x;
+                float difference = (rect.xMax - AScreen.width) * 1f / LocalScale.x;
                 Vector2 newPosition = new Vector2(Position.x - difference, Position.y);
                 Position = newPosition;
             }
-            if (rect.yMax > Screen.height)
+            if (rect.yMax > AScreen.height)
             {
-                float difference = (rect.yMax - Screen.height) * 1f / LocalScale.y;
+                float difference = (rect.yMax - AScreen.height) * 1f / LocalScale.y;
                 Vector2 newPosition = new Vector2(Position.x, Position.y - difference);
                 Position = newPosition;
             }

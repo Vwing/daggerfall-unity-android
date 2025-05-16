@@ -64,7 +64,7 @@ namespace DaggerfallWorkshop.Game
             {
                 // check if mouse clicked within a valid textbox
                 Vector2 mousePos = Input.mousePosition;
-                mousePos.y = Screen.height - mousePos.y;
+                mousePos.y = AScreen.height - mousePos.y;
                 var activeTextboxes = registeredTextboxes.Where(p => IsTextboxVisible(p) && !p.ReadOnly);
                 TextBox textBox = activeTextboxes.Where(p =>
                     {

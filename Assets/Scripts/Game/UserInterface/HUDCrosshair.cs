@@ -47,7 +47,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 {
                     VerticalAlignment = VerticalAlignment.None;
                     HUDLarge largeHUD = DaggerfallUI.Instance.DaggerfallHUD.LargeHUD;
-                    float y = (Screen.height - largeHUD.ScreenHeight - crosshairSize.y) / 2;
+                    float y = (AScreen.height - largeHUD.ScreenHeight - crosshairSize.y) / 2;
                     Position = new Vector2(0, y);
                 }
                 else

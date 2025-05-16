@@ -570,7 +570,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             else
             {
                 // Update raw mouse screen position from Input - must invert mouse position Y as Unity 0,0 is bottom-left
-                mousePosition = new Vector2(InputManager.Instance.MousePosition.x, Screen.height - InputManager.Instance.MousePosition.y);
+                mousePosition = new Vector2(InputManager.Instance.MousePosition.x, AScreen.height - InputManager.Instance.MousePosition.y);
             }
             scaledMousePosition = -Vector2.one;
 
@@ -1139,7 +1139,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 else
                 {
                     if (rootSize == Vector2.zero)
-                        parentRect = Application.isMobilePlatform || AndroidUtils.IsRunningInSimulator ? new Rect(0, 0, Screen.currentResolution.width, Screen.currentResolution.height) : new Rect(0, 0, Screen.width, Screen.height);
+                        parentRect = new Rect(0, 0, AScreen.width, AScreen.height);
                     else
                         parentRect = new Rect(0, 0, rootSize.x, rootSize.y);
                 }

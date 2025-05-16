@@ -172,7 +172,9 @@ namespace DaggerfallWorkshop.Game
         }
         void AndroidScreenManager_ScreenResolutionChanged(Resolution newResolution)
         {
-            UpdateSizeOfRectTF(newResolution.width);
+            // UpdateSizeOfRectTF(newResolution.width);
+
+            UpdateSizeOfRectTF(rootRectTF.rect.width);
         }
     }
 }

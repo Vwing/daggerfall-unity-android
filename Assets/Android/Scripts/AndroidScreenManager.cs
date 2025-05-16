@@ -5,6 +5,23 @@ using UnityEngine;
 
 namespace DaggerfallWorkshop.Game
 {
+    public static class AScreen
+    {
+        /// <summary>
+        /// Platform-independent screen width
+        /// </summary>
+        public static int width
+        {
+            get { return Application.isMobilePlatform || AndroidUtils.IsRunningInSimulator ? Screen.currentResolution.width : Screen.width; }
+        }
+        /// <summary>
+        /// Platform-independent screen height
+        /// </summary>
+        public static int height
+        {
+            get { return Application.isMobilePlatform || AndroidUtils.IsRunningInSimulator ? Screen.currentResolution.height : Screen.height; }
+        }
+    }
 
     /// <summary>
     /// Handles Android's Screen stuff like resolution setting and orientation
@@ -14,29 +31,38 @@ namespace DaggerfallWorkshop.Game
         public static event System.Action<Resolution> ScreenResolutionChanged;
         private Resolution lastResolution;
 
-        private void Awake()
+        private bool isSetup = false;
+
+        private IEnumerator Start()
         {
-            DaggerfallUnity.Settings.ResolutionWidth = Screen.width;
-            DaggerfallUnity.Settings.ResolutionHeight = Screen.height;
-            lastResolution = new Resolution() { width = Screen.width, height = Screen.height };
+            for (int i = 0; i < 5; ++i){ // one of those race conditions that require things setup after Start()
+                lastResolution = new Resolution() { width = DaggerfallUnity.Settings.ResolutionWidth, height = DaggerfallUnity.Settings.ResolutionHeight };
+                SetResolution(lastResolution.width, lastResolution.height);
+                GameManager.UpdateScreenOrientation();
+                yield return null;
+            }
+            isSetup = true;
         }
         private void Update()
         {
-            int x = Screen.width;
-            int y = Screen.height;
+            if(!isSetup)
+                return;
+
+            int x = AScreen.width;
+            int y = AScreen.height;
             if (x != lastResolution.width || y != lastResolution.height){
                 // looks like the resolution changed. Let's update the daggerfall unity resolution
                 SetResolution(x, y);
                 lastResolution = new Resolution() { width = x, height = y };
+
+                GameManager.UpdateScreenOrientation();
             }
         }
         public static void SetResolution(int x, int y)
         {
             Debug.Log("AndroidScreenManager: Current screen updated to new resolution");
-            DaggerfallUnity.Settings.ResolutionWidth = x;
-            DaggerfallUnity.Settings.ResolutionHeight = y;
 
-            SettingsManager.SetScreenResolution(x, y, true);
+            SettingsManager.SetScreenResolution(x, y, DaggerfallUnity.Settings.Fullscreen);
             var allCams = FindObjectsOfType<Camera>();
             foreach (var cam in allCams)
                 cam.ResetAspect();

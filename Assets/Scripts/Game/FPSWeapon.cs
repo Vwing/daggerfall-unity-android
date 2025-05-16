@@ -124,7 +124,7 @@ namespace DaggerfallWorkshop.Game
             if (DaggerfallUI.Instance.CustomScreenRect != null)
                 screenRect = DaggerfallUI.Instance.CustomScreenRect.Value;
             else
-                screenRect = new Rect(0, 0, Screen.width, Screen.height);
+                screenRect = new Rect(0, 0, AScreen.width, AScreen.height);
 
             // Must be ready and not loading the game
             if (!ReadyCheck() || WeaponType == WeaponTypes.None || GameManager.IsGamePaused || SaveLoadManager.Instance.LoadInProgress)

@@ -117,8 +117,8 @@ namespace DaggerfallWorkshop.Game
 
             // Compass box rect
             Rect compassBoxRect = new Rect();
-            compassBoxRect.x = Screen.width - (compassBoxTexture.width * scale);
-            compassBoxRect.y = Screen.height - (compassBoxTexture.height * scale);
+            compassBoxRect.x = AScreen.width - (compassBoxTexture.width * scale);
+            compassBoxRect.y = AScreen.height - (compassBoxTexture.height * scale);
             compassBoxRect.width = compassBoxTexture.width * scale;
             compassBoxRect.height = compassBoxTexture.height * scale;
 

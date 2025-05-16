@@ -112,7 +112,7 @@ namespace DaggerfallWorkshop.Game
             base.Start();
             if (Application.isPlaying)
             {
-                snapScale = Mathf.RoundToInt(k_defaultSnapScaleAt1080p * (Mathf.Min(Screen.height, Screen.width) / 1080f));
+                snapScale = Mathf.RoundToInt(k_defaultSnapScaleAt1080p * (Mathf.Min(AScreen.height, AScreen.width) / 1080f));
                 //LoadSavedSettingsDeprecated();
                 addToDrawerButton.onClick.AddListener(OnAddToDrawerButtonClicked);
                 removeFromDrawerButton.onClick.AddListener(OnRemoveFromDrawerButtonClicked);
@@ -459,11 +459,11 @@ namespace DaggerfallWorkshop.Game
                 {
                     newPos.y = lastAnchoredPos.y;
                 }
-                if (screenRect.xMax >= Screen.width)
+                if (screenRect.xMax >= AScreen.width)
                 {
                     newPos.x = lastAnchoredPos.x;
                 }
-                if (screenRect.yMax >= Screen.height)
+                if (screenRect.yMax >= AScreen.height)
                 {
                     newPos.y = lastAnchoredPos.y;
                 }

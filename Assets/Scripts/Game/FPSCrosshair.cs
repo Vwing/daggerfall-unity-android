@@ -27,8 +27,8 @@ namespace DaggerfallWorkshop.Game
             {
                 Color color = new Color(1, 1, 1, 0.75f);
                 DaggerfallUI.DrawTexture(
-                    new Rect((Screen.width * 0.5f) - (CrosshairTexture.width * 0.5f),
-                        (Screen.height * 0.5f) - (CrosshairTexture.height * 0.5f),
+                    new Rect((AScreen.width * 0.5f) - (CrosshairTexture.width * 0.5f),
+                        (AScreen.height * 0.5f) - (CrosshairTexture.height * 0.5f),
                         CrosshairTexture.width, CrosshairTexture.height),
                         (Texture2D)CrosshairTexture,
                         ScaleMode.StretchToFill,

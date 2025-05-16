@@ -1,5 +1,6 @@
 using DaggerfallWorkshop;
 using UnityEngine;
+using DaggerfallWorkshop.Game;
 
 /// <summary>
 /// Simple FPS counter using OnGui(), taken from here:
@@ -32,7 +33,7 @@ public class FPSDisplay : MonoBehaviour
         if (!ShowDebugString)
             return;
 
-        int w = Screen.width, h = Screen.height;
+        int w = AScreen.width, h = AScreen.height;
 
         // Show FPS
         {

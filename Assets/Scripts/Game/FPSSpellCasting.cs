@@ -88,7 +88,7 @@ namespace DaggerfallWorkshop.Game
             if (DaggerfallUI.Instance.CustomScreenRect != null)
                 screenRect = DaggerfallUI.Instance.CustomScreenRect.Value;
             else
-                screenRect = new Rect(0, 0, Screen.width, Screen.height);
+                screenRect = new Rect(0, 0, AScreen.width, AScreen.height);
 
             // Offset spellcasting animation by large HUD height when both large HUD and undocked weapon offset enabled
             // Animation is forced to offset when using docked HUD else it would appear underneath HUD
