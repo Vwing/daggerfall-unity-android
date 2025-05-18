@@ -149,8 +149,9 @@ namespace DaggerfallWorkshop.Game
         }
         private void UpdateVirtualAxes(Vector2 inputVec)
         {
-            TouchscreenInputManager.SetAxis(horizontalAxisAction, inputVec.x);
-            TouchscreenInputManager.SetAxis(verticalAxisAction, inputVec.y);
+            float sensitivity = myButton ? myButton.JoystickSensitivity : 1f;
+            TouchscreenInputManager.SetAxis(horizontalAxisAction, inputVec.x * sensitivity);
+            TouchscreenInputManager.SetAxis(verticalAxisAction, inputVec.y * sensitivity);
         }
     }
 }

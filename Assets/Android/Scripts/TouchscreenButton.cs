@@ -63,6 +63,7 @@ namespace DaggerfallWorkshop.Game
         public bool DefaultIsEnabled => defaultIsEnabled;
         public bool CanActionBeEdited{get{return canActionBeEdited;}}
         public bool CanButtonBeRemoved{get{return canButtonBeRemoved;}}
+        public float JoystickSensitivity => joystickSensitivity;
 
         [SerializeField] private bool canActionBeEdited = true;
         [SerializeField] private bool canButtonBeResized = true;

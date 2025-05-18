@@ -41,10 +41,6 @@ public class TouchscreenCanvasUXController : MonoBehaviour
         switch((TouchscreenButtonType)selectedButtonTypeDropdown.value){
             case TouchscreenButtonType.DPad:
             case TouchscreenButtonType.CameraDPad:
-                selectedButtonAdvancedCanvasRTF.sizeDelta = new Vector2(selectedButtonAdvancedCanvasRTF.sizeDelta.x, selectedButtonAdvancedExpanded1Height);
-                selectedButtonKnobSpriteDropdownGO.SetActive(true);
-                selectedButtonJoystickSliderGO.SetActive(false);
-                break;
             case TouchscreenButtonType.CameraJoystick:
             case TouchscreenButtonType.Joystick:
                 selectedButtonAdvancedCanvasRTF.sizeDelta = new Vector2(selectedButtonAdvancedCanvasRTF.sizeDelta.x, selectedButtonAdvancedExpanded2Height);
