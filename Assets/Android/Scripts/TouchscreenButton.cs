@@ -101,11 +101,13 @@ namespace DaggerfallWorkshop.Game
         private bool isDrawerOpen = true;
 
         private bool isUsingBuiltInTextures = true;
+        private bool isUsingBuiltInKnobTexture = true;
         private string textureFileName = "knob";
         private string spriteName = "";
         private string knobFileName = "";
         private string knobSpriteName = "";
         private string layoutParentName = "";
+        private float joystickSensitivity = 1f;
 
         protected override void Start()
         {
@@ -173,11 +175,13 @@ namespace DaggerfallWorkshop.Game
             canActionBeEdited = config.CanButtonBeEdited;
             canButtonBeResized = config.CanButtonBeResized;
             gameObject.name = config.Name;
-            isUsingBuiltInTextures = config.UsesBuiltInTextures;
+            isUsingBuiltInTextures = config.UsesBuiltInTexture;
+            isUsingBuiltInKnobTexture = config.UsesBuiltInKnobTexture;
             textureFileName = config.TextureFileName;
             spriteName = config.SpriteName;
             knobFileName = config.KnobTextureFileName;
             knobSpriteName = config.KnobSpriteName;
+            joystickSensitivity = config.JoystickSensitivity;
             ((Image)targetGraphic).sprite = config.LoadSprite(false);
             targetGraphic.rectTransform.anchorMin = Vector2.zero;
             targetGraphic.rectTransform.anchorMax = Vector2.one;
@@ -190,7 +194,6 @@ namespace DaggerfallWorkshop.Game
             
             SetResizeButtonActive();
             isToggleForEditOnScreenControls = config.IsToggleForEditOnScreenControls;
-
             UpdateLabelText();
 
             if (config.IsToggleForEditOnScreenControls)
@@ -206,14 +209,15 @@ namespace DaggerfallWorkshop.Game
                 isUsingBuiltInTextures, Path.GetFileName(textureFileName), spriteName, Path.GetFileName(knobFileName), knobSpriteName, defaultAction, 
                 defaultKeyCode, GetAnchorType(rectTransform.anchorMin), GetAnchorType(label.rectTransform.anchorMin), canActionBeEdited, 
                 canButtonBeRemoved, canButtonBeResized, buttonsInDrawer.Where(p => p).Select(s => s.name).ToList(), text.text, isToggleForEditOnScreenControls, 
-                layoutParentName ?? this.layoutParentName
+                layoutParentName ?? this.layoutParentName, isUsingBuiltInKnobTexture
             )
             {
                 IsEnabled = gameObject.activeSelf,
                 Position = GetAnchoredPositionRelativeToButtonsParent(),
                 Scale = rectTransform.sizeDelta,
                 ActionMapping = myAction,
-                KeyCodeMapping = myKey
+                KeyCodeMapping = myKey,
+                JoystickSensitivity = joystickSensitivity
             };
 
             return config;
@@ -581,7 +585,7 @@ namespace DaggerfallWorkshop.Game
         }
         public void SetJoystickSensitivity(float value)
         {
-
+            joystickSensitivity = value;
         }
         private void UpdateResizeButtonPosition()
         {

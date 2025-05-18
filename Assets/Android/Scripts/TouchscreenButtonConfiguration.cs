@@ -32,7 +32,8 @@ namespace DaggerfallWorkshop.Game
         [SerializeField][JsonProperty] private string defaultKeyCodeMapping;
         [SerializeField][JsonProperty] private string actionMapping;
         [SerializeField][JsonProperty] private string keyCodeMapping;
-        [SerializeField][JsonProperty] private bool usesBuiltInTextures;
+        [SerializeField][JsonProperty] private bool usesBuiltInTexture;
+        [SerializeField][JsonProperty] private bool usesBuiltInKnobTexture;
         [SerializeField][JsonProperty] private string textureFileName;
         [SerializeField][JsonProperty] private string spriteName;
         [SerializeField][JsonProperty] private string knobTextureFileName;
@@ -93,7 +94,8 @@ namespace DaggerfallWorkshop.Game
             get { return (KeyCode)Enum.Parse(typeof(KeyCode), keyCodeMapping); }
             set { keyCodeMapping = value.ToString(); }
         }
-        [JsonIgnore] public bool UsesBuiltInTextures { get { return usesBuiltInTextures; } set { usesBuiltInTextures = value; } }
+        [JsonIgnore] public bool UsesBuiltInTexture { get { return usesBuiltInTexture; } set { usesBuiltInTexture = value; } }
+        [JsonIgnore] public bool UsesBuiltInKnobTexture { get { return usesBuiltInKnobTexture; } set { usesBuiltInKnobTexture = value; } }
         [JsonIgnore] public string TextureFileName { get { return textureFileName; } set { textureFileName = value; } }
         [JsonIgnore] public string SpriteName { get { return spriteName; } set { spriteName = value; } }
         [JsonIgnore] public string KnobTextureFileName { get { return knobTextureFileName; } set { knobTextureFileName = value; } }
@@ -105,8 +107,8 @@ namespace DaggerfallWorkshop.Game
             get {return _layoutParentName ?? TouchscreenLayoutsManager.Instance?.CurrentlyLoadedLayout?.name ?? "default-layout"; } // this is hacky
             set {_layoutParentName = value;} 
         }
-        [JsonIgnore] public string TextureFilePath { get {return UsesBuiltInTextures ? textureFileName : Path.Combine(Paths.LayoutsPath, LayoutParentName, "textures", textureFileName);}}
-        [JsonIgnore] public string KnobTextureFilePath { get {return UsesBuiltInTextures ? knobTextureFileName : Path.Combine(Paths.LayoutsPath, LayoutParentName, "textures", knobTextureFileName);} }
+        [JsonIgnore] public string TextureFilePath { get {return UsesBuiltInTexture ? textureFileName : Path.Combine(Paths.LayoutsPath, LayoutParentName, "textures", textureFileName);}}
+        [JsonIgnore] public string KnobTextureFilePath { get {return UsesBuiltInKnobTexture ? knobTextureFileName : Path.Combine(Paths.LayoutsPath, LayoutParentName, "textures", knobTextureFileName);} }
         [JsonIgnore] public List<string> ButtonsInDrawer
         {
             get { return buttonsInDrawer; }
@@ -119,7 +121,7 @@ namespace DaggerfallWorkshop.Game
             InputManager.Actions defaultActionMapping = InputManager.Actions.Unknown, KeyCode defaultKeyCodeMapping = KeyCode.None,
             TouchscreenButtonAnchor anchor = TouchscreenButtonAnchor.MiddleMiddle, TouchscreenButtonAnchor labelAnchor = TouchscreenButtonAnchor.TopMiddle,
             bool canButtonBeEdited = true, bool canButtonBeRemoved = true, bool canButtonBeResized = true, List<string> buttonsInDrawer = null,
-            string text = "", bool isToggleForEditOnScreenControls = false, string layoutParentName = "")
+            string text = "", bool isToggleForEditOnScreenControls = false, string layoutParentName = "", bool usesBuiltInKnobTexture = true)
         {
             this.Name = name;
             this.ButtonType = buttonType;
@@ -133,7 +135,8 @@ namespace DaggerfallWorkshop.Game
             this.LabelAnchor = labelAnchor;
             this.DefaultActionMapping = this.ActionMapping = defaultActionMapping;
             this.DefaultKeyCodeMapping = this.KeyCodeMapping = defaultKeyCodeMapping;
-            this.UsesBuiltInTextures = usesBuiltInTexture;
+            this.UsesBuiltInTexture = usesBuiltInTexture;
+            this.UsesBuiltInKnobTexture = usesBuiltInKnobTexture;
             this.TextureFileName = textureFileName;
             this.SpriteName = spriteName;
             this.KnobTextureFileName = knobTextureFileName;
@@ -147,6 +150,7 @@ namespace DaggerfallWorkshop.Game
         {
             string texPath;
             string spriteName;
+            bool useBuiltIn = isKnob ? UsesBuiltInKnobTexture : UsesBuiltInTexture;
             try{
                 texPath = isKnob ? KnobTextureFilePath : TextureFilePath;
                 spriteName = isKnob ? KnobSpriteName : SpriteName;
@@ -155,7 +159,7 @@ namespace DaggerfallWorkshop.Game
                 Debug.LogError($"Combined path: {Paths.LayoutsPath} {LayoutParentName} textures {textureFileName}");
                 throw e;
             }
-            if (UsesBuiltInTextures)
+            if (useBuiltIn)
             {
                 if (!string.IsNullOrEmpty(spriteName))
                 {
@@ -189,7 +193,10 @@ namespace DaggerfallWorkshop.Game
                 }
                 else
                 {
-                    Debug.LogError($"Texture file not found at path: {texPath}");
+                    if(string.IsNullOrEmpty(knobTextureFileName))
+                        Debug.Log($"No knob texture file name provided for button {name}");
+                    else
+                        Debug.LogError($"Texture file not found at path: {texPath} for knob {knobTextureFileName}");
                     return null;
                 }
             }

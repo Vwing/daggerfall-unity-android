@@ -158,11 +158,13 @@ namespace DaggerfallWorkshop.Game
 
             // copy the textures to cache
             for(int i = 0; i < exportedConfig.buttons.Count; ++i){
-                if(!exportedConfig.buttons[i].UsesBuiltInTextures){
+                if(!exportedConfig.buttons[i].UsesBuiltInTexture){
                     if(File.Exists(exportedConfig.buttons[i].TextureFilePath)){
                         string exportPath = Path.Combine(folderToZipPath, "textures", exportedConfig.buttons[i].TextureFileName);
                         File.Copy(exportedConfig.buttons[i].TextureFilePath, exportPath, true);
                     }
+                }
+                if(!exportedConfig.buttons[i].UsesBuiltInKnobTexture){
                     if(File.Exists(exportedConfig.buttons[i].KnobTextureFilePath)){
                         string exportPath = Path.Combine(folderToZipPath, "textures", exportedConfig.buttons[i].KnobTextureFileName);
                         File.Copy(exportedConfig.buttons[i].KnobTextureFilePath, exportPath, true);
@@ -396,7 +398,8 @@ namespace DaggerfallWorkshop.Game
                 string currentlyEditingButtonName = TouchscreenInputManager.Instance.CurrentlyEditingButton.gameObject.name;
                 int curButtonIndex = currentlyLoadedLayout.buttons.FindIndex(p => p.Name == currentlyEditingButtonName);
                 var curButton = currentlyLoadedLayout.buttons[curButtonIndex];
-                if(curButton.UsesBuiltInTextures){
+                bool useBuiltIn = isKnob ? curButton.UsesBuiltInKnobTexture : curButton.UsesBuiltInTexture;
+                if(useBuiltIn){
                     dropdown.value = dropdown.options.FindIndex(p => p.text == (isKnob ? curButton.KnobSpriteName : curButton.SpriteName));
                 } else {
                     string texName = isKnob ? Path.GetFileNameWithoutExtension(curButton.KnobTextureFileName) : Path.GetFileNameWithoutExtension(curButton.TextureFileName);
@@ -411,7 +414,11 @@ namespace DaggerfallWorkshop.Game
             int curButtonIndex = currentlyLoadedLayout.buttons.FindIndex(p => p.Name == currentlyEditingButtonName);
             if(spriteOptionIndex < builtInSpriteConfigs.Count){
                 BuiltInSpriteConfig newSpriteConfig = builtInSpriteConfigs[spriteOptionIndex];
-                currentlyLoadedLayout.buttons[curButtonIndex].UsesBuiltInTextures = true;
+                if(isKnob){
+                    currentlyLoadedLayout.buttons[curButtonIndex].UsesBuiltInKnobTexture = true;
+                } else {
+                    currentlyLoadedLayout.buttons[curButtonIndex].UsesBuiltInTexture = true;
+                }
                 if(isKnob){
                     currentlyLoadedLayout.buttons[curButtonIndex].KnobTextureFileName = newSpriteConfig.textureName;
                     currentlyLoadedLayout.buttons[curButtonIndex].KnobSpriteName = newSpriteConfig.spriteName;
@@ -422,7 +429,11 @@ namespace DaggerfallWorkshop.Game
             } else {
                 spriteOptionIndex -= builtInSpriteConfigs.Count;
                 string newSpritePath = cachedSpritePaths[spriteOptionIndex];
-                currentlyLoadedLayout.buttons[curButtonIndex].UsesBuiltInTextures = false;
+                if(isKnob){
+                    currentlyLoadedLayout.buttons[curButtonIndex].UsesBuiltInKnobTexture = false;
+                } else {
+                    currentlyLoadedLayout.buttons[curButtonIndex].UsesBuiltInTexture = false;
+                }
                 if(isKnob){
                     currentlyLoadedLayout.buttons[curButtonIndex].KnobTextureFileName = Path.GetFileName(newSpritePath);
                     currentlyLoadedLayout.buttons[curButtonIndex].KnobSpriteName = "";
