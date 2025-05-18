@@ -63,7 +63,8 @@ namespace DaggerfallWorkshop.Game
         public bool DefaultIsEnabled => defaultIsEnabled;
         public bool CanActionBeEdited{get{return canActionBeEdited;}}
         public bool CanButtonBeRemoved{get{return canButtonBeRemoved;}}
-        public float JoystickSensitivity => joystickSensitivity;
+        public float JoystickSensitivityHorizontal => joystickSensitivityHorizontal;
+        public float JoystickSensitivityVertical => joystickSensitivityVertical;
 
         [SerializeField] private bool canActionBeEdited = true;
         [SerializeField] private bool canButtonBeResized = true;
@@ -108,7 +109,8 @@ namespace DaggerfallWorkshop.Game
         private string knobFileName = "";
         private string knobSpriteName = "";
         private string layoutParentName = "";
-        private float joystickSensitivity = 1f;
+        private float joystickSensitivityHorizontal = 1f;
+        private float joystickSensitivityVertical = 1f;
 
         protected override void Start()
         {
@@ -182,7 +184,8 @@ namespace DaggerfallWorkshop.Game
             spriteName = config.SpriteName;
             knobFileName = config.KnobTextureFileName;
             knobSpriteName = config.KnobSpriteName;
-            joystickSensitivity = config.JoystickSensitivity;
+            joystickSensitivityHorizontal = config.JoystickSensitivityHorizontal;
+            joystickSensitivityVertical = config.JoystickSensitivityVertical;
             ((Image)targetGraphic).sprite = config.LoadSprite(false);
             targetGraphic.rectTransform.anchorMin = Vector2.zero;
             targetGraphic.rectTransform.anchorMax = Vector2.one;
@@ -218,7 +221,8 @@ namespace DaggerfallWorkshop.Game
                 Scale = rectTransform.sizeDelta,
                 ActionMapping = myAction,
                 KeyCodeMapping = myKey,
-                JoystickSensitivity = joystickSensitivity
+                JoystickSensitivityHorizontal = joystickSensitivityHorizontal,
+                JoystickSensitivityVertical = joystickSensitivityVertical
             };
 
             return config;
@@ -584,9 +588,13 @@ namespace DaggerfallWorkshop.Game
                     break;
             }
         }
-        public void SetJoystickSensitivity(float value)
+        public void SetJoystickHorizontalSensitivity(float sensitivity)
         {
-            joystickSensitivity = value;
+            joystickSensitivityHorizontal = sensitivity;
+        }
+        public void SetJoystickVerticalSensitivity(float sensitivity)
+        {
+            joystickSensitivityVertical = sensitivity;
         }
         private void UpdateResizeButtonPosition()
         {

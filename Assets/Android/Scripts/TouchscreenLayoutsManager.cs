@@ -36,7 +36,8 @@ namespace DaggerfallWorkshop.Game
         [SerializeField] private TMPro.TMP_Dropdown labelAnchorDropdown;
         [SerializeField] private TMPro.TMP_Dropdown spriteDropdown;
         [SerializeField] private TMPro.TMP_Dropdown knobSpriteDropdown;
-        [SerializeField] private Slider selectedJoystickSensitivitySlider;
+        [SerializeField] private Slider selectedJoystickSensitivityHorizontalSlider;
+        [SerializeField] private Slider selectedJoystickSensitivityVerticalSlider;
 
         [Header("Assets")]
         [SerializeField] private TextAsset initialDefaultLayout;
@@ -82,7 +83,8 @@ namespace DaggerfallWorkshop.Game
             buttonTypeDropdown.onValueChanged.AddListener(OnButtonTypeDropdownValueChanged);
             anchorDropdown.onValueChanged.AddListener(OnButtonAnchorDropdownValueChanged);
             labelAnchorDropdown.onValueChanged.AddListener(OnLabelAnchorDropdownValueChanged);
-            selectedJoystickSensitivitySlider.onValueChanged.AddListener(OnSelectedJoystickSensitivityChanged);
+            selectedJoystickSensitivityHorizontalSlider.onValueChanged.AddListener(OnSelectedJoystickSensitivityHorizontalChanged);
+            selectedJoystickSensitivityVerticalSlider.onValueChanged.AddListener(OnSelectedJoystickSensitivityVerticalChanged);
             SetupUI();
             TouchscreenInputManager.Instance.onCurrentlyEditingButtonChanged += SetupUIBasedOnCurrentlyEditingTouchscreenButton;
             TouchscreenInputManager.Instance.onEditControlsToggled += TouchscreenInputManager_OnEditControlsToggled;
@@ -309,6 +311,8 @@ namespace DaggerfallWorkshop.Game
                 SyncSpriteDropdownValueToCurrentButtonSprite(false);
                 spriteDropdown.onValueChanged.AddListener(OnSpriteDropdownValueChanged);
                 knobSpriteDropdown.onValueChanged.AddListener(OnKnobSpriteDropdownChanged);
+                selectedJoystickSensitivityHorizontalSlider.value = buttonConfig.JoystickSensitivityHorizontal;
+                selectedJoystickSensitivityVerticalSlider.value = buttonConfig.JoystickSensitivityVertical;
                 //spriteDropdown.value = spriteDropdown.options.FindIndex(p => p.text == buttonConfig.LabelAnchor.ToString());
                 //knobSpriteDropdown.value = knobSpriteDropdown.options.FindIndex(p => p.text == buttonConfig.LabelAnchor.ToString());
 
@@ -630,12 +634,19 @@ namespace DaggerfallWorkshop.Game
                 WriteCurrentLayoutToPath();
             }
         }
-        private void OnSelectedJoystickSensitivityChanged(float value)
+        private void OnSelectedJoystickSensitivityHorizontalChanged(float value)
         {
             if (TouchscreenInputManager.Instance.CurrentlyEditingButton)
             {
-                TouchscreenInputManager.Instance.CurrentlyEditingButton.SetJoystickSensitivity(value);
-
+                TouchscreenInputManager.Instance.CurrentlyEditingButton.SetJoystickHorizontalSensitivity(value);
+                WriteCurrentLayoutToPath();
+            }
+        }
+        private void OnSelectedJoystickSensitivityVerticalChanged(float value)
+        {
+            if (TouchscreenInputManager.Instance.CurrentlyEditingButton)
+            {
+                TouchscreenInputManager.Instance.CurrentlyEditingButton.SetJoystickVerticalSensitivity(value);
                 WriteCurrentLayoutToPath();
             }
         }

@@ -40,14 +40,16 @@ namespace DaggerfallWorkshop.Game
         [SerializeField][JsonProperty] private string knobSpriteName;
         [SerializeField][JsonProperty] private List<string> buttonsInDrawer;
         [SerializeField][JsonProperty] private string text;
-        [SerializeField][JsonProperty] private float joystickSensitivity;
+        [SerializeField][JsonProperty] private float joystickSensitivityHorizontal;
+        [SerializeField][JsonProperty] private float joystickSensitivityVertical;
         [SerializeField][JsonProperty] private bool isToggleForEditOnScreenControls;
 
 
         [JsonIgnore] public string Name { get { return name; } set { name = value; } }
         [JsonIgnore] public string Text { get { return text; } set { text = value; } }
         [JsonIgnore] public bool IsToggleForEditOnScreenControls { get { return isToggleForEditOnScreenControls; } set { isToggleForEditOnScreenControls = value; } }
-        [JsonIgnore] public float JoystickSensitivity { get { return joystickSensitivity; } set { joystickSensitivity = value; } }
+        [JsonIgnore] public float JoystickSensitivityHorizontal { get { return joystickSensitivityHorizontal; } set { joystickSensitivityHorizontal = value; } }
+        [JsonIgnore] public float JoystickSensitivityVertical { get { return joystickSensitivityVertical; } set { joystickSensitivityVertical = value; } }
         [JsonIgnore]
         public TouchscreenButtonType ButtonType
         {

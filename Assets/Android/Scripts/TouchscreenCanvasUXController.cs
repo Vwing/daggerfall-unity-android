@@ -22,7 +22,9 @@ public class TouchscreenCanvasUXController : MonoBehaviour
     [SerializeField] private float configPanelExpandedHeight = 383.4f;
     [SerializeField] private float selectedButtonAdvancedUnexpandedHeight = 329f;
     [SerializeField] private float selectedButtonAdvancedExpanded1Height = 393f;
-    [SerializeField] private float selectedButtonAdvancedExpanded2Height = 450f;
+    [SerializeField] private float selectedButtonAdvancedExpanded2Height = 490f;
+    [SerializeField] private CanvasGroup selectedButtonJoystickHorizontalSliderCG;
+    [SerializeField] private CanvasGroup selectedButtonJoystickVerticalSliderCG;
     
     private void Start()
     {
@@ -46,11 +48,15 @@ public class TouchscreenCanvasUXController : MonoBehaviour
                 selectedButtonAdvancedCanvasRTF.sizeDelta = new Vector2(selectedButtonAdvancedCanvasRTF.sizeDelta.x, selectedButtonAdvancedExpanded2Height);
                 selectedButtonKnobSpriteDropdownGO.SetActive(true);
                 selectedButtonJoystickSliderGO.SetActive(true);
+                selectedButtonJoystickHorizontalSliderCG.interactable = true;
+                selectedButtonJoystickVerticalSliderCG.interactable = true;
                 break;
             default:
                 selectedButtonAdvancedCanvasRTF.sizeDelta = new Vector2(selectedButtonAdvancedCanvasRTF.sizeDelta.x, selectedButtonAdvancedUnexpandedHeight);
                 selectedButtonKnobSpriteDropdownGO.SetActive(false);
                 selectedButtonJoystickSliderGO.SetActive(false);
+                selectedButtonJoystickHorizontalSliderCG.interactable = false;
+                selectedButtonJoystickVerticalSliderCG.interactable = false;
                 break;
         }
         bool isConfigPanelExpanded = !leftJoystickToggle.isOn || !rightJoystickToggle.isOn;
