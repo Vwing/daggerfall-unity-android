@@ -419,37 +419,36 @@ namespace DaggerfallWorkshop.Game
             List<BuiltInSpriteConfig> builtInSpriteConfigs = isKnob ? builtInKnobSprites : builtInSprites;
             string currentlyEditingButtonName = TouchscreenInputManager.Instance.CurrentlyEditingButton.gameObject.name;
             int curButtonIndex = currentlyLoadedLayout.buttons.FindIndex(p => p.Name == currentlyEditingButtonName);
+            var curButtonConfig = currentlyLoadedLayout.buttons[curButtonIndex];
+            var buttonInstance = TouchscreenInputManager.Instance.CurrentlyEditingButton;
+            var config = buttonInstance.GetCurrentConfiguration(curButtonConfig.LayoutParentName);
+
             if(spriteOptionIndex < builtInSpriteConfigs.Count){
                 BuiltInSpriteConfig newSpriteConfig = builtInSpriteConfigs[spriteOptionIndex];
                 if(isKnob){
-                    currentlyLoadedLayout.buttons[curButtonIndex].UsesBuiltInKnobTexture = true;
+                    config.UsesBuiltInKnobTexture = true;
+                    config.KnobTextureFileName = newSpriteConfig.textureName;
+                    config.KnobSpriteName = newSpriteConfig.spriteName;
                 } else {
-                    currentlyLoadedLayout.buttons[curButtonIndex].UsesBuiltInTexture = true;
-                }
-                if(isKnob){
-                    currentlyLoadedLayout.buttons[curButtonIndex].KnobTextureFileName = newSpriteConfig.textureName;
-                    currentlyLoadedLayout.buttons[curButtonIndex].KnobSpriteName = newSpriteConfig.spriteName;
-                } else {
-                    currentlyLoadedLayout.buttons[curButtonIndex].TextureFileName = newSpriteConfig.textureName;
-                    currentlyLoadedLayout.buttons[curButtonIndex].SpriteName = newSpriteConfig.spriteName;
+                    config.UsesBuiltInTexture = true;
+                    config.TextureFileName = newSpriteConfig.textureName;
+                    config.SpriteName = newSpriteConfig.spriteName;
                 }
             } else {
                 spriteOptionIndex -= builtInSpriteConfigs.Count;
                 string newSpritePath = cachedSpritePaths[spriteOptionIndex];
                 if(isKnob){
-                    currentlyLoadedLayout.buttons[curButtonIndex].UsesBuiltInKnobTexture = false;
+                    config.UsesBuiltInKnobTexture = false;
+                    config.KnobTextureFileName = Path.GetFileName(newSpritePath);
+                    config.KnobSpriteName = "";
                 } else {
-                    currentlyLoadedLayout.buttons[curButtonIndex].UsesBuiltInTexture = false;
-                }
-                if(isKnob){
-                    currentlyLoadedLayout.buttons[curButtonIndex].KnobTextureFileName = Path.GetFileName(newSpritePath);
-                    currentlyLoadedLayout.buttons[curButtonIndex].KnobSpriteName = "";
-                } else {
-                    currentlyLoadedLayout.buttons[curButtonIndex].TextureFileName = Path.GetFileName(newSpritePath);
-                    currentlyLoadedLayout.buttons[curButtonIndex].SpriteName = "";
+                    config.UsesBuiltInTexture = false;
+                    config.TextureFileName = Path.GetFileName(newSpritePath);
+                    config.SpriteName = "";
                 }
             }
-            TouchscreenInputManager.Instance.CurrentlyEditingButton.ApplyConfiguration(currentlyLoadedLayout.buttons[curButtonIndex]);
+            currentlyLoadedLayout.buttons[curButtonIndex] = config;
+            buttonInstance.ApplyConfiguration(config);
         }
         public void LoadLastSelectedOrDefaultLayout()
         {
