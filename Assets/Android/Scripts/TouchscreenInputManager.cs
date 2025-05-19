@@ -150,8 +150,9 @@ namespace DaggerfallWorkshop.Game
 
             StopEditingCurrentButton();
             selectedButtonOptionsPanel.enabled = touchscreenButton && (touchscreenButton.CanActionBeEdited || touchscreenButton.CanButtonBeRemoved);
-            currentlyEditingButton = touchscreenButton;
-            onCurrentlyEditingButtonChanged?.Invoke(touchscreenButton);
+            
+            currentlyEditingButton = touchscreenButton.isToggleForEditOnScreenControls ? null : touchscreenButton;
+            onCurrentlyEditingButtonChanged?.Invoke(currentlyEditingButton);
         }
         private void StopEditingCurrentButton()
         {
