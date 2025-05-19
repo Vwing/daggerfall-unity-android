@@ -106,8 +106,8 @@ namespace DaggerfallWorkshop.Game
         private string _layoutParentName;
         [JsonIgnore] public string LayoutParentName
         { 
-            get {return _layoutParentName ?? TouchscreenLayoutsManager.Instance?.CurrentlyLoadedLayout?.name ?? "default-layout"; } // this is hacky
-            set {_layoutParentName = value;} 
+            get {return _layoutParentName ?? TouchscreenLayoutsManager.Instance?.CurrentlyLoadedLayout?.name ?? "default-layout";} // this is hacky
+            set {_layoutParentName = string.IsNullOrEmpty(value) ? null : value;}
         }
         [JsonIgnore] public string TextureFilePath { get {return UsesBuiltInTexture ? textureFileName : Path.Combine(Paths.LayoutsPath, LayoutParentName, "textures", textureFileName);}}
         [JsonIgnore] public string KnobTextureFilePath { get {return UsesBuiltInKnobTexture ? knobTextureFileName : Path.Combine(Paths.LayoutsPath, LayoutParentName, "textures", knobTextureFileName);} }

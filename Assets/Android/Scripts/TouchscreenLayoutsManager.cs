@@ -232,6 +232,7 @@ namespace DaggerfallWorkshop.Game
                 new Vector2(70, -100), new Vector2(70, 70), TouchscreenButtonType.Button, true, true, "linux_buttons", "button_blank", 
                 "", "", InputManager.Actions.Unknown
             );
+            newButtonConfig.LayoutParentName = currentlyLoadedLayout.name;
             var newButton = TouchscreenButtonEnableDisableManager.Instance.AddButtonFromPool(newButtonConfig);
             currentlyLoadedLayout.buttons.Add(newButtonConfig);
             WriteCurrentLayoutToPath();
