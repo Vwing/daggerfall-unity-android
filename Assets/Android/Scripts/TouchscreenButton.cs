@@ -112,6 +112,8 @@ namespace DaggerfallWorkshop.Game
         private float joystickSensitivityHorizontal = 1f;
         private float joystickSensitivityVertical = 1f;
 
+        private bool skipClickOnEditControlsButton = false;
+
         protected override void Start()
         {
             base.Start();
@@ -684,8 +686,13 @@ namespace DaggerfallWorkshop.Game
             Debug.Log("OnPointerDown " + gameObject.name);
             if(s_drawerCurrentlyAddingTo)
             {
-                // add this button to the drawer
-                if(this != s_drawerCurrentlyAddingTo){
+                // if it's the edit controls button, don't add it to the drawer
+                if(isToggleForEditOnScreenControls){
+                    TouchscreenInputManager.Instance.PopupMessage.Open("You cannot add the Edit Controls button to a drawer.", null, null, "Okay", null);
+                    skipClickOnEditControlsButton = true;
+                }
+                // else add this button to the drawer
+                else if(this != s_drawerCurrentlyAddingTo){
                     s_drawerCurrentlyAddingTo.AddButtonToDrawer(gameObject);
                     TouchscreenLayoutsManager.Instance.WriteCurrentLayoutToPath();
                 }
@@ -719,6 +726,7 @@ namespace DaggerfallWorkshop.Game
         }
         public override void OnPointerUp(PointerEventData eventData)
         {
+            
             isPointerDown = false;
             s_shouldShowLabels = true;
             if (TouchscreenInputManager.Instance.IsEditingControls)
@@ -729,9 +737,10 @@ namespace DaggerfallWorkshop.Game
             {
                 OnPointerUpDuringGameplay(eventData);
             }
-            if(isToggleForEditOnScreenControls)
+            if(isToggleForEditOnScreenControls && !skipClickOnEditControlsButton)
                 TouchscreenInputManager.Instance.OnEditTouchscreenControlsButtonClicked(this);
             pointerDownWasTouchingResizeButton = false;
+            skipClickOnEditControlsButton = false;
         }
 
         #endregion

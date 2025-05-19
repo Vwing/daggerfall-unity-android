@@ -70,7 +70,7 @@ public class TouchscreenCanvasUXController : MonoBehaviour
         SetCGEnabled(leftJoystickSliderCG, leftJoystickToggle.isOn);
         SetCGEnabled(rightJoystickSliderCG, rightJoystickToggle.isOn);
         SetCGEnabled(touchscreenSensitivitySliderCG, isConfigPanelExpanded);
-        selectedButtonDeleteButtonGO.SetActive(TouchscreenInputManager.Instance.CurrentlyEditingButton != null);
+        selectedButtonDeleteButtonGO.SetActive(TouchscreenInputManager.Instance.CurrentlyEditingButton != null && !TouchscreenInputManager.Instance.CurrentlyEditingButton.isToggleForEditOnScreenControls);
     }
     private void TouchscreenInputManager_onCurrentlyEditingButtonChanged(TouchscreenButton newButton) => UpdateUIUX();
 }
