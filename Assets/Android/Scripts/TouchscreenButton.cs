@@ -348,24 +348,17 @@ namespace DaggerfallWorkshop.Game
             isDrawerOpen = false;
             buttonDrawerParent.gameObject.SetActive(false);
             ((Image)targetGraphic).color = Color.gray;
-            // foreach(var button in buttonsInDrawer){
-            //     button.gameObject.SetActive(false);
-            // }
         }
         public void OpenDrawer(){
             isDrawerOpen = true;
             buttonDrawerParent.gameObject.SetActive(true);
             ((Image)targetGraphic).color = Color.white;
-            // foreach(var button in buttonsInDrawer){
-            //     button.gameObject.SetActive(true);
-            // }
         }
 
         public void AddButtonToDrawer(GameObject buttonGO)
         {
             if(buttonsInDrawer.Any(p => p.name == buttonGO.name) || buttonGO == gameObject)
                 return;
-            // GameObject buttonGO = TouchscreenButtonEnableDisableManager.Instance.GetButtonBehaviour(buttonName).gameObject;
             buttonsInDrawer.Add(buttonGO);
             buttonGO.GetComponent<RectTransform>().SetParent(buttonDrawerParent, true);
             buttonGO.GetComponent<RectTransform>().ForceUpdateRectTransforms();
@@ -419,7 +412,13 @@ namespace DaggerfallWorkshop.Game
         private void UpdateButtonTransform()
         {
             if (!TouchscreenInputManager.Instance.IsEditingControls || !isPointerDown)
+            {
+                // hacky fix for button drawer contents having a weird far-away z position
+                if(!Mathf.Approximately(transform.localPosition.z, 0))
+                    transform.localPosition = new Vector3(transform.localPosition.x, transform.localPosition.y, 0);
+                // return early if not editing controls
                 return;
+            }
 
             Vector2 pointerDelta = (Vector2)Input.mousePosition - pointerDownPos;
 
