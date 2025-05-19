@@ -48,15 +48,15 @@ public class TouchscreenCanvasUXController : MonoBehaviour
                 selectedButtonAdvancedCanvasRTF.sizeDelta = new Vector2(selectedButtonAdvancedCanvasRTF.sizeDelta.x, selectedButtonAdvancedExpanded2Height);
                 selectedButtonKnobSpriteDropdownGO.SetActive(true);
                 selectedButtonJoystickSliderGO.SetActive(true);
-                selectedButtonJoystickHorizontalSliderCG.interactable = true;
-                selectedButtonJoystickVerticalSliderCG.interactable = true;
+                SetCGEnabled(selectedButtonJoystickHorizontalSliderCG, true);
+                SetCGEnabled(selectedButtonJoystickVerticalSliderCG, true);
                 break;
             default:
                 selectedButtonAdvancedCanvasRTF.sizeDelta = new Vector2(selectedButtonAdvancedCanvasRTF.sizeDelta.x, selectedButtonAdvancedUnexpandedHeight);
                 selectedButtonKnobSpriteDropdownGO.SetActive(false);
                 selectedButtonJoystickSliderGO.SetActive(false);
-                selectedButtonJoystickHorizontalSliderCG.interactable = false;
-                selectedButtonJoystickVerticalSliderCG.interactable = false;
+                SetCGEnabled(selectedButtonJoystickHorizontalSliderCG, false);
+                SetCGEnabled(selectedButtonJoystickVerticalSliderCG, false);
                 break;
         }
         bool isConfigPanelExpanded = !leftJoystickToggle.isOn || !rightJoystickToggle.isOn;

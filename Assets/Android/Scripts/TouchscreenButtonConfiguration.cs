@@ -123,7 +123,8 @@ namespace DaggerfallWorkshop.Game
             InputManager.Actions defaultActionMapping = InputManager.Actions.Unknown, KeyCode defaultKeyCodeMapping = KeyCode.None,
             TouchscreenButtonAnchor anchor = TouchscreenButtonAnchor.MiddleMiddle, TouchscreenButtonAnchor labelAnchor = TouchscreenButtonAnchor.TopMiddle,
             bool canButtonBeEdited = true, bool canButtonBeRemoved = true, bool canButtonBeResized = true, List<string> buttonsInDrawer = null,
-            string text = "", bool isToggleForEditOnScreenControls = false, string layoutParentName = "", bool usesBuiltInKnobTexture = true)
+            string text = "", bool isToggleForEditOnScreenControls = false, string layoutParentName = "", bool usesBuiltInKnobTexture = true,
+            float joystickSensitivityHorizontal = 1f, float joystickSensitivityVertical = 1f)
         {
             this.Name = name;
             this.ButtonType = buttonType;
@@ -147,6 +148,8 @@ namespace DaggerfallWorkshop.Game
             this.Text = text;
             this.IsToggleForEditOnScreenControls = isToggleForEditOnScreenControls;
             this.LayoutParentName = layoutParentName;
+            this.JoystickSensitivityHorizontal = joystickSensitivityHorizontal;
+            this.JoystickSensitivityVertical = joystickSensitivityVertical;
         }
         public Sprite LoadSprite(bool isKnob = false)
         {

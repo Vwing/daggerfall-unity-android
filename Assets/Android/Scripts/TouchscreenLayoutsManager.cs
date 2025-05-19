@@ -211,13 +211,16 @@ namespace DaggerfallWorkshop.Game
 
         private void CreateNewButtonInLayout()
         {
-            TouchscreenButtonConfiguration newButtonConfig = new("new-button-" + UnityEngine.Random.Range(100000, 999999).ToString(), 
+            TouchscreenButtonConfiguration newButtonConfig = new(
+                "new-button-" + UnityEngine.Random.Range(100000, 999999).ToString(),
                 new Vector2(70, -100), new Vector2(70, 70), TouchscreenButtonType.Button, true, true, "linux_buttons", "button_blank", 
-                "", "", InputManager.Actions.Unknown);
+                "", "", InputManager.Actions.Unknown
+            );
             var newButton = TouchscreenButtonEnableDisableManager.Instance.AddButtonFromPool(newButtonConfig);
             WriteCurrentLayoutToPath();
             LoadLayoutByName(currentLayoutName.text);
             TouchscreenInputManager.Instance.EditTouchscreenButton(newButton);
+            newButton.ApplyConfiguration(newButtonConfig);
         }
         private void DeleteCurrentlySelectedButtonFromLayout()
         {

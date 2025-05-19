@@ -23110,7 +23110,7 @@ MonoBehaviour:
   configPanelExpandedHeight: 383.4
   selectedButtonAdvancedUnexpandedHeight: 329
   selectedButtonAdvancedExpanded1Height: 393
-  selectedButtonAdvancedExpanded2Height: 450
+  selectedButtonAdvancedExpanded2Height: 490
   selectedButtonJoystickHorizontalSliderCG: {fileID: 2646892721648360814}
   selectedButtonJoystickVerticalSliderCG: {fileID: 3023620733134284586}
 --- !u!1 &8586893107531859260

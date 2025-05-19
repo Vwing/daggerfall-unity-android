@@ -213,16 +213,14 @@ namespace DaggerfallWorkshop.Game
                 isUsingBuiltInTextures, Path.GetFileName(textureFileName), spriteName, Path.GetFileName(knobFileName), knobSpriteName, defaultAction, 
                 defaultKeyCode, GetAnchorType(rectTransform.anchorMin), GetAnchorType(label.rectTransform.anchorMin), canActionBeEdited, 
                 canButtonBeRemoved, canButtonBeResized, buttonsInDrawer.Where(p => p).Select(s => s.name).ToList(), text.text, isToggleForEditOnScreenControls, 
-                layoutParentName ?? this.layoutParentName, isUsingBuiltInKnobTexture
+                layoutParentName ?? this.layoutParentName, isUsingBuiltInKnobTexture, joystickSensitivityHorizontal, joystickSensitivityVertical
             )
             {
                 IsEnabled = gameObject.activeSelf,
                 Position = GetAnchoredPositionRelativeToButtonsParent(),
                 Scale = rectTransform.sizeDelta,
                 ActionMapping = myAction,
-                KeyCodeMapping = myKey,
-                JoystickSensitivityHorizontal = joystickSensitivityHorizontal,
-                JoystickSensitivityVertical = joystickSensitivityVertical
+                KeyCodeMapping = myKey
             };
 
             return config;
