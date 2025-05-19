@@ -233,8 +233,8 @@ namespace DaggerfallWorkshop.Game
                 "", "", InputManager.Actions.Unknown
             );
             var newButton = TouchscreenButtonEnableDisableManager.Instance.AddButtonFromPool(newButtonConfig);
+            currentlyLoadedLayout.buttons.Add(newButtonConfig);
             WriteCurrentLayoutToPath();
-            LoadLayoutByName(currentLayoutName.text);
             TouchscreenInputManager.Instance.EditTouchscreenButton(newButton);
             newButton.ApplyConfiguration(newButtonConfig);
         }
