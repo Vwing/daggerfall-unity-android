@@ -209,10 +209,26 @@ namespace DaggerfallWorkshop.Game
             }
         }
 
+        private string GetNextButtonName()
+        {
+            int highestNumber = 0;
+            foreach (var button in currentlyLoadedLayout.buttons)
+            {
+                if (button.Name.StartsWith("new-button-"))
+                {
+                    string numberStr = button.Name.Substring("new-button-".Length);
+                    if (int.TryParse(numberStr, out int number))
+                    {
+                        highestNumber = Math.Max(highestNumber, number);
+                    }
+                }
+            }
+            return "new-button-" + (highestNumber + 1).ToString();
+        }
         private void CreateNewButtonInLayout()
         {
             TouchscreenButtonConfiguration newButtonConfig = new(
-                "new-button-" + UnityEngine.Random.Range(100000, 999999).ToString(),
+                GetNextButtonName(),
                 new Vector2(70, -100), new Vector2(70, 70), TouchscreenButtonType.Button, true, true, "linux_buttons", "button_blank", 
                 "", "", InputManager.Actions.Unknown
             );
