@@ -71,8 +71,13 @@ namespace DaggerfallWorkshop.Game
         }
         private void Awake()
         {
-            if(SetupSingleton())
-                Setup();
+            if(SetupSingleton()){
+                // we good
+            }
+        }
+        private void Start(){
+
+            Setup();
         }
         public void SetUIAlpha(float val)
         {

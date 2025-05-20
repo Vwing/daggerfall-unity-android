@@ -108,8 +108,10 @@ namespace DaggerfallWorkshop.Game
 
         private void ImportNewLayout()
         {
-            NativeFilePicker.FilePickedCallback filePickedCallback = new NativeFilePicker.FilePickedCallback(OnLayoutFilePicked);
-            NativeFilePicker.PickFile(filePickedCallback, ".zip");
+            TouchscreenInputManager.Instance.PopupMessage.Open("Pick a layout zip file.", () => {
+                NativeFilePicker.FilePickedCallback filePickedCallback = new NativeFilePicker.FilePickedCallback(OnLayoutFilePicked);
+                NativeFilePicker.PickFile(filePickedCallback, "application/zip");
+            }, null, "Okay", "Cancel", true);
         }
         private void ImportNewButtonTexture()
         {
@@ -296,7 +298,8 @@ namespace DaggerfallWorkshop.Game
                     SelectDropdownValueForLayoutName(layout.name);
                     return true;
                 } catch (Exception e){
-                    Debug.LogError(e);
+                    Debug.LogError("Error loading layout: " + e);
+                    Debug.LogError(e.StackTrace);
                     return false;
                 }
             }
@@ -522,6 +525,7 @@ namespace DaggerfallWorkshop.Game
         {
             if(currentlyLoadedLayout != null && layoutConfig.name != currentlyLoadedLayout.name)
                 WriteCurrentLayoutToPath();
+
             TouchscreenButtonEnableDisableManager.Instance.ReturnAllButtonsToPool();
             TouchscreenInputManager.Instance.SetUIAlpha(layoutConfig.defaultUIAlpha);
             TouchscreenInputManager.Instance.SetJoystickTapsShouldActivateCenterObject(layoutConfig.screenTapsActivateCenterObject);
@@ -529,6 +533,7 @@ namespace DaggerfallWorkshop.Game
             TouchscreenButtonEnableDisableManager.Instance.IsRightJoystickEnabled = layoutConfig.rightJoystickEnabled;
             TouchscreenInputManager.Instance.SetTouchscreenSensitivity(layoutConfig.touchscreenSensitivity >= 0 ? layoutConfig.touchscreenSensitivity : 1.0f);
             layoutConfig.buttons.Sort(new TouchscreenButtonConfigurationComparer());
+
             for(int i = 0; i < layoutConfig.buttons.Count; ++i)
             {
                 var buttonConfig = layoutConfig.buttons[i];
@@ -540,6 +545,7 @@ namespace DaggerfallWorkshop.Game
 
             currentlyLoadedLayout = layoutConfig;
 
+            Debug.Log("Loaded layout: " + layoutConfig.name);
             LayoutLoaded?.Invoke(layoutConfig.name);
         }
         public TouchscreenLayoutConfiguration GetCurrentLayoutConfig()
