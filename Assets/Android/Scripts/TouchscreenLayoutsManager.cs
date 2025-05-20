@@ -288,12 +288,17 @@ namespace DaggerfallWorkshop.Game
                     TouchscreenInputManager.Instance.PopupMessage.Open($"Couldn't find a layout file named {layoutName}.json within a {Path.Combine(LayoutsPath, layoutName)} directory", null, null, "Okay", "", false);
                 return false;
             } else {
-                var layout = TouchscreenLayoutConfiguration.ReadFromPath(Path.Combine(LayoutsPath, layoutName, layoutName + ".json"));
-                LoadLayout(layout);
-                currentLayoutName.text = layout.name;
-                LastSelectedLayout = layout.name;
-                SelectDropdownValueForLayoutName(layout.name);
-                return true;
+                try{
+                    var layout = TouchscreenLayoutConfiguration.ReadFromPath(Path.Combine(LayoutsPath, layoutName, layoutName + ".json"));
+                    LoadLayout(layout);
+                    currentLayoutName.text = layout.name;
+                    LastSelectedLayout = layout.name;
+                    SelectDropdownValueForLayoutName(layout.name);
+                    return true;
+                } catch (Exception e){
+                    Debug.LogError(e);
+                    return false;
+                }
             }
         }
         private void SelectDropdownValueForLayoutName(string layoutName)
@@ -473,8 +478,33 @@ namespace DaggerfallWorkshop.Game
                 Directory.CreateDirectory(LayoutsPath);
             RegenerateDefaultLayoutIfMissing();
             UpdateLayoutsDropdown();
-            if(!LoadLayoutByName(LastSelectedLayout, false))
-                LoadLayoutByName("default-layout");
+            if(!LoadLayoutByName(LastSelectedLayout, false)){
+                if(!LoadLayoutByName("default-layout")){
+                    RegenerateBrokenDefaultLayout();
+                }
+            }
+        }
+        private void RegenerateBrokenDefaultLayout()
+        {
+            // default layout broken. Regenerate it!
+            string defaultLayoutDir = Path.Combine(LayoutsPath, "default-layout");
+            if (Directory.Exists(defaultLayoutDir))
+            {
+                Directory.Delete(defaultLayoutDir, true);
+            }
+            // Also delete the initial-default-layout.json so it is regenerated from the TextAsset
+            string initialDefaultLayoutPath = Path.Combine(Paths.PersistentDataPath, "initial-default-layout.json");
+            if (File.Exists(initialDefaultLayoutPath))
+            {
+                File.Delete(initialDefaultLayoutPath);
+            }
+            RegenerateDefaultLayoutIfMissing();
+            UpdateLayoutsDropdown();
+            LoadLayoutByName("default-layout");
+            TouchscreenInputManager.Instance.PopupMessage.Open(
+                "The default layout was broken and has been reset to its original state.",
+                null, null, "Okay", "", false
+            );
         }
         private void RegenerateDefaultLayoutIfMissing()
         {            
@@ -494,10 +524,10 @@ namespace DaggerfallWorkshop.Game
                 WriteCurrentLayoutToPath();
             TouchscreenButtonEnableDisableManager.Instance.ReturnAllButtonsToPool();
             TouchscreenInputManager.Instance.SetUIAlpha(layoutConfig.defaultUIAlpha);
-            VirtualJoystick.JoystickTapsShouldActivateCenterObject = layoutConfig.screenTapsActivateCenterObject;
+            TouchscreenInputManager.Instance.SetJoystickTapsShouldActivateCenterObject(layoutConfig.screenTapsActivateCenterObject);
             TouchscreenButtonEnableDisableManager.Instance.IsLeftJoystickEnabled = layoutConfig.leftJoystickEnabled;
             TouchscreenButtonEnableDisableManager.Instance.IsRightJoystickEnabled = layoutConfig.rightJoystickEnabled;
-            TouchscreenInputManager.Instance.SetTouchscreenSensitivity(layoutConfig.touchscreenSensitivity >= 0 ? layoutConfig.touchscreenSensitivity : 1.0f, false);
+            TouchscreenInputManager.Instance.SetTouchscreenSensitivity(layoutConfig.touchscreenSensitivity >= 0 ? layoutConfig.touchscreenSensitivity : 1.0f);
             layoutConfig.buttons.Sort(new TouchscreenButtonConfigurationComparer());
             for(int i = 0; i < layoutConfig.buttons.Count; ++i)
             {

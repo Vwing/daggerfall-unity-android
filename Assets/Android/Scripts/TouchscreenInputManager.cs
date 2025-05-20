@@ -210,23 +210,18 @@ namespace DaggerfallWorkshop.Game
         private void OnJoystickTapsToggleChanged(bool val){
             VirtualJoystick.JoystickTapsShouldActivateCenterObject = val;
         }
+        public void SetJoystickTapsShouldActivateCenterObject(bool val){
+            VirtualJoystick.JoystickTapsShouldActivateCenterObject = val;
+            joystickTapsActivateCenterObjectToggle.isOn = val;
+        }
         private void OnTouchscreenSensitivitySliderChanged(float newVal)
         {
             TouchscreenSensitivity = newVal;
-            if(!skipWriteToLayoutOnTouchscreenSensitivityChange)
-                TouchscreenLayoutsManager.Instance.WriteCurrentLayoutToPath();
         }
-        private bool skipWriteToLayoutOnTouchscreenSensitivityChange = false;
-        public void SetTouchscreenSensitivity(float val, bool writeToLayout = true)
+        public void SetTouchscreenSensitivity(float val)
         {
             TouchscreenSensitivity = val;
-            if(writeToLayout){
-                touchscreenSensitivitySlider.value = val;
-            } else {
-                skipWriteToLayoutOnTouchscreenSensitivityChange = true;
-                touchscreenSensitivitySlider.value = val;
-                skipWriteToLayoutOnTouchscreenSensitivityChange = false;
-            }
+            touchscreenSensitivitySlider.value = val;
         }
         #endregion
 
