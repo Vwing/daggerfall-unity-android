@@ -642,8 +642,8 @@ namespace DaggerfallWorkshop.Game
             if (TouchscreenInputManager.IsTouchscreenActive && (Input.touchCount > 0 || Application.isEditor && Input.GetMouseButton(0)))
             {
                 if (VirtualJoystick.JoystickThatIsCurrentlyMouseLooking){
-                    mouseX = VirtualJoystick.JoystickThatIsCurrentlyMouseLooking.CurrentPointerEventData.delta.x * TouchscreenInputManager.Instance.TouchscreenSensitivity;
-                    mouseY = VirtualJoystick.JoystickThatIsCurrentlyMouseLooking.CurrentPointerEventData.delta.y * TouchscreenInputManager.Instance.TouchscreenSensitivity;
+                    mouseX = VirtualJoystick.JoystickThatIsCurrentlyMouseLooking.CurrentPointerEventData.delta.x * TouchscreenInputManager.Instance.TouchscreenSensitivity * 0.25f;
+                    mouseY = VirtualJoystick.JoystickThatIsCurrentlyMouseLooking.CurrentPointerEventData.delta.y * TouchscreenInputManager.Instance.TouchscreenSensitivity * 0.25f;
                 }
             }
             else{

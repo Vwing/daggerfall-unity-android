@@ -111,7 +111,7 @@ namespace DaggerfallWorkshop.Game
             TouchscreenInputManager.Instance.PopupMessage.Open("Pick a layout zip file.", () => {
                 NativeFilePicker.FilePickedCallback filePickedCallback = new NativeFilePicker.FilePickedCallback(OnLayoutFilePicked);
                 NativeFilePicker.PickFile(filePickedCallback, "application/zip");
-            }, null, "Okay", "Cancel", true);
+            }, null, "Okay", "", false);
         }
         private void ImportNewButtonTexture()
         {
@@ -296,6 +296,8 @@ namespace DaggerfallWorkshop.Game
                     currentLayoutName.text = layout.name;
                     LastSelectedLayout = layout.name;
                     SelectDropdownValueForLayoutName(layout.name);
+                    LoadSpriteDropdown(true);
+                    LoadSpriteDropdown(false);
                     return true;
                 } catch (Exception e){
                     Debug.LogError("Error loading layout: " + e);
@@ -398,28 +400,31 @@ namespace DaggerfallWorkshop.Game
                 options.Add(((TouchscreenButtonAnchor)i).ToString());
             labelAnchorDropdown.AddOptions(options);
 
-            // Add sprite options
-            LoadSpriteDropdown(true);
-            LoadSpriteDropdown(false);
+            // // Add sprite options
+            // LoadSpriteDropdown(true);
+            // LoadSpriteDropdown(false);
         }
 
-        private void LoadSpriteDropdown(bool isKnob){
+        private void LoadSpriteDropdown(bool isKnob)
+        {
             TMPro.TMP_Dropdown dropdown = isKnob ? knobSpriteDropdown : spriteDropdown;
             dropdown.ClearOptions();
             List<BuiltInSpriteConfig> builtIns = isKnob ? builtInKnobSprites : builtInSprites;
             cachedSpritePaths.Clear();
+
+            Debug.Log("Loading " + currentlyLoadedLayout.name);
             string curLayoutPath = Path.Combine(LayoutsPath, currentlyLoadedLayout.name);
-            cachedSpritePaths.AddRange(imageSearchPatterns.SelectMany(s => Directory.GetFiles(curLayoutPath, s, SearchOption.AllDirectories)).ToList());
-            
+            var extensions = new List<string> { ".png", ".jpg", ".jpeg" };
+            cachedSpritePaths.AddRange(GetImageFilesRecursive(curLayoutPath, extensions));
+
             dropdown.onValueChanged.RemoveListener(OnKnobSpriteDropdownChanged);
             dropdown.onValueChanged.RemoveListener(OnSpriteDropdownValueChanged);
+
             List<string> options = new List<string>();
             options.AddRange(builtIns.Select(s => string.IsNullOrEmpty(s.spriteName) ? s.textureName : $"{s.spriteName}"));
-            options.AddRange(cachedSpritePaths.Select(s => {
-                // string texParentLayout = Path.GetFileName(Path.GetDirectoryName(s.Replace("/textures", "").Replace("\\textures", "")));
-                return $"{Path.GetFileNameWithoutExtension(s)}";
-            }));
+            options.AddRange(cachedSpritePaths.Select(s => Path.GetFileNameWithoutExtension(s)));
             dropdown.AddOptions(options);
+
             SyncSpriteDropdownValueToCurrentButtonSprite(isKnob);
             dropdown.onValueChanged.AddListener(isKnob ? OnKnobSpriteDropdownChanged : OnSpriteDropdownValueChanged);
         }
@@ -711,6 +716,32 @@ namespace DaggerfallWorkshop.Game
         {
             if(!isOn && currentlyLoadedLayout != null)
                 WriteCurrentLayoutToPath();
+        }
+
+        private List<string> GetImageFilesRecursive(string rootPath, List<string> extensions)
+        {
+            List<string> files = new List<string>();
+            if (!Directory.Exists(rootPath))
+                return files;
+
+            try
+            {
+                foreach (var file in Directory.GetFiles(rootPath))
+                {
+                    string ext = Path.GetExtension(file).ToLowerInvariant();
+                    if (extensions.Contains(ext))
+                        files.Add(file);
+                }
+                foreach (var dir in Directory.GetDirectories(rootPath))
+                {
+                    files.AddRange(GetImageFilesRecursive(dir, extensions));
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error enumerating files: {e}");
+            }
+            return files;
         }
     }
     [System.Serializable]
