@@ -22947,6 +22947,7 @@ MonoBehaviour:
   resetButtonTransformsButton: {fileID: 1312493411870456332}
   resetButtonMappingsButton: {fileID: 403276337872581067}
   alphaSlider: {fileID: 5016482443786966207}
+  touchscreenSensitivitySlider: {fileID: 487636083156360422}
   joystickTapsActivateCenterObjectToggle: {fileID: 432467903877895486}
   debugInEditor: 1
 --- !u!114 &8965815436328658270

@@ -151,8 +151,9 @@ namespace DaggerfallWorkshop.Game
         private void UpdateVirtualAxes(Vector2 inputVec)
         {
             if (isInMouseLookMode)
+            {
                 return;
-
+            }
             TouchscreenInputManager.SetAxis(horizontalAxisAction, inputVec.x);
             TouchscreenInputManager.SetAxis(verticalAxisAction, inputVec.y);
         }

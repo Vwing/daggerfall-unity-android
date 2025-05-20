@@ -4,6 +4,7 @@
   "leftJoystickEnabled": true,
   "rightJoystickEnabled": true,
   "screenTapsActivateCenterObject": true,
+  "touchscreenSensitivity": 1.0,
   "buttons": [
     {
       "name": "gamepad-up",

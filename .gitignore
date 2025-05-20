@@ -51,3 +51,4 @@ sysinfo.txt
 mono_crash.*
 
 .fake
+.cursorignore

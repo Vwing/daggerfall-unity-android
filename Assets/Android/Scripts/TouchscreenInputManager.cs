@@ -37,6 +37,7 @@ namespace DaggerfallWorkshop.Game
         [SerializeField] private Button resetButtonTransformsButton;
         [SerializeField] private Button resetButtonMappingsButton;
         [SerializeField] private Slider alphaSlider;
+        [SerializeField] private Slider touchscreenSensitivitySlider;
         [SerializeField] private Toggle joystickTapsActivateCenterObjectToggle;
         [Header("Debug")]
         [SerializeField] private bool debugInEditor = false;
@@ -48,6 +49,7 @@ namespace DaggerfallWorkshop.Game
         public UnityUIPopup PopupMessage { get{ return confirmChangePopup; } }
         public Slider AlphaSlider{get{return alphaSlider;}}
         public float UIAlpha { get{return canvasGroup.alpha;} set{canvasGroup.alpha = value;}}
+        public float TouchscreenSensitivity { get; private set; } = 1.0f;
         public event System.Action<bool> onEditControlsToggled;
         public event System.Action<TouchscreenButton> onCurrentlyEditingButtonChanged;
         public event System.Action onResetButtonActionsToDefaultValues;
@@ -124,6 +126,7 @@ namespace DaggerfallWorkshop.Game
             editControlsBackgroundButton.onClick.AddListener(OnEditControlsBackgroundClicked);
             alphaSlider.onValueChanged.AddListener(OnAlphaSliderValueChanged);
             joystickTapsActivateCenterObjectToggle.onValueChanged.AddListener(OnJoystickTapsToggleChanged);
+            touchscreenSensitivitySlider.onValueChanged.AddListener(OnTouchscreenSensitivitySliderChanged);
 
             TouchscreenLayoutsManager.Instance.LoadLastSelectedOrDefaultLayout();
         }
@@ -206,6 +209,24 @@ namespace DaggerfallWorkshop.Game
         }
         private void OnJoystickTapsToggleChanged(bool val){
             VirtualJoystick.JoystickTapsShouldActivateCenterObject = val;
+        }
+        private void OnTouchscreenSensitivitySliderChanged(float newVal)
+        {
+            TouchscreenSensitivity = newVal;
+            if(!skipWriteToLayoutOnTouchscreenSensitivityChange)
+                TouchscreenLayoutsManager.Instance.WriteCurrentLayoutToPath();
+        }
+        private bool skipWriteToLayoutOnTouchscreenSensitivityChange = false;
+        public void SetTouchscreenSensitivity(float val, bool writeToLayout = true)
+        {
+            TouchscreenSensitivity = val;
+            if(writeToLayout){
+                touchscreenSensitivitySlider.value = val;
+            } else {
+                skipWriteToLayoutOnTouchscreenSensitivityChange = true;
+                touchscreenSensitivitySlider.value = val;
+                skipWriteToLayoutOnTouchscreenSensitivityChange = false;
+            }
         }
         #endregion
 

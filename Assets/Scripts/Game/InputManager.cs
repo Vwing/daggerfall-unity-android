@@ -639,11 +639,11 @@ namespace DaggerfallWorkshop.Game
             wasPaused = false;
 
             // Collect mouse axes
-            if (TouchscreenInputManager.IsTouchscreenActive && Input.touchCount > 0)
+            if (TouchscreenInputManager.IsTouchscreenActive && (Input.touchCount > 0 || Application.isEditor && Input.GetMouseButton(0)))
             {
                 if (VirtualJoystick.JoystickThatIsCurrentlyMouseLooking){
-                    mouseX = VirtualJoystick.JoystickThatIsCurrentlyMouseLooking.CurrentPointerEventData.delta.x * .25f;
-                    mouseY = VirtualJoystick.JoystickThatIsCurrentlyMouseLooking.CurrentPointerEventData.delta.y * .25f;
+                    mouseX = VirtualJoystick.JoystickThatIsCurrentlyMouseLooking.CurrentPointerEventData.delta.x * TouchscreenInputManager.Instance.TouchscreenSensitivity;
+                    mouseY = VirtualJoystick.JoystickThatIsCurrentlyMouseLooking.CurrentPointerEventData.delta.y * TouchscreenInputManager.Instance.TouchscreenSensitivity;
                 }
             }
             else{

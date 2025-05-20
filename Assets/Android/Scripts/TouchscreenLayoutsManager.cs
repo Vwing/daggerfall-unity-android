@@ -497,6 +497,7 @@ namespace DaggerfallWorkshop.Game
             VirtualJoystick.JoystickTapsShouldActivateCenterObject = layoutConfig.screenTapsActivateCenterObject;
             TouchscreenButtonEnableDisableManager.Instance.IsLeftJoystickEnabled = layoutConfig.leftJoystickEnabled;
             TouchscreenButtonEnableDisableManager.Instance.IsRightJoystickEnabled = layoutConfig.rightJoystickEnabled;
+            TouchscreenInputManager.Instance.SetTouchscreenSensitivity(layoutConfig.touchscreenSensitivity >= 0 ? layoutConfig.touchscreenSensitivity : 1.0f, false);
             layoutConfig.buttons.Sort(new TouchscreenButtonConfigurationComparer());
             for(int i = 0; i < layoutConfig.buttons.Count; ++i)
             {
@@ -520,6 +521,7 @@ namespace DaggerfallWorkshop.Game
                 screenTapsActivateCenterObject = VirtualJoystick.JoystickTapsShouldActivateCenterObject,
                 leftJoystickEnabled = TouchscreenButtonEnableDisableManager.Instance.IsLeftJoystickEnabled,
                 rightJoystickEnabled = TouchscreenButtonEnableDisableManager.Instance.IsRightJoystickEnabled,
+                touchscreenSensitivity = TouchscreenInputManager.Instance.TouchscreenSensitivity,
                 buttons = TouchscreenButtonEnableDisableManager.Instance.GetAllButtons().Select(s => s.GetCurrentConfiguration(layoutName)).ToList()
             };
             layout.buttons.Sort(new TouchscreenButtonConfigurationComparer());
@@ -683,6 +685,7 @@ namespace DaggerfallWorkshop.Game
         public bool leftJoystickEnabled = true;
         public bool rightJoystickEnabled = true;
         public bool screenTapsActivateCenterObject = true;
+        public float touchscreenSensitivity = 1.0f;
         public List<TouchscreenButtonConfiguration> buttons;
 
         public static TouchscreenLayoutConfiguration ReadFromPath(string path)
