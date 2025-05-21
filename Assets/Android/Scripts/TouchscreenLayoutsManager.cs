@@ -111,7 +111,7 @@ namespace DaggerfallWorkshop.Game
             TouchscreenInputManager.Instance.PopupMessage.Open("Pick a layout zip file.", () => {
                 NativeFilePicker.FilePickedCallback filePickedCallback = new NativeFilePicker.FilePickedCallback(OnLayoutFilePicked);
                 NativeFilePicker.PickFile(filePickedCallback, "application/zip");
-            }, null, "Okay", "", false);
+            }, null, "Okay", "Cancel", false);
         }
         private void ImportNewButtonTexture()
         {

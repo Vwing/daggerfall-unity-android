@@ -738,6 +738,14 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
                 upgradedMod = true;
             }
             File.Copy(filePath, destFilePath, true);
+        } else {
+            // inform user that the only valid filters are .zip and .dfmod
+            var messageBox = new DaggerfallMessageBox(uiManager, this, true);
+            messageBox.AllowCancel = true;
+            messageBox.ClickAnywhereToClose = true;
+            messageBox.ParentPanel.BackgroundTexture = null;
+            messageBox.SetText("Only .zip and .dfmod files are supported for import.");
+            uiManager.PushWindow(messageBox);
         }
         RefreshButton_OnMouseClick(null, Vector2.zero);
         if (upgradedMod){
@@ -768,7 +776,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
     {
         Debug.Log("importing mod");
         NativeFilePicker.FilePickedCallback filePickedCallback = new NativeFilePicker.FilePickedCallback(OnImportedModFilePicked);
-        NativeFilePicker.PickFile(filePickedCallback, ".zip", ".dfmod");
+        NativeFilePicker.PickFile(filePickedCallback);
     }
 
     void ShowModDescriptionPopUp_OnMouseClick(BaseScreenComponent sender, Vector2 position)

@@ -139,7 +139,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         private void PickArena2Folder()
         {
             NativeFilePicker.FilePickedCallback filePickedCallback = new NativeFilePicker.FilePickedCallback(OnFilePicked);
-            NativeFilePicker.PickFile(filePickedCallback, ".zip");
+            NativeFilePicker.PickFile(filePickedCallback, "application/zip"); // , ".zip"
         }
 
         private bool ValidateArena2Path(string path)
