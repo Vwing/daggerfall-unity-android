@@ -160,6 +160,7 @@ namespace DaggerfallWorkshop.Game
         }
         public void ApplyConfiguration(TouchscreenButtonConfiguration config)
         {
+            config = ConvertButtonConfigToLatestVersion(config);
             SetButtonAnchor(config.Anchor, false);
             SetLabelAnchor(config.LabelAnchor);
             rectTransform.anchoredPosition = config.Position;
@@ -226,6 +227,36 @@ namespace DaggerfallWorkshop.Game
             };
 
             return config;
+        }
+        public static TouchscreenButtonConfiguration ConvertButtonConfigToLatestVersion(TouchscreenButtonConfiguration buttonConfig)
+        {
+            // Convert the button config to the latest version if needed
+            if (buttonConfig.Version != TouchscreenButtonConfiguration.LatestVersion)
+            {
+                Debug.Log("Upgrading button " + buttonConfig.Name + " from version " + buttonConfig.Version + " to " + TouchscreenButtonConfiguration.LatestVersion);
+                buttonConfig.Version = TouchscreenButtonConfiguration.LatestVersion;
+                if(!string.IsNullOrEmpty(buttonConfig.TextureFilepathDeprecated)){
+                    buttonConfig.TextureFileName = buttonConfig.TextureFilepathDeprecated;
+                    buttonConfig.TextureFilepathDeprecated = "";
+                }
+                if(!string.IsNullOrEmpty(buttonConfig.KnobTextureFilepathDeprecated)){
+                    buttonConfig.KnobTextureFileName = buttonConfig.KnobTextureFilepathDeprecated;
+                    buttonConfig.KnobTextureFilepathDeprecated = "";
+                }
+                // old knob texture name to new knob texture name
+                if(buttonConfig.UsesBuiltInTexture && buttonConfig.TextureFilePath == "linux_buttons_sheet") {
+                    buttonConfig.TextureFileName = "linux_buttons";
+                    buttonConfig.SpriteName = "button_blank";
+                    buttonConfig.KnobTextureFileName = "linux_buttons";
+                    buttonConfig.KnobSpriteName = "knob";
+                }
+                // set default position and scale to current position and scale if they are zero
+                if(buttonConfig.DefaultPosition.Approximately(Vector2.zero) && buttonConfig.DefaultScale.Approximately(Vector2.zero)){
+                    buttonConfig.DefaultPosition = buttonConfig.Position;
+                    buttonConfig.DefaultScale = buttonConfig.Scale;
+                }
+            }
+            return buttonConfig;
         }
         private Vector2 GetAnchoredPositionRelativeToButtonsParent()
         {

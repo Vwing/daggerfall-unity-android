@@ -11,6 +11,7 @@ namespace DaggerfallWorkshop.Game
     [System.Serializable]
     public class TouchscreenButtonConfiguration
     {
+        public const int LatestVersion = 1;
         [SerializeField][JsonProperty] private string name;
         [SerializeField][JsonProperty] private string buttonType;
         [SerializeField][JsonProperty] private bool defaultIsEnabled;
@@ -43,7 +44,10 @@ namespace DaggerfallWorkshop.Game
         [SerializeField][JsonProperty] private float joystickSensitivityHorizontal;
         [SerializeField][JsonProperty] private float joystickSensitivityVertical;
         [SerializeField][JsonProperty] private bool isToggleForEditOnScreenControls;
-
+        [SerializeField][JsonProperty] private int version;
+        // deprecated
+        [SerializeField][JsonProperty] private string textureFilePath;
+        [SerializeField][JsonProperty] private string knobTextureFilePath;
 
         [JsonIgnore] public string Name { get { return name; } set { name = value; } }
         [JsonIgnore] public string Text { get { return text; } set { text = value; } }
@@ -102,6 +106,8 @@ namespace DaggerfallWorkshop.Game
         [JsonIgnore] public string SpriteName { get { return spriteName; } set { spriteName = value; } }
         [JsonIgnore] public string KnobTextureFileName { get { return knobTextureFileName; } set { knobTextureFileName = value; } }
         [JsonIgnore] public string KnobSpriteName { get { return knobSpriteName; } set { knobSpriteName = value; } }
+        [JsonIgnore] public string TextureFilepathDeprecated { get { return textureFilePath; } set { textureFilePath = value; } }
+        [JsonIgnore] public string KnobTextureFilepathDeprecated { get { return knobTextureFilePath; } set { knobTextureFilePath = value; } }
 
         private string _layoutParentName;
         [JsonIgnore] public string LayoutParentName
@@ -116,6 +122,7 @@ namespace DaggerfallWorkshop.Game
             get { return buttonsInDrawer; }
             set { buttonsInDrawer = value ?? new List<string>(); }
         }
+        [JsonIgnore] public int Version { get { return version; } set { version = value; } }
 
         public TouchscreenButtonConfiguration(string name, Vector2 defaultPosition, Vector2 defaultScale,
             TouchscreenButtonType buttonType = TouchscreenButtonType.Button, bool defaultIsEnabled = true, bool usesBuiltInTexture = true,
@@ -124,7 +131,7 @@ namespace DaggerfallWorkshop.Game
             TouchscreenButtonAnchor anchor = TouchscreenButtonAnchor.MiddleMiddle, TouchscreenButtonAnchor labelAnchor = TouchscreenButtonAnchor.TopMiddle,
             bool canButtonBeEdited = true, bool canButtonBeRemoved = true, bool canButtonBeResized = true, List<string> buttonsInDrawer = null,
             string text = "", bool isToggleForEditOnScreenControls = false, string layoutParentName = "", bool usesBuiltInKnobTexture = true,
-            float joystickSensitivityHorizontal = 1f, float joystickSensitivityVertical = 1f)
+            float joystickSensitivityHorizontal = 1f, float joystickSensitivityVertical = 1f, int version = LatestVersion)
         {
             this.Name = name;
             this.ButtonType = buttonType;
@@ -150,6 +157,7 @@ namespace DaggerfallWorkshop.Game
             this.LayoutParentName = layoutParentName;
             this.JoystickSensitivityHorizontal = joystickSensitivityHorizontal;
             this.JoystickSensitivityVertical = joystickSensitivityVertical;
+            this.Version = version;
         }
         public Sprite LoadSprite(bool isKnob = false)
         {
@@ -161,8 +169,12 @@ namespace DaggerfallWorkshop.Game
                 spriteName = isKnob ? KnobSpriteName : SpriteName;
             } catch (Exception e) {
                 // Path.Combine(Paths.LayoutsPath, LayoutParentName, "textures", textureFileName)
+                Debug.LogError($"Failed to load sprite due to error {e}");
                 Debug.LogError($"Combined path: {Paths.LayoutsPath} {LayoutParentName} textures {textureFileName}");
-                throw e;
+
+                useBuiltIn = true;
+                texPath = "linux_buttons";
+                spriteName = "button_blank";
             }
             if (useBuiltIn)
             {

@@ -160,6 +160,14 @@ namespace DaggerfallWorkshop.Game
             Directory.CreateDirectory(folderToZipPath);
             Directory.CreateDirectory(Path.Combine(folderToZipPath, "textures"));
 
+            // set default position and scale for all buttons to their current position and scale
+            for(int i = 0; i < exportedConfig.buttons.Count; ++i){
+                var buttonConfig = exportedConfig.buttons[i];
+                buttonConfig.DefaultPosition = buttonConfig.Position;
+                buttonConfig.DefaultScale = buttonConfig.Scale;
+                exportedConfig.buttons[i] = buttonConfig;
+            }
+
             // copy the textures to cache
             for(int i = 0; i < exportedConfig.buttons.Count; ++i){
                 if(!exportedConfig.buttons[i].UsesBuiltInTexture){
@@ -541,7 +549,7 @@ namespace DaggerfallWorkshop.Game
 
             for(int i = 0; i < layoutConfig.buttons.Count; ++i)
             {
-                var buttonConfig = layoutConfig.buttons[i];
+                var buttonConfig = TouchscreenButton.ConvertButtonConfigToLatestVersion(layoutConfig.buttons[i]);
                 buttonConfig.LayoutParentName = layoutConfig.name;
                 layoutConfig.buttons[i] = buttonConfig;
                 TouchscreenButtonEnableDisableManager.Instance.AddButtonFromPool(buttonConfig);
