@@ -144,7 +144,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             // Initialize progress bar UI (hidden initially)
             progressBarBg = new Panel();
             progressBarBg.Size = new Vector2(Size.x - 20, 10);
-            progressBarBg.Position = new Vector2(Size.x - progressBarBg.Size.x + 10, Size.y - 40);
+            progressBarBg.Position = new Vector2(Size.x - progressBarBg.Size.x + 15, Size.y - 40);
             progressBarBg.BackgroundColor = new Color(0.6f, 0.6f, 0.6f, 1f);
             progressBarBg.Outline.Enabled = true;
             progressBarBg.Enabled = false;
