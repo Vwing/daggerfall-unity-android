@@ -74,6 +74,74 @@ namespace DaggerfallWorkshop.Utility
         }
 
         /// <summary>
+        /// Asynchronously unzips a zip file, reporting progress via callback. Use with StartCoroutine.
+        /// </summary>
+        /// <param name="zipFilePath">Path to the zip file.</param>
+        /// <param name="outputFolderPath">Output directory for extracted files.</param>
+        /// <param name="progress">Callback reporting progress from 0 to 1.</param>
+        /// <returns>IEnumerator for coroutine.</returns>
+        public static System.Collections.IEnumerator UnzipFileAsync(string zipFilePath, string outputFolderPath, Action<float> progress = null)
+        {
+            if (!Directory.Exists(outputFolderPath))
+                Directory.CreateDirectory(outputFolderPath);
+
+            // First, count total entries for progress
+            int totalEntries = 0;
+            using (FileStream fileStream = new FileStream(zipFilePath, FileMode.Open, FileAccess.Read))
+            using (ZipInputStream zipInputStream = new ZipInputStream(fileStream))
+            {
+                while (zipInputStream.GetNextEntry() != null)
+                    totalEntries++;
+            }
+            if (totalEntries == 0)
+            {
+                progress?.Invoke(1f);
+                yield break;
+            }
+
+            int currentEntry = 0;
+            using (FileStream fileStream = new FileStream(zipFilePath, FileMode.Open, FileAccess.Read))
+            using (ZipInputStream zipInputStream = new ZipInputStream(fileStream))
+            {
+                ZipEntry entry;
+                while ((entry = zipInputStream.GetNextEntry()) != null)
+                {
+                    string directoryName = Path.GetDirectoryName(entry.Name);
+                    string fileName = Path.GetFileName(entry.Name);
+                    string directoryPath = Path.Combine(outputFolderPath, directoryName);
+                    if (!Directory.Exists(directoryPath))
+                        Directory.CreateDirectory(directoryPath);
+
+                    if (!string.IsNullOrEmpty(fileName))
+                    {
+                        string filePath = Path.Combine(directoryPath, fileName);
+                        using (FileStream streamWriter = File.Create(filePath))
+                        {
+                            int size = 2048;
+                            byte[] buffer = new byte[size];
+                            try
+                            {
+                                while ((size = zipInputStream.Read(buffer, 0, buffer.Length)) > 0)
+                                {
+                                    streamWriter.Write(buffer, 0, size);
+                                }
+                            }
+                            catch
+                            {
+                                Debug.LogWarning("Couldn't extract " + filePath + " from zip archive");
+                            }
+                        }
+                    }
+                    currentEntry++;
+                    progress?.Invoke((float)currentEntry / totalEntries);
+                    if (currentEntry % 5 == 0) // yield every few files for smoother UI
+                        yield return null;
+                }
+            }
+            progress?.Invoke(1f);
+        }
+
+        /// <summary>
         /// Zips the specified file or directory to a given zip file path.
         /// </summary>
         /// <param name="inputPath">The file or directory to zip.</param>

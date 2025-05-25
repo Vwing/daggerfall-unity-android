@@ -16,6 +16,7 @@ using System.Text;
 using System.IO;
 using DaggerfallWorkshop.Utility;
 using System.Linq;
+using System.Collections;
 
 
 namespace DaggerfallWorkshop.Game.UserInterface
@@ -40,6 +41,11 @@ namespace DaggerfallWorkshop.Game.UserInterface
         string currentPath;
         bool confirmEnabled = true;
         int importDataButtonWasClicked = 0; // hacky way to delay the native file picker so that the 'loading data...' text is drawn
+
+        // Progress bar UI fields
+        private Panel progressBarBg;
+        private Panel progressBarFill;
+        private TextLabel progressText;
 
         public delegate void OnConfirmPathHandler();
         public event OnConfirmPathHandler OnConfirmPath;
@@ -134,6 +140,30 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             // Setup events
             importDataButton.OnMouseClick += ImportDataButton_OnMouseClick;
+
+            // Initialize progress bar UI (hidden initially)
+            progressBarBg = new Panel();
+            progressBarBg.Size = new Vector2(Size.x - 20, 10);
+            progressBarBg.Position = new Vector2(Size.x - progressBarBg.Size.x + 10, Size.y - 40);
+            progressBarBg.BackgroundColor = new Color(0.6f, 0.6f, 0.6f, 1f);
+            progressBarBg.Outline.Enabled = true;
+            progressBarBg.Enabled = false;
+            Components.Add(progressBarBg);
+
+            progressBarFill = new Panel();
+            progressBarFill.Position = progressBarBg.Position + new Vector2(1, 1);
+            progressBarFill.Size = new Vector2(0, progressBarBg.Size.y - 2);
+            progressBarFill.BackgroundColor = Color.green;
+            progressBarFill.Enabled = false;
+            Components.Add(progressBarFill);
+
+            progressText = new TextLabel();
+            progressText.TextColor = Color.black;
+            progressText.Position = new Vector2(Size.x / 2 - 50, Size.y - 38);
+            progressText.Size = new Vector2(100, 10);
+            progressText.HorizontalAlignment = HorizontalAlignment.Center;
+            progressText.Enabled = false;
+            Components.Add(progressText);
         }
 
         private void PickArena2Folder()
@@ -193,44 +223,126 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 return;
             }
 
-            // extract zip and load the files
+            // begin asynchronous import with progress
+            ShowProgressBar();
+            CoroutineManager.Instance.StartCoroutine(ImportArena2Coroutine(filePath));
+        }
+
+        private IEnumerator ImportArena2Coroutine(string filePath)
+        {
             string outputPath = Path.Combine(Paths.PersistentDataPath, daggerfallDataDirName);
             string cachePath = Path.Combine(Application.temporaryCachePath, "DaggerfallArena2Unzipped");
-            ZipFileUtils.UnzipFile(filePath, cachePath);
-            bool foundValidFolder = false;
-            IEnumerable<string> dirs = Directory.EnumerateDirectories(cachePath, "*", new EnumerationOptions() { RecurseSubdirectories = true });
-            dirs = dirs.Prepend(cachePath);
-            foreach (string subdirectory in dirs)
+            bool foundValid = false;
+            string validSubdir = null;
+            try
             {
-                Debug.Log("Checking " + subdirectory);
-                if (!string.IsNullOrEmpty(DaggerfallUnity.TestArena2Exists(subdirectory)))
+                // unzip phase
+                SetProgress(0f, "Unzipping...");
+                yield return null;
+                yield return CoroutineManager.Instance.StartCoroutine(ZipFileUtils.UnzipFileAsync(filePath, cachePath,
+                    (progress) =>
+                    {
+                        SetProgress(progress * 25f, "Unzipping...");
+                    }));
+
+                // search phase
+                SetProgress(25f, "Searching data...");
+                yield return null;
+                var dirs = Directory.EnumerateDirectories(cachePath, "*", new EnumerationOptions { RecurseSubdirectories = true });
+                dirs = dirs.Prepend(cachePath);
+                foreach (var sub in dirs)
                 {
-                    if (Directory.Exists(outputPath))
-                        Directory.Delete(outputPath, true);
-                    CopyDirectory(subdirectory, outputPath, true);
-                    Directory.Delete(cachePath, true);
-                    foundValidFolder = true;
-                    break;
+                    if (!string.IsNullOrEmpty(DaggerfallUnity.TestArena2Exists(sub)))
+                    {
+                        validSubdir = sub;
+                        foundValid = true;
+                        break;
+                    }
+                }
+                if (!foundValid)
+                {
+                    SetPathLabelText("Archive did not contain a valid Daggerfall folder", Color.red);
+                    HideProgressBar();
+                    yield break;
+                }
+
+                // delete output path if it exists
+                if (Directory.Exists(outputPath))
+                {
+                    Directory.Delete(outputPath, true);
+                }
+
+                // copy phase
+                var allFiles = Directory.GetFiles(validSubdir, "*", SearchOption.AllDirectories);
+                int total = allFiles.Length;
+                for (int i = 0; i < total; i++)
+                {
+                    var src = allFiles[i];
+                    var rel = src.Substring(validSubdir.Length + 1);
+                    var dst = Path.Combine(outputPath, rel);
+                    Directory.CreateDirectory(Path.GetDirectoryName(dst));
+                    File.Copy(src, dst, true);
+
+                    float pct = 25f + 75f * (i + 1) / total;
+                    SetProgress(pct, "Copying data...");
+                    if (i % 10 == 0)
+                        yield return null;
+                }
+
+                // finalize
+                SetProgress(100f, "Finalizing...");
+                yield return new WaitForSeconds(0.2f);
+
+                // validate and finish
+                if (ValidateArena2Path(outputPath))
+                {
+                    currentPath = outputPath;
+                    pathLabel.Text = filePath;
+                    confirmEnabled = true;
+                    RaisePathChangedEvent();
+                    RaiseOnConfirmPathEvent();
+                }
+                else
+                {
+                    SetPathLabelText("Validation failed", Color.red);
+                    confirmEnabled = false;
                 }
             }
-
-            // validate path. looks good? update path text and enable confirm button
-            if (foundValidFolder && ValidateArena2Path(outputPath))
+            finally
             {
-                currentPath = outputPath;
-                pathLabel.Text = filePath;
-                confirmEnabled = true;
+                if (Directory.Exists(cachePath))
+                {
+                    Directory.Delete(cachePath, true);
+                }
+                HideProgressBar();
+            }
+        }
 
-                // Android likes to turn the screen black while these file operations
-                // are happening, so let's just spare people the trouble of pressing 'okay'
-                RaisePathChangedEvent();
-                RaiseOnConfirmPathEvent();
-            }
-            else
-            {
-                SetPathLabelText("Archive did not contain a valid Daggerfall folder", Color.red);
-                confirmEnabled = false;
-            }
+        private void ShowProgressBar()
+        {
+            progressBarBg.Enabled = true;
+            progressBarFill.Enabled = true;
+            progressText.Enabled = true;
+        }
+
+        private void HideProgressBar()
+        {
+            progressBarBg.Enabled = false;
+            progressBarFill.Enabled = false;
+            progressText.Enabled = false;
+        }
+
+        private void SetProgress(float percent, string status)
+        {
+            float width = (progressBarBg.Size.x - 2) * Mathf.Clamp01(percent / 100f);
+            progressBarFill.Size = new Vector2(width, progressBarBg.Size.y - 2);
+            progressText.Text = string.Format("{0} {1:0}%", status, percent);
+        }
+
+        private void ImportDataButton_OnMouseClick(BaseScreenComponent sender, Vector2 position)
+        {
+            SetPathLabelText("Loading data...");
+            importDataButtonWasClicked = 4;
         }
 
         void SetPathLabelText(string txt) => SetPathLabelText(txt, DaggerfallUI.DaggerfallDefaultTextColor);
@@ -250,17 +362,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
         {
             if (OnPathChanged != null)
                 OnPathChanged();
-        }
-
-        #endregion
-
-        #region Event Handlers
-
-
-        private void ImportDataButton_OnMouseClick(BaseScreenComponent sender, Vector2 position)
-        {
-            SetPathLabelText("Loading data...");
-            importDataButtonWasClicked = 4;
         }
 
         #endregion
