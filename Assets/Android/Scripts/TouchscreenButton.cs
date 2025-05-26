@@ -45,13 +45,16 @@ namespace DaggerfallWorkshop.Game
     public class TouchscreenButton : Button
     {
         public enum ResizeButtonPosition { TopLeft, TopRight, BottomLeft, BottomRight }
-        private const int k_defaultSnapScaleAt1080p = 20;
 
         private static bool s_shouldShowLabels = true;
         private static bool s_hasShownAddToDrawerPopup = false;
         private static bool s_hasShownRemoveFromDrawerPopup = false;
         private static TouchscreenButton s_drawerCurrentlyAddingTo = null;
         private static TouchscreenButton s_drawerCurrentlyRemovingFrom = null;
+        public static bool ButtonsAreSnappedToGrid {
+            get{ return PlayerPrefs.GetInt("TouchscreenButton.ButtonsAreSnappedToGrid", 1) == 1; }
+            set{ PlayerPrefs.SetInt("TouchscreenButton.ButtonsAreSnappedToGrid", value ? 1 : 0); }
+        }
 
         public event System.Action Resized;
 
@@ -295,6 +298,23 @@ namespace DaggerfallWorkshop.Game
             }
             return anchoredPos;
         }
+        private Vector2 GetDefaultPositionRelativeToCurrentParent()
+        {
+            RectTransform myParent = transform.parent as RectTransform;
+            Vector2 defaultPos = defaultButtonPosition;
+            if(myParent != TouchscreenButtonEnableDisableManager.Instance.ButtonsParent && myParent != TouchscreenButtonEnableDisableManager.Instance.ButtonsPoolParent){
+                Vector2 currentAnchoredPos = rectTransform.anchoredPosition;
+                rectTransform.SetParent(TouchscreenButtonEnableDisableManager.Instance.ButtonsParent, true);
+                rectTransform.ForceUpdateRectTransforms();
+                rectTransform.anchoredPosition = defaultButtonPosition;
+                rectTransform.SetParent(myParent, true);
+                rectTransform.ForceUpdateRectTransforms();
+                defaultPos = rectTransform.anchoredPosition;
+                rectTransform.anchoredPosition = currentAnchoredPos;
+                rectTransform.ForceUpdateRectTransforms();
+            }
+            return defaultPos;
+        }
         private TouchscreenButtonType GetCurrentButtonType()
         {
             var dpadOrJoystick = GetComponent<StaticTouchscreenJoystickOrDPad>();
@@ -510,12 +530,17 @@ namespace DaggerfallWorkshop.Game
                 Vector2 lastAnchoredPos = rectTransform.anchoredPosition;
 
                 Vector2 newPos = pointerDownButtonAnchoredPos + pointerDelta;
-
-                newPos.x = Mathf.RoundToInt(newPos.x / snapPosScale) * snapPosScale;
-                newPos.y = Mathf.RoundToInt(newPos.y / snapPosScale) * snapPosScale;
-
-                // if (Vector2.Distance(newPos, defaultButtonPosition) < snapPosScale*1.1f)
-                //     newPos = defaultButtonPosition;
+                if(ButtonsAreSnappedToGrid){
+                    Vector2 newPosInCanvasSpace = GetAnchoredPositionRelativeToButtonsParent() + pointerDelta;
+                    Vector2 defaultPosInLocalSpace = GetDefaultPositionRelativeToCurrentParent();
+                    // snap to grid
+                    if (Vector2.Distance(newPosInCanvasSpace, defaultButtonPosition) < snapPosScale*.8f)
+                        newPos = defaultPosInLocalSpace;
+                    else {
+                        newPos.x = Mathf.RoundToInt(newPos.x / snapPosScale) * snapPosScale;
+                        newPos.y = Mathf.RoundToInt(newPos.y / snapPosScale) * snapPosScale;
+                    }
+                }
 
                 // clamp rect to screen bounds
                 rectTransform.anchoredPosition = newPos;

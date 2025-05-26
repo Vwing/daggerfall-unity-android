@@ -316,6 +316,12 @@ namespace DaggerfallWorkshop.Game
                     return -1;
                 }
             }
+            // Now sort by name
+            int nameComparison = string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+            if (nameComparison != 0)
+            {
+                return nameComparison;
+            }
             return 0;
         }
     }

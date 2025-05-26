@@ -39,6 +39,7 @@ namespace DaggerfallWorkshop.Game
         [SerializeField] private Slider alphaSlider;
         [SerializeField] private Slider touchscreenSensitivitySlider;
         [SerializeField] private Toggle joystickTapsActivateCenterObjectToggle;
+        [SerializeField] private Toggle snapButtonsToGridToggle;
         [Header("Debug")]
         [SerializeField] private bool debugInEditor = false;
 
@@ -48,6 +49,8 @@ namespace DaggerfallWorkshop.Game
         public TouchscreenButton CurrentlyEditingButton { get { return currentlyEditingButton; } }
         public UnityUIPopup PopupMessage { get{ return confirmChangePopup; } }
         public Slider AlphaSlider{get{return alphaSlider;}}
+        public Canvas ButtonsCanvas { get { return buttonsCanvas; } }
+
         public float UIAlpha { get{return canvasGroup.alpha;} set{canvasGroup.alpha = value;}}
         public float TouchscreenSensitivity { get; private set; } = 1.0f;
         public event System.Action<bool> onEditControlsToggled;
@@ -125,12 +128,14 @@ namespace DaggerfallWorkshop.Game
             alphaSlider.minValue = 0.15f;
 
             joystickTapsActivateCenterObjectToggle.isOn = VirtualJoystick.JoystickTapsShouldActivateCenterObject;
+            snapButtonsToGridToggle.isOn = TouchscreenButton.ButtonsAreSnappedToGrid;
 
             resetButtonMappingsButton.onClick.AddListener(OnResetButtonMappingsButtonClicked);
             resetButtonTransformsButton.onClick.AddListener(OnResetButtonTransformsButtonClicked);
             editControlsBackgroundButton.onClick.AddListener(OnEditControlsBackgroundClicked);
             alphaSlider.onValueChanged.AddListener(OnAlphaSliderValueChanged);
             joystickTapsActivateCenterObjectToggle.onValueChanged.AddListener(OnJoystickTapsToggleChanged);
+            snapButtonsToGridToggle.onValueChanged.AddListener(OnSnapToGridToggleChanged);
             touchscreenSensitivitySlider.onValueChanged.AddListener(OnTouchscreenSensitivitySliderChanged);
 
             TouchscreenLayoutsManager.Instance.LoadLastSelectedOrDefaultLayout();
@@ -214,6 +219,10 @@ namespace DaggerfallWorkshop.Game
         }
         private void OnJoystickTapsToggleChanged(bool val){
             VirtualJoystick.JoystickTapsShouldActivateCenterObject = val;
+        }
+        private void OnSnapToGridToggleChanged(bool val)
+        {
+            TouchscreenButton.ButtonsAreSnappedToGrid = val;
         }
         public void SetJoystickTapsShouldActivateCenterObject(bool val){
             VirtualJoystick.JoystickTapsShouldActivateCenterObject = val;
