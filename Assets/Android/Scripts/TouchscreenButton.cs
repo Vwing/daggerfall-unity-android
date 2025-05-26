@@ -103,6 +103,7 @@ namespace DaggerfallWorkshop.Game
         private int snapPosScale = 20;
         private int snapScaleScale = 10;
         private bool isDrawerOpen = true;
+        private bool shouldDrawerBeOpen = true;
 
         private bool isUsingBuiltInTextures = true;
         private bool isUsingBuiltInKnobTexture = true;
@@ -113,7 +114,8 @@ namespace DaggerfallWorkshop.Game
         private string layoutParentName = "";
         private float joystickSensitivityHorizontal = 1f;
         private float joystickSensitivityVertical = 1f;
-
+        private Color drawerClosedColor = new(.5f, .5f, .5f, 1f);
+        private Color spriteColor = Color.white;
         private bool skipClickOnEditControlsButton = false;
 
         protected override void Start()
@@ -185,6 +187,7 @@ namespace DaggerfallWorkshop.Game
             gameObject.name = config.Name;
             isUsingBuiltInTextures = config.UsesBuiltInTexture;
             isUsingBuiltInKnobTexture = config.UsesBuiltInKnobTexture;
+            shouldDrawerBeOpen = config.IsDrawerOpen;
             textureFileName = config.TextureFileName;
             spriteName = config.SpriteName;
             knobFileName = config.KnobTextureFileName;
@@ -198,8 +201,9 @@ namespace DaggerfallWorkshop.Game
             transform.Find("Knob").GetComponent<Image>().sprite = config.LoadSprite(true);
 
             gameObject.SetActive(config.IsEnabled);
-            ((Image)targetGraphic).color = config.SpriteColor;
+            ((Image)targetGraphic).color = spriteColor = config.SpriteColor;
             transform.Find("Knob").GetComponent<Image>().color = config.KnobSpriteColor;
+            drawerClosedColor = config.DrawerClosedColor;
             text.text = config.Text;
             text.color = config.TextColor;
             text.enabled = !string.IsNullOrEmpty(text.text);
@@ -213,6 +217,8 @@ namespace DaggerfallWorkshop.Game
 
             // zero-out the z position
             rectTransform.transform.localPosition = new Vector3(rectTransform.transform.localPosition.x, rectTransform.transform.localPosition.y, 0);
+
+            SetDrawerOpenBasedOnEditMode();
         }
         public TouchscreenButtonConfiguration GetCurrentConfiguration(string layoutParentName = null)
         {
@@ -236,9 +242,11 @@ namespace DaggerfallWorkshop.Game
                 Scale = rectTransform.sizeDelta,
                 ActionMapping = myAction,
                 KeyCodeMapping = myKey,
-                SpriteColor = ((Image)targetGraphic).color,
+                SpriteColor = spriteColor,
+                DrawerClosedColor = drawerClosedColor,
                 KnobSpriteColor = transform.Find("Knob").GetComponent<Image>().color,
-                TextColor = text.color
+                TextColor = text.color,
+                IsDrawerOpen = shouldDrawerBeOpen
             };
 
             return config;
@@ -351,7 +359,7 @@ namespace DaggerfallWorkshop.Game
                         });
                         this.buttonsInDrawer = buttonGOsInDrawer;
                     }
-                    OpenDrawer();
+                    SetDrawerOpenBasedOnEditMode();
                     break;
                 case TouchscreenButtonType.DPad:
                     joystickOrDPad.verticalAxisAction = InputManager.AxisActions.MovementVertical;
@@ -394,12 +402,12 @@ namespace DaggerfallWorkshop.Game
         public void CloseDrawer(){
             isDrawerOpen = false;
             buttonDrawerParent.gameObject.SetActive(false);
-            ((Image)targetGraphic).color = Color.gray;
+            ((Image)targetGraphic).color = drawerClosedColor;
         }
         public void OpenDrawer(){
             isDrawerOpen = true;
             buttonDrawerParent.gameObject.SetActive(true);
-            ((Image)targetGraphic).color = Color.white;
+            ((Image)targetGraphic).color = spriteColor;
         }
 
         public void AddButtonToDrawer(GameObject buttonGO)
@@ -430,7 +438,15 @@ namespace DaggerfallWorkshop.Game
                 RemoveButtonFromDrawer(bgo);
             }
         }
-
+        private void SetDrawerOpenBasedOnEditMode()
+        {
+            if (!isButtonDrawer)
+                return;
+            if (TouchscreenInputManager.Instance.IsEditingControls || shouldDrawerBeOpen)
+                OpenDrawer();
+            else
+                CloseDrawer();
+        }
         private void UpdateLabelText()
         {
             if (!label)
@@ -498,8 +514,8 @@ namespace DaggerfallWorkshop.Game
                 newPos.x = Mathf.RoundToInt(newPos.x / snapPosScale) * snapPosScale;
                 newPos.y = Mathf.RoundToInt(newPos.y / snapPosScale) * snapPosScale;
 
-                if (Vector2.Distance(newPos, defaultButtonPosition) < snapPosScale*1.1f)
-                    newPos = defaultButtonPosition;
+                // if (Vector2.Distance(newPos, defaultButtonPosition) < snapPosScale*1.1f)
+                //     newPos = defaultButtonPosition;
 
                 // clamp rect to screen bounds
                 rectTransform.anchoredPosition = newPos;
@@ -700,10 +716,16 @@ namespace DaggerfallWorkshop.Game
         private void OnPointerDownDuringGameplay(PointerEventData eventData)
         {
             if(isButtonDrawer){
-                if(isDrawerOpen)
+                if(isDrawerOpen){
+                    shouldDrawerBeOpen = false;
                     CloseDrawer();
-                else
+                }
+                else{
+                    shouldDrawerBeOpen = true;
                     OpenDrawer();
+                }
+                // gotta save the drawer state
+                TouchscreenLayoutsManager.Instance.WriteCurrentLayoutToPath();
             }
             if (myAction > InputManager.Actions.Unknown) // if I have a custom action, add the action to the input manager manually
             {
@@ -827,11 +849,7 @@ namespace DaggerfallWorkshop.Game
         private void Instance_onEditControlsToggled(bool isEditingControls)
         {
             SetResizeButtonActive();
-            if (isButtonDrawer)
-            {
-                if(isEditingControls)
-                    OpenDrawer();
-            }
+            SetDrawerOpenBasedOnEditMode();
         }
 
         private void SetResizeButtonActive()

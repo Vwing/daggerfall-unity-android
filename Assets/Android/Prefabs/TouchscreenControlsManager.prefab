@@ -23106,7 +23106,7 @@ MonoBehaviour:
   knobSpriteDropdown: {fileID: 8486896273288924493}
   selectedJoystickSensitivityHorizontalSlider: {fileID: 7557375135488931953}
   selectedJoystickSensitivityVerticalSlider: {fileID: 3839010094236073465}
-  initialDefaultLayout: {fileID: 4900000, guid: 23f83e0228819446596c8c4e3adce616,
+  initialDefaultLayout: {fileID: 4900000, guid: 054fbc8d205f2407b930f037df71d403,
     type: 3}
 --- !u!114 &3188779474701911311
 MonoBehaviour:

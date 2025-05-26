@@ -44,10 +44,13 @@ namespace DaggerfallWorkshop.Game
         [SerializeField][JsonProperty] private float joystickSensitivityHorizontal;
         [SerializeField][JsonProperty] private float joystickSensitivityVertical;
         [SerializeField][JsonProperty] private bool isToggleForEditOnScreenControls;
+        [SerializeField][JsonProperty] private bool isDrawerOpen = true;
         [SerializeField][JsonProperty] private int version;
         [SerializeField][JsonProperty] private List<float> textColor = new List<float> { 1f, 1f, 1f, 1f };
         [SerializeField][JsonProperty] private List<float> spriteColor = new List<float> { 1f, 1f, 1f, 1f };
         [SerializeField][JsonProperty] private List<float> knobSpriteColor = new List<float> { 1f, 1f, 1f, 1f };
+        [SerializeField][JsonProperty] private List<float> drawerClosedColor = new List<float> { 0.6f, 0.6f, 0.6f, 1f };
+        
         // deprecated
         [SerializeField][JsonProperty] private string textureFilePath;
         [SerializeField][JsonProperty] private string knobTextureFilePath;
@@ -72,8 +75,8 @@ namespace DaggerfallWorkshop.Game
         [JsonIgnore] public Vector2 Position { get { return new Vector2(positionX, positionY); } set { positionX = value.x; positionY = value.y; } }
         [JsonIgnore] public Vector2 DefaultScale { get { return new Vector2(defaultScaleX, defaultScaleY); } set { defaultScaleX = value.x; defaultScaleY = value.y; } }
         [JsonIgnore] public Vector2 Scale { get { return new Vector2(scaleX, scaleY); } set { scaleX = value.x; scaleY = value.y; } }
-        [JsonIgnore]
-        public TouchscreenButtonAnchor Anchor
+        [JsonIgnore] public bool IsDrawerOpen { get { return isDrawerOpen; } set { isDrawerOpen = value; } }
+        [JsonIgnore] public TouchscreenButtonAnchor Anchor
         {
             get { return (TouchscreenButtonAnchor)Enum.Parse(typeof(TouchscreenButtonAnchor), anchor); }
             set { anchor = value.ToString(); }
@@ -140,6 +143,12 @@ namespace DaggerfallWorkshop.Game
             get { return new Color(knobSpriteColor[0], knobSpriteColor[1], knobSpriteColor[2], knobSpriteColor[3]); }
             set { knobSpriteColor = new List<float> { value.r, value.g, value.b, value.a }; }
         }
+        [JsonIgnore] public Color DrawerClosedColor
+        {
+            get { return new Color(drawerClosedColor[0], drawerClosedColor[1], drawerClosedColor[2], drawerClosedColor[3]); }
+            set { drawerClosedColor = new List<float> { value.r, value.g, value.b, value.a }; }
+        }
+
         [JsonIgnore] public int Version { get { return version; } set { version = value; } }
 
         public TouchscreenButtonConfiguration(string name, Vector2 defaultPosition, Vector2 defaultScale,
