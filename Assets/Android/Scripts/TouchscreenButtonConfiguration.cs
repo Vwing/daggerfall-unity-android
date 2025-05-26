@@ -45,6 +45,9 @@ namespace DaggerfallWorkshop.Game
         [SerializeField][JsonProperty] private float joystickSensitivityVertical;
         [SerializeField][JsonProperty] private bool isToggleForEditOnScreenControls;
         [SerializeField][JsonProperty] private int version;
+        [SerializeField][JsonProperty] private List<float> textColor = new List<float> { 1f, 1f, 1f, 1f };
+        [SerializeField][JsonProperty] private List<float> spriteColor = new List<float> { 1f, 1f, 1f, 1f };
+        [SerializeField][JsonProperty] private List<float> knobSpriteColor = new List<float> { 1f, 1f, 1f, 1f };
         // deprecated
         [SerializeField][JsonProperty] private string textureFilePath;
         [SerializeField][JsonProperty] private string knobTextureFilePath;
@@ -121,6 +124,21 @@ namespace DaggerfallWorkshop.Game
         {
             get { return buttonsInDrawer; }
             set { buttonsInDrawer = value ?? new List<string>(); }
+        }
+        [JsonIgnore] public Color TextColor
+        {
+            get { return new Color(textColor[0], textColor[1], textColor[2], textColor[3]); }
+            set { textColor = new List<float> { value.r, value.g, value.b, value.a }; }
+        }
+        [JsonIgnore] public Color SpriteColor
+        {
+            get { return new Color(spriteColor[0], spriteColor[1], spriteColor[2], spriteColor[3]); }
+            set { spriteColor = new List<float> { value.r, value.g, value.b, value.a }; }
+        }
+        [JsonIgnore] public Color KnobSpriteColor
+        {
+            get { return new Color(knobSpriteColor[0], knobSpriteColor[1], knobSpriteColor[2], knobSpriteColor[3]); }
+            set { knobSpriteColor = new List<float> { value.r, value.g, value.b, value.a }; }
         }
         [JsonIgnore] public int Version { get { return version; } set { version = value; } }
 

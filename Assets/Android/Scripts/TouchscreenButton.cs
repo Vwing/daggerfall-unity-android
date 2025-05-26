@@ -198,7 +198,10 @@ namespace DaggerfallWorkshop.Game
             transform.Find("Knob").GetComponent<Image>().sprite = config.LoadSprite(true);
 
             gameObject.SetActive(config.IsEnabled);
+            ((Image)targetGraphic).color = config.SpriteColor;
+            transform.Find("Knob").GetComponent<Image>().color = config.KnobSpriteColor;
             text.text = config.Text;
+            text.color = config.TextColor;
             text.enabled = !string.IsNullOrEmpty(text.text);
             
             SetResizeButtonActive();
@@ -225,14 +228,17 @@ namespace DaggerfallWorkshop.Game
                 isUsingBuiltInTextures, Path.GetFileName(textureFileName), spriteName, Path.GetFileName(knobFileName), knobSpriteName, defaultAction, 
                 defaultKeyCode, GetAnchorType(rectTransform.anchorMin), GetAnchorType(label.rectTransform.anchorMin), canActionBeEdited, 
                 canButtonBeRemoved, canButtonBeResized, buttonsInDrawer.Where(p => p).Select(s => s.name).ToList(), text.text, isToggleForEditOnScreenControls, 
-                layoutParentName ?? this.layoutParentName, isUsingBuiltInKnobTexture, joystickSensitivityHorizontal, joystickSensitivityVertical
+                layoutParentName ?? this.layoutParentName, isUsingBuiltInKnobTexture, joystickSensitivityHorizontal, joystickSensitivityVertical, TouchscreenButtonConfiguration.LatestVersion
             )
             {
                 IsEnabled = gameObject.activeSelf,
                 Position = GetAnchoredPositionRelativeToButtonsParent(),
                 Scale = rectTransform.sizeDelta,
                 ActionMapping = myAction,
-                KeyCodeMapping = myKey
+                KeyCodeMapping = myKey,
+                SpriteColor = ((Image)targetGraphic).color,
+                KnobSpriteColor = transform.Find("Knob").GetComponent<Image>().color,
+                TextColor = text.color
             };
 
             return config;

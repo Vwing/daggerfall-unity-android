@@ -38,7 +38,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-left",
@@ -72,7 +74,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-down",
@@ -106,7 +110,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-right",
@@ -140,7 +146,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-f1",
@@ -174,7 +182,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-f12",
@@ -208,7 +218,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-f11",
@@ -242,7 +254,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-f10",
@@ -276,7 +290,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-f9",
@@ -310,7 +326,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-f8",
@@ -344,7 +362,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-f7",
@@ -378,7 +398,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-f6",
@@ -412,7 +434,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-f5",
@@ -446,7 +470,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-zl",
@@ -480,7 +506,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-f4",
@@ -514,7 +542,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-start",
@@ -548,7 +578,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-north",
@@ -582,7 +614,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-tl",
@@ -616,7 +650,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-south",
@@ -650,7 +686,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-west",
@@ -684,7 +722,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-zr",
@@ -718,7 +758,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-tr",
@@ -752,7 +794,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-east",
@@ -786,7 +830,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-knob",
@@ -820,7 +866,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-select",
@@ -854,7 +902,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "edit-controls",
@@ -888,7 +938,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": true
+      "isToggleForEditOnScreenControls": true,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-f2",
@@ -922,7 +974,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-f3",
@@ -956,7 +1010,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-joystickL",
@@ -990,7 +1046,9 @@
       "knobSpriteName": "joystick_left_knob",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-dpad",
@@ -1024,7 +1082,9 @@
       "knobSpriteName": "knob",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     },
     {
       "name": "gamepad-button-drawer",
@@ -1058,7 +1118,9 @@
       "knobSpriteName": "",
       "buttonsInDrawer": "",
       "text": "",
-      "isToggleForEditOnScreenControls": false
+      "isToggleForEditOnScreenControls": false,
+      "textColor": [1.0, 1.0, 1.0, 1.0],
+      "spriteColor": [1.0, 1.0, 1.0, 1.0]
     }
   ]
 }
