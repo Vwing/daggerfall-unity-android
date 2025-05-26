@@ -100,7 +100,8 @@ namespace DaggerfallWorkshop.Game
 
         private bool pointerDownWasTouchingResizeButton;
         private bool isPointerDown;
-        private int snapScale = 20;
+        private int snapPosScale = 20;
+        private int snapScaleScale = 10;
         private bool isDrawerOpen = true;
 
         private bool isUsingBuiltInTextures = true;
@@ -120,7 +121,7 @@ namespace DaggerfallWorkshop.Game
             base.Start();
             if (Application.isPlaying)
             {
-                snapScale = Mathf.RoundToInt(k_defaultSnapScaleAt1080p * (Mathf.Min(AScreen.height, AScreen.width) / 1080f));
+                // snapScale = Mathf.RoundToInt(k_defaultSnapScaleAt1080p * (Mathf.Min(AScreen.height, AScreen.width) / 1080f));
                 //LoadSavedSettingsDeprecated();
                 addToDrawerButton.onClick.AddListener(OnAddToDrawerButtonClicked);
                 removeFromDrawerButton.onClick.AddListener(OnRemoveFromDrawerButtonClicked);
@@ -470,10 +471,10 @@ namespace DaggerfallWorkshop.Game
                     newSize = defaultButtonSizeDelta / 2f;
                 else if (newSize.x > defaultButtonSizeDelta.x * 5f)
                     newSize = defaultButtonSizeDelta * 5f;
-                newSize.x = Mathf.RoundToInt(newSize.x / snapScale) * snapScale;
-                newSize.y = Mathf.RoundToInt(newSize.y / snapScale) * snapScale;
+                newSize.x = Mathf.RoundToInt(newSize.x / snapScaleScale) * snapScaleScale;
+                newSize.y = Mathf.RoundToInt(newSize.y / snapScaleScale) * snapScaleScale;
 
-                if (Mathf.Abs(newSize.x - defaultButtonSizeDelta.x) < snapScale)
+                if (Mathf.Abs(newSize.x - defaultButtonSizeDelta.x) < snapScaleScale*1.1f)
                     newSize = defaultButtonSizeDelta;
 
                 Vector2 lastSize = rectTransform.sizeDelta;
@@ -488,10 +489,10 @@ namespace DaggerfallWorkshop.Game
 
                 Vector2 newPos = pointerDownButtonAnchoredPos + pointerDelta;
 
-                newPos.x = Mathf.RoundToInt(newPos.x / snapScale) * snapScale;
-                newPos.y = Mathf.RoundToInt(newPos.y / snapScale) * snapScale;
+                newPos.x = Mathf.RoundToInt(newPos.x / snapPosScale) * snapPosScale;
+                newPos.y = Mathf.RoundToInt(newPos.y / snapPosScale) * snapPosScale;
 
-                if (Vector2.Distance(newPos, defaultButtonPosition) < snapScale)
+                if (Vector2.Distance(newPos, defaultButtonPosition) < snapPosScale*1.1f)
                     newPos = defaultButtonPosition;
 
                 // clamp rect to screen bounds
