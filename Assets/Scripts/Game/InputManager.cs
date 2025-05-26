@@ -274,6 +274,15 @@ namespace DaggerfallWorkshop.Game
             get { return mouseY; }
         }
 
+        public float LookX
+        {
+            get { return MouseLookX + JoyLookX + TouchJoyLookX + keyboardLookX; }
+        }
+        public float LookY
+        {
+            get { return MouseLookY + JoyLookY + TouchJoyLookY + keyboardLookY; }
+        }
+
         public float MouseLookX
         {
             get { return mouseLookX; }
