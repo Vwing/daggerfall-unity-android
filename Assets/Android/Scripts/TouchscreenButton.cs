@@ -853,11 +853,17 @@ namespace DaggerfallWorkshop.Game
         private void Instance_onResetButtonTransformsToDefaultValues()
         {
             if(transform.parent && transform.parent.parent && transform.parent.parent.TryGetComponent(out TouchscreenButton myDrawer)){
-                myDrawer.RemoveButtonFromDrawer(gameObject);
+                transform.SetParent(myDrawer.transform.parent, true);
+                rectTransform.anchoredPosition = defaultButtonPosition;
+                rectTransform.sizeDelta = defaultButtonSizeDelta;
+                gameObject.SetActive(defaultIsEnabled);
+                transform.SetParent(myDrawer.transform, true);
+                rectTransform.ForceUpdateRectTransforms();
+            } else {
+                rectTransform.anchoredPosition = defaultButtonPosition;
+                rectTransform.sizeDelta = defaultButtonSizeDelta;
+                gameObject.SetActive(defaultIsEnabled);
             }
-            rectTransform.anchoredPosition = defaultButtonPosition;
-            rectTransform.sizeDelta = defaultButtonSizeDelta;
-            gameObject.SetActive(defaultIsEnabled);
         }
 
         private void Instance_onResetButtonActionsToDefaultValues()
