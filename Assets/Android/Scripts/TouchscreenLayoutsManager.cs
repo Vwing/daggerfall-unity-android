@@ -165,6 +165,9 @@ namespace DaggerfallWorkshop.Game
                 var buttonConfig = exportedConfig.buttons[i];
                 buttonConfig.DefaultPosition = buttonConfig.Position;
                 buttonConfig.DefaultScale = buttonConfig.Scale;
+                buttonConfig.DefaultIsEnabled = buttonConfig.IsEnabled;
+                buttonConfig.DefaultActionMapping = buttonConfig.ActionMapping;
+                buttonConfig.DefaultKeyCodeMapping = buttonConfig.KeyCodeMapping;
                 exportedConfig.buttons[i] = buttonConfig;
             }
 
@@ -248,6 +251,7 @@ namespace DaggerfallWorkshop.Game
             WriteCurrentLayoutToPath();
             TouchscreenInputManager.Instance.EditTouchscreenButton(newButton);
             newButton.ApplyConfiguration(newButtonConfig);
+            newButton.IsNewlyCreated = true;
         }
         private void DeleteCurrentlySelectedButtonFromLayout()
         {

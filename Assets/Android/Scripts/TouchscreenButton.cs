@@ -65,6 +65,7 @@ namespace DaggerfallWorkshop.Game
         public bool CanButtonBeRemoved{get{return canButtonBeRemoved;}}
         public float JoystickSensitivityHorizontal => joystickSensitivityHorizontal;
         public float JoystickSensitivityVertical => joystickSensitivityVertical;
+        public bool IsNewlyCreated { get; set; } = false;
 
         [SerializeField] private bool canActionBeEdited = true;
         [SerializeField] private bool canButtonBeResized = true;
@@ -211,6 +212,13 @@ namespace DaggerfallWorkshop.Game
         }
         public TouchscreenButtonConfiguration GetCurrentConfiguration(string layoutParentName = null)
         {
+            if(IsNewlyCreated){
+                defaultButtonPosition = rectTransform.anchoredPosition;
+                defaultButtonSizeDelta = rectTransform.sizeDelta;
+                defaultIsEnabled = gameObject.activeSelf;
+                defaultKeyCode = myKey;
+                defaultAction = myAction;
+            }
             TouchscreenButtonConfiguration config = new(
                 gameObject.name, defaultButtonPosition, defaultButtonSizeDelta, GetCurrentButtonType(), defaultIsEnabled,
                 isUsingBuiltInTextures, Path.GetFileName(textureFileName), spriteName, Path.GetFileName(knobFileName), knobSpriteName, defaultAction, 
@@ -251,7 +259,8 @@ namespace DaggerfallWorkshop.Game
                     buttonConfig.KnobSpriteName = "knob";
                 }
                 // set default position and scale to current position and scale if they are zero
-                if(buttonConfig.DefaultPosition.Approximately(Vector2.zero) && buttonConfig.DefaultScale.Approximately(Vector2.zero)){
+                if(buttonConfig.DefaultPosition.Approximately(Vector2.zero) && buttonConfig.DefaultScale.Approximately(Vector2.zero)
+                || buttonConfig.DefaultPosition.Approximately(new Vector2(70, -100)) && buttonConfig.DefaultScale.Approximately(new Vector2(70, -100))){
                     buttonConfig.DefaultPosition = buttonConfig.Position;
                     buttonConfig.DefaultScale = buttonConfig.Scale;
                 }
