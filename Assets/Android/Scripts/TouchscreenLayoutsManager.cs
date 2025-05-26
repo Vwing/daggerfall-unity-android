@@ -218,6 +218,21 @@ namespace DaggerfallWorkshop.Game
                 curButton.gameObject.name = newButtonName;
                 int buttIndex = currentlyLoadedLayout.buttons.FindIndex(p => p.Name == oldButtonName);
                 currentlyLoadedLayout.buttons[buttIndex].Name = newButtonName;
+
+                // Update any drawers that reference the old button name
+                foreach (var buttonConfig in currentlyLoadedLayout.buttons)
+                {
+                    if (buttonConfig.ButtonType == TouchscreenButtonType.Drawer && buttonConfig.ButtonsInDrawer != null)
+                    {
+                        for (int i = 0; i < buttonConfig.ButtonsInDrawer.Count; i++)
+                        {
+                            if (buttonConfig.ButtonsInDrawer[i] == oldButtonName)
+                            {
+                                buttonConfig.ButtonsInDrawer[i] = newButtonName;
+                            }
+                        }
+                    }
+                }
                 WriteCurrentLayoutToPath();
             }
         }
