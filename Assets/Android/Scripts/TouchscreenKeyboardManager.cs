@@ -52,6 +52,8 @@ namespace DaggerfallWorkshop.Game
             BaseScreenComponent cur = textbox;
             while(cur != null)
             {
+                if(cur == null || !cur.Enabled)
+                    return false;
                 if (cur.Parent != null && DaggerfallUI.UIManager.TopWindow.ParentPanel == cur.Parent)
                     return true;
                 cur = cur.Parent;
@@ -81,7 +83,7 @@ namespace DaggerfallWorkshop.Game
         public void UnregisterTextbox(TextBox textBox) => registeredTextboxes.Remove(textBox);
         public void ToggleKeyboardOn(TextBox textBox)
         {
-            Debug.Log("Opening android keyboard");
+            // Debug.Log("Opening android keyboard for textbox: " + textBox.Name + " with text: " + textBox.Text);
             this.currentTextbox = textBox;
             dummyInputField.text = textBox.Text;
             dummyInputField.gameObject.SetActive(true);
