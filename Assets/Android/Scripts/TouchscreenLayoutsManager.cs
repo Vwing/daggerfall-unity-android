@@ -41,6 +41,7 @@ namespace DaggerfallWorkshop.Game
 
         [Header("Assets")]
         [SerializeField] private TextAsset initialDefaultLayout;
+        [SerializeField] private TextAsset initialGamepadLayout;
 
         private List<string> cachedSpritePaths = new List<string>();
         private List<string> cachedKnobSpritePaths = new List<string>();
@@ -120,15 +121,16 @@ namespace DaggerfallWorkshop.Game
         }
         private void DeleteCurrentLayout()
         {
-            bool isDefaultLayout = currentlyLoadedLayout == null || currentlyLoadedLayout.name == "default-layout";
+            bool isDefaultLayout = currentlyLoadedLayout == null || currentlyLoadedLayout.name == "default-layout" || currentlyLoadedLayout.name == "gamepad-layout";
 
             void DoDeleteCurrentLayout()
             {
                 if(isDefaultLayout) {
-                    Directory.Delete(Path.Combine(LayoutsPath, "default-layout"), true);
-                    RegenerateDefaultLayoutIfMissing();
-                    layoutsDropdown.value = 0;
-                    LoadLayoutByName("default-layout");
+                    string layoutName = currentlyLoadedLayout != null ? currentlyLoadedLayout.name : "default-layout";
+                    Directory.Delete(Path.Combine(LayoutsPath, layoutName), true);
+                    RegenerateDefaultLayoutIfMissing(layoutName);
+                    layoutsDropdown.value = layoutName == "default-layout" ? 0 : layoutsDropdown.options.FindIndex(p => p.text == layoutName);
+                    LoadLayoutByName(layoutName);
                 } else {
                     Directory.Delete(Path.Combine(LayoutsPath, currentlyLoadedLayout.name), true);
                     int lastSelectedLayoutIndex = layoutsDropdown.options.FindIndex(p => p.text == currentlyLoadedLayout.name);
@@ -297,7 +299,8 @@ namespace DaggerfallWorkshop.Game
                     TouchscreenLayoutConfiguration.WriteToPath(currentlyLoadedLayout, Path.Combine(LayoutsPath, newLayoutName, newLayoutName + ".json"));
                     File.Delete(Path.Combine(LayoutsPath, newLayoutName, oldLayoutName + ".json"));
                     
-                    RegenerateDefaultLayoutIfMissing();
+                    RegenerateBrokenDefaultLayout("default-layout");
+                    RegenerateBrokenDefaultLayout("gamepad-layout");
                     UpdateLayoutsDropdown();
                 } catch (Exception e){
                     Debug.LogError(e);
@@ -511,45 +514,48 @@ namespace DaggerfallWorkshop.Game
         {
             if(!Directory.Exists(LayoutsPath))
                 Directory.CreateDirectory(LayoutsPath);
-            RegenerateDefaultLayoutIfMissing();
+            RegenerateDefaultLayoutIfMissing("default-layout");
+            RegenerateDefaultLayoutIfMissing("gamepad-layout");
             UpdateLayoutsDropdown();
             if(!LoadLayoutByName(LastSelectedLayout, false)){
-                if(!LoadLayoutByName("default-layout")){
-                    RegenerateBrokenDefaultLayout();
+                if(LastSelectedLayout == "gamepad-layout")
+                    RegenerateBrokenDefaultLayout("gamepad-layout");
+                else if(!LoadLayoutByName("default-layout")){
+                    RegenerateBrokenDefaultLayout("default-layout");
                 }
             }
         }
-        private void RegenerateBrokenDefaultLayout()
+        private void RegenerateBrokenDefaultLayout(string layoutName = "default-layout")
         {
             // default layout broken. Regenerate it!
-            string defaultLayoutDir = Path.Combine(LayoutsPath, "default-layout");
+            string defaultLayoutDir = Path.Combine(LayoutsPath, layoutName);
             if (Directory.Exists(defaultLayoutDir))
             {
                 Directory.Delete(defaultLayoutDir, true);
             }
             // Also delete the initial-default-layout.json so it is regenerated from the TextAsset
-            string initialDefaultLayoutPath = Path.Combine(Paths.PersistentDataPath, "initial-default-layout.json");
+            string initialDefaultLayoutPath = Path.Combine(Paths.PersistentDataPath, $"initial-{layoutName}.json");
             if (File.Exists(initialDefaultLayoutPath))
             {
                 File.Delete(initialDefaultLayoutPath);
             }
-            RegenerateDefaultLayoutIfMissing();
+            RegenerateDefaultLayoutIfMissing(layoutName);
             UpdateLayoutsDropdown();
-            LoadLayoutByName("default-layout");
+            LoadLayoutByName(layoutName);
             TouchscreenInputManager.Instance.PopupMessage.Open(
-                "The default layout was broken and has been reset to its original state.",
+                $"The {layoutName} was broken and has been reset to its original state.",
                 null, null, "Okay", "", false
             );
         }
-        private void RegenerateDefaultLayoutIfMissing()
+        private void RegenerateDefaultLayoutIfMissing(string layoutName = "default-layout")
         {            
-            string defaultLayoutPath = Path.Combine(LayoutsPath, "default-layout", "default-layout.json");
+            string defaultLayoutPath = Path.Combine(LayoutsPath, layoutName, $"{layoutName}.json");
             if(!File.Exists(defaultLayoutPath)){
-                string initialDefaultLayoutPath =Path.Combine(Paths.PersistentDataPath, "initial-default-layout.json");
+                string initialDefaultLayoutPath =Path.Combine(Paths.PersistentDataPath, $"initial-{layoutName}.json");
                 if(!File.Exists(initialDefaultLayoutPath))
-                    File.WriteAllText(initialDefaultLayoutPath, initialDefaultLayout.text);
+                    File.WriteAllText(initialDefaultLayoutPath, layoutName.Contains("default") ? initialDefaultLayout.text : initialGamepadLayout.text);
                 string defaultLayoutText = File.ReadAllText(initialDefaultLayoutPath);
-                Directory.CreateDirectory(Path.Combine(LayoutsPath, "default-layout"));
+                Directory.CreateDirectory(Path.Combine(LayoutsPath, layoutName));
                 File.WriteAllText(defaultLayoutPath, defaultLayoutText);
             }
         }

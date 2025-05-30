@@ -4526,6 +4526,136 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[31].spriteName
+      value: attack
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[32].spriteName
+      value: automap
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[33].spriteName
+      value: cast_spell
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[34].spriteName
+      value: crouch
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[35].spriteName
+      value: inventory
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[36].spriteName
+      value: joystick_background
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[37].spriteName
+      value: jump
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[38].spriteName
+      value: load
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[39].spriteName
+      value: logbook
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[40].spriteName
+      value: notebook
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[41].spriteName
+      value: open_console
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[42].spriteName
+      value: pause
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[43].spriteName
+      value: recast_spell
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[44].spriteName
+      value: save
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[45].spriteName
+      value: sheath_weapon
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[46].spriteName
+      value: switch_hand
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[47].spriteName
+      value: toggle
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[48].spriteName
+      value: toggle_run
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[49].spriteName
+      value: toggle_sneak
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[50].spriteName
+      value: transport
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[51].spriteName
+      value: travel_map
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[52].spriteName
+      value: ui-sprite
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[53].spriteName
+      value: use
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[54].spriteName
+      value: use_magic_item
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInSprites.Array.data[55].spriteName
+      value: wait
+      objectReference: {fileID: 0}
+    - target: {fileID: 34743200669422701, guid: e940e27c913694e56a79bdd3b1e46536,
+        type: 3}
+      propertyPath: builtInKnobSprites.Array.data[3].spriteName
+      value: joystick_knob
+      objectReference: {fileID: 0}
     - target: {fileID: 159049588984318937, guid: e940e27c913694e56a79bdd3b1e46536,
         type: 3}
       propertyPath: m_AnchorMax.x

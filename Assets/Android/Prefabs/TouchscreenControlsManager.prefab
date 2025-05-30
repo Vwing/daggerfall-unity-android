@@ -23462,6 +23462,56 @@ MonoBehaviour:
     spriteName: button_f11
   - textureName: f_buttons
     spriteName: button_f12
+  - textureName: attack
+    spriteName: 
+  - textureName: automap
+    spriteName: button_f12
+  - textureName: cast_spell
+    spriteName: button_f12
+  - textureName: crouch
+    spriteName: button_f12
+  - textureName: inventory
+    spriteName: button_f12
+  - textureName: joystick_background
+    spriteName: button_f12
+  - textureName: jump
+    spriteName: button_f12
+  - textureName: load
+    spriteName: button_f12
+  - textureName: logbook
+    spriteName: button_f12
+  - textureName: notebook
+    spriteName: button_f12
+  - textureName: open_console
+    spriteName: button_f12
+  - textureName: pause
+    spriteName: button_f12
+  - textureName: recast_spell
+    spriteName: button_f12
+  - textureName: save
+    spriteName: button_f12
+  - textureName: sheath_weapon
+    spriteName: button_f12
+  - textureName: switch_hand
+    spriteName: button_f12
+  - textureName: toggle
+    spriteName: button_f12
+  - textureName: toggle_run
+    spriteName: button_f12
+  - textureName: toggle_sneak
+    spriteName: button_f12
+  - textureName: transport
+    spriteName: button_f12
+  - textureName: travel_map
+    spriteName: button_f12
+  - textureName: ui-sprite
+    spriteName: button_f12
+  - textureName: use
+    spriteName: button_f12
+  - textureName: use_magic_item
+    spriteName: button_f12
+  - textureName: wait
+    spriteName: button_f12
   builtInKnobSprites:
   - textureName: linux_buttons
     spriteName: knob
@@ -23469,6 +23519,8 @@ MonoBehaviour:
     spriteName: joystick_left_knob
   - textureName: linux_buttons
     spriteName: joystick_right_knob
+  - textureName: joystick_knob
+    spriteName: 
   actionMappingDropdown: {fileID: 71924089765068735}
   keycodeDropdown: {fileID: 2701889145187263299}
   buttonNameInputField: {fileID: 5941940032509570420}
@@ -23480,6 +23532,8 @@ MonoBehaviour:
   selectedJoystickSensitivityHorizontalSlider: {fileID: 7557375135488931953}
   selectedJoystickSensitivityVerticalSlider: {fileID: 3839010094236073465}
   initialDefaultLayout: {fileID: 4900000, guid: 054fbc8d205f2407b930f037df71d403,
+    type: 3}
+  initialGamepadLayout: {fileID: 4900000, guid: ce209eded6337466db2db8919392b6ed,
     type: 3}
 --- !u!114 &3188779474701911311
 MonoBehaviour:
