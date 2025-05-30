@@ -43,7 +43,7 @@ namespace DaggerfallWorkshop.Game
         
         private int myTouchFingerID = -1;
 
-        void Start()
+        private void Start()
         {
             // get refs
             myCam = GetComponentInParent<Canvas>().worldCamera;
@@ -54,6 +54,8 @@ namespace DaggerfallWorkshop.Game
             SetJoystickRadius();
             if(hideKnobWhenUntouched)
                 knob.gameObject.SetActive(false);
+
+            knob.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
         }
         void OnDestroy()
         {
