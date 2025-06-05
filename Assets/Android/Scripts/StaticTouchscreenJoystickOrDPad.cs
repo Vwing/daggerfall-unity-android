@@ -135,13 +135,13 @@ namespace DaggerfallWorkshop.Game
             float angle = Mathf.Atan2(input.y, input.x);
             angle = Mathf.Round(angle / (Mathf.PI / 4)) * (Mathf.PI / 4);
 
-            Vector2 toReturn = new(Mathf.Cos(angle), Mathf.Sin(angle));
-            if(Mathf.Abs(toReturn.x) < .01f)
-                toReturn.x = 0;
-            if(Mathf.Abs(toReturn.y) < .01f)
-                toReturn.y = 0;
+            Vector2 snappedInput = new(Mathf.Cos(angle), Mathf.Sin(angle));
+            if(Mathf.Abs(snappedInput.x) < .01f)
+                snappedInput.x = 0;
+            if(Mathf.Abs(snappedInput.y) < .01f)
+                snappedInput.y = 0;
 
-            return toReturn;
+            return snappedInput;
         }
         private void SetJoystickRadius(){
             knob.sizeDelta = background.sizeDelta * 0.6f;
