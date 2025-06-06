@@ -299,9 +299,16 @@ namespace DaggerfallWorkshop.Game
                     TouchscreenLayoutConfiguration.WriteToPath(currentlyLoadedLayout, Path.Combine(LayoutsPath, newLayoutName, newLayoutName + ".json"));
                     File.Delete(Path.Combine(LayoutsPath, newLayoutName, oldLayoutName + ".json"));
                     
-                    RegenerateBrokenDefaultLayout("default-layout");
-                    RegenerateBrokenDefaultLayout("gamepad-layout");
+                    // Regenerate default layouts if we renamed away from them
+                    if (oldLayoutName == "default-layout")
+                        RegenerateDefaultLayoutIfMissing("default-layout");
+                    if (oldLayoutName == "gamepad-layout")
+                        RegenerateDefaultLayoutIfMissing("gamepad-layout");
+                    
                     UpdateLayoutsDropdown();
+                    
+                    // Update LastSelectedLayout to the new name
+                    LastSelectedLayout = newLayoutName;
                 } catch (Exception e){
                     Debug.LogError(e);
                     TouchscreenInputManager.Instance.PopupMessage.Open($"Error renaming layout: {e}", null, null, "Okay", "", false);
