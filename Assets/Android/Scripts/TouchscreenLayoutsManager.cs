@@ -532,7 +532,7 @@ namespace DaggerfallWorkshop.Game
                 }
             }
         }
-        private void RegenerateBrokenDefaultLayout(string layoutName = "default-layout")
+        public void RegenerateBrokenDefaultLayout(string layoutName = "default-layout", bool showPopup = true)
         {
             // default layout broken. Regenerate it!
             string defaultLayoutDir = Path.Combine(LayoutsPath, layoutName);
@@ -549,10 +549,11 @@ namespace DaggerfallWorkshop.Game
             RegenerateDefaultLayoutIfMissing(layoutName);
             UpdateLayoutsDropdown();
             LoadLayoutByName(layoutName);
-            TouchscreenInputManager.Instance.PopupMessage.Open(
-                $"The {layoutName} was broken and has been reset to its original state.",
-                null, null, "Okay", "", false
-            );
+            if(showPopup)
+                TouchscreenInputManager.Instance.PopupMessage.Open(
+                    $"The {layoutName} was broken and has been reset to its original state.",
+                    null, null, "Okay", "", false
+                );
         }
         private void RegenerateDefaultLayoutIfMissing(string layoutName = "default-layout")
         {            

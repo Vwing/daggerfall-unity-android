@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.IO;
 
 namespace DaggerfallWorkshop.Game
 {
@@ -36,6 +37,14 @@ namespace DaggerfallWorkshop.Game
             int fourth = int.Parse(versionSplit[3]);
             bool isRC = versionSplit.Length > 4;
             Debug.Log($"AndroidUpgradeManager: {first} {second} {third} {fourth} {isRC}");
+            
+            // Handle layout migration for versions before 1.1.1.7
+            if (first < 1 || (first == 1 && second < 1) || (first == 1 && second == 1 && third < 1) || (first == 1 && second == 1 && third == 1 && fourth < 7))
+            {
+                Debug.Log("AndroidUpgradeManager: Migrating touchscreen layout from pre-1.1.1.7 version");
+                MigrateDefaultLayout();
+            }
+            
             if (first <= 1 && second <= 1 && third <= 1 && fourth < 3)
             {
                 Debug.Log("AndroidUpgradeManager: Updating settings");
@@ -53,6 +62,81 @@ namespace DaggerfallWorkshop.Game
                     var defaultActivate = InputManager.Instance.GetDefaultBinding(InputManager.Actions.ActivateCenterObject);
                     if (InputManager.Instance.GetActionBoundToKeycode(defaultActivate) == InputManager.Actions.Unknown)
                         InputManager.Instance.SetBinding(defaultActivate, InputManager.Actions.ActivateCenterObject);
+                }
+            }
+        }
+
+        private void MigrateDefaultLayout()
+        {
+            string layoutsPath = TouchscreenLayoutsManager.LayoutsPath;
+            string defaultLayoutPath = Path.Combine(layoutsPath, "default-layout");
+            string myLayout1Path = Path.Combine(layoutsPath, "my-layout1");
+            
+            // Check if the user has a customized default-layout and my-layout1 doesn't already exist
+            if (Directory.Exists(defaultLayoutPath) && !Directory.Exists(myLayout1Path))
+            {
+                try
+                {
+                    Debug.Log("AndroidUpgradeManager: Migrating default-layout to my-layout1");
+                    
+                    // Create the new directory
+                    Directory.CreateDirectory(myLayout1Path);
+                    
+                    // Copy all files and subdirectories from default-layout to my-layout1
+                    foreach (string dirPath in Directory.GetDirectories(defaultLayoutPath, "*", SearchOption.AllDirectories))
+                    {
+                        Directory.CreateDirectory(dirPath.Replace(defaultLayoutPath, myLayout1Path));
+                    }
+                    
+                    foreach (string filePath in Directory.GetFiles(defaultLayoutPath, "*.*", SearchOption.AllDirectories))
+                    {
+                        string newFilePath = filePath.Replace(defaultLayoutPath, myLayout1Path);
+                        File.Copy(filePath, newFilePath, true);
+                    }
+                    
+                    // Update the JSON file name and contents
+                    string oldJsonPath = Path.Combine(myLayout1Path, "default-layout.json");
+                    string newJsonPath = Path.Combine(myLayout1Path, "my-layout1.json");
+                    
+                    if (File.Exists(oldJsonPath))
+                    {
+                        // Read the layout configuration and update its name
+                        var layoutConfig = TouchscreenLayoutConfiguration.ReadFromPath(oldJsonPath);
+                        if (layoutConfig != null)
+                        {
+                            layoutConfig.name = "my-layout1";
+                            TouchscreenLayoutConfiguration.WriteToPath(layoutConfig, newJsonPath);
+                            File.Delete(oldJsonPath);
+                            
+                            // Set this as the selected layout and load it
+                            TouchscreenLayoutsManager.LastSelectedLayout = "my-layout1";
+                            TouchscreenLayoutsManager.Instance.LoadLastSelectedOrDefaultLayout();
+                            Debug.Log("AndroidUpgradeManager: Successfully migrated default-layout to my-layout1");
+                        }
+                        else
+                        {
+                            Debug.LogWarning("AndroidUpgradeManager: Could not read layout configuration during migration");
+                        }
+                    }
+                    
+                    // Regenerate the default layout
+                    TouchscreenLayoutsManager.Instance.RegenerateBrokenDefaultLayout("default-layout", false);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"AndroidUpgradeManager: Error migrating layout: {e.Message}");
+                    // If migration fails, make sure we don't leave things in a broken state
+                    if (Directory.Exists(myLayout1Path))
+                    {
+                        try
+                        {
+                            Directory.Delete(myLayout1Path, true);
+                        }
+                        catch (System.Exception rollbackError)
+                        {
+                            Debug.LogError($"AndroidUpgradeManager: Error rolling back migration: {rollbackError.Message}");
+                        }
+                    }
                 }
             }
         }
