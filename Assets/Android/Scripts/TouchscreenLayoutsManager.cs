@@ -290,14 +290,31 @@ namespace DaggerfallWorkshop.Game
                 TouchscreenInputManager.Instance.PopupMessage.Open("That layout name is already being used", null, null, "Okay", "", false);
                 currentLayoutName.text = oldLayoutName;
             } else {
-                currentlyLoadedLayout.name = newLayoutName;
                 try{
+                    // Get the current state with all button positions BEFORE renaming
+                    TouchscreenLayoutConfiguration currentState = GetCurrentLayoutConfig();
+                    currentState.name = newLayoutName;
+                    
+                    // Update LayoutParentName for all buttons in the current state
+                    foreach (var button in currentState.buttons)
+                    {
+                        button.LayoutParentName = newLayoutName;
+                    }
+
+                    // Move the directory
                     Directory.Move(Path.Combine(LayoutsPath, oldLayoutName), Path.Combine(LayoutsPath, newLayoutName));
+                    
+                    // Update UI elements
                     int layoutDropdownIndex = layoutsDropdown.options.FindIndex(p => p.text == oldLayoutName);
                     layoutsDropdown.options[layoutDropdownIndex].text = newLayoutName;
                     layoutsDropdown.GetComponentInChildren<TMPro.TMP_Text>().text = newLayoutName;
-                    TouchscreenLayoutConfiguration.WriteToPath(currentlyLoadedLayout, Path.Combine(LayoutsPath, newLayoutName, newLayoutName + ".json"));
+
+                    // Write the current state to the new location
+                    TouchscreenLayoutConfiguration.WriteToPath(currentState, Path.Combine(LayoutsPath, newLayoutName, newLayoutName + ".json"));
                     File.Delete(Path.Combine(LayoutsPath, newLayoutName, oldLayoutName + ".json"));
+                    
+                    // Update our internal reference
+                    currentlyLoadedLayout = currentState;
                     
                     // Regenerate default layouts if we renamed away from them
                     if (oldLayoutName == "default-layout")
@@ -309,6 +326,9 @@ namespace DaggerfallWorkshop.Game
                     
                     // Update LastSelectedLayout to the new name
                     LastSelectedLayout = newLayoutName;
+
+                    // Reload the layout to ensure all buttons are properly updated
+                    LoadLayout(currentlyLoadedLayout);
                 } catch (Exception e){
                     Debug.LogError(e);
                     TouchscreenInputManager.Instance.PopupMessage.Open($"Error renaming layout: {e}", null, null, "Okay", "", false);
