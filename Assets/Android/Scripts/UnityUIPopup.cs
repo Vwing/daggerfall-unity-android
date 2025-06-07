@@ -24,9 +24,14 @@ namespace DaggerfallWorkshop.Game
         [SerializeField] private Button buttonNo;
         [SerializeField] private TMPro.TMP_Text buttonYesText;
         [SerializeField] private TMPro.TMP_Text buttonNoText;
+        [SerializeField] private TMPro.TMP_InputField inputField;
+        [SerializeField] private GameObject inputFieldContainer;
+        [SerializeField] private float canvasHeightWithoutInputField = 289.6f;
+        [SerializeField] private float canvasHeightWithInputField = 330f;
 
         private System.Action yesAction;
         private System.Action noAction;
+        private System.Action<string> inputAction;
 
         private string buttonYesDefaultString;
         private string buttonNoDefaultString;
@@ -42,6 +47,10 @@ namespace DaggerfallWorkshop.Game
         }
         private void OnButtonYesPressed()
         {
+            if (inputFieldContainer.activeSelf && inputAction != null)
+            {
+                inputAction.Invoke(inputField.text);
+            }
             yesAction?.Invoke();
             Close();
         }
@@ -50,16 +59,24 @@ namespace DaggerfallWorkshop.Game
             noAction?.Invoke();
             Close();
         }
-        public void Open(string text, System.Action yesAction, System.Action noAction = null, string yesButtonString = "", string noButtonString = "", bool showNoButton = true)
+        public void Open(string text, System.Action yesAction, System.Action noAction = null, string yesButtonString = "", string noButtonString = "", bool showNoButton = true, System.Action<string> inputAction = null)
         {
             canvas.enabled = true;
             messageText.text = text;
             this.yesAction = yesAction;
             this.noAction = noAction;
+            this.inputAction = inputAction;
 
             buttonYesText.text = string.IsNullOrEmpty(yesButtonString) ? buttonYesDefaultString : yesButtonString;
             buttonNoText.text = string.IsNullOrEmpty(noButtonString) ? buttonNoDefaultString : noButtonString;
             buttonNo.gameObject.SetActive(showNoButton);
+            inputFieldContainer.SetActive(inputAction != null);
+            if (inputAction != null)
+            {
+                inputField.text = "";
+                inputField.Select();
+            }
+            canvas.GetComponent<RectTransform>().sizeDelta = new Vector2(canvas.GetComponent<RectTransform>().sizeDelta.x, inputAction != null ? canvasHeightWithInputField : canvasHeightWithoutInputField);
         }
         public void Close()
         {

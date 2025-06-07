@@ -136,10 +136,10 @@ namespace DaggerfallWorkshop.Game
                     int lastSelectedLayoutIndex = layoutsDropdown.options.FindIndex(p => p.text == currentlyLoadedLayout.name);
                     currentlyLoadedLayout = null;
                     UpdateLayoutsDropdown();
-                    if(lastSelectedLayoutIndex >= 0 && lastSelectedLayoutIndex < layoutsDropdown.options.Count)
+                    if(lastSelectedLayoutIndex >= 0 && lastSelectedLayoutIndex < layoutsDropdown.options.Count -1) // -1 is the Create New Layout option
                         layoutsDropdown.value = lastSelectedLayoutIndex;
                     else
-                        layoutsDropdown.value = layoutsDropdown.options.Count - 1;
+                        layoutsDropdown.value = layoutsDropdown.options.Count - 2; // Select the second to last option (last real layout before Create New Layout)
                     LoadLayoutByName(layoutsDropdown.options[layoutsDropdown.value].text);
                 }
             }
@@ -392,6 +392,7 @@ namespace DaggerfallWorkshop.Game
             List<string> layoutsInPath = Directory.GetDirectories(LayoutsPath).Where(p => File.Exists(Path.Combine(p, Path.GetFileName(p.TrimEnd('/', '\\')) + ".json"))).Select(s => s.Split(Path.DirectorySeparatorChar).Last()).ToList();
             Debug.Log(layoutsInPath.Count + "Layouts in Layouts Path: " + LayoutsPath);
             layoutsDropdown.AddOptions(layoutsInPath);
+            layoutsDropdown.AddOptions(new List<string> { "<Create New Layout>" });
             if(currentlyLoadedLayout != null)
                 SelectDropdownValueForLayoutName(currentlyLoadedLayout.name);
         }
@@ -678,7 +679,83 @@ namespace DaggerfallWorkshop.Game
                 onConfirmOverwrite();
             }
         }
-        private void OnLayoutsDropdownValueChanged(int newVal) => LoadLayoutByName(layoutsDropdown.options[newVal].text);
+        private void OnLayoutsDropdownValueChanged(int newVal)
+        {
+            string selectedLayout = layoutsDropdown.options[newVal].text;
+            if (selectedLayout == "<Create New Layout>")
+            {
+                // Store the previous selection
+                int previousSelection = layoutsDropdown.options.FindIndex(p => p.text == (currentlyLoadedLayout?.name ?? "default-layout"));
+                
+                TouchscreenInputManager.Instance.PopupMessage.Open(
+                    "Enter name for new layout:",
+                    null,
+                    () => {
+                        // Restore previous selection on cancel
+                        layoutsDropdown.value = previousSelection;
+                    },
+                    "Create",
+                    "Cancel",
+                    true,
+                    (string newLayoutName) => {
+                        if (string.IsNullOrEmpty(newLayoutName))
+                        {
+                            // Restore previous selection on empty name
+                            layoutsDropdown.value = previousSelection;
+                            return;
+                        }
+                        
+                        // Check if layout name already exists
+                        if (Directory.Exists(Path.Combine(LayoutsPath, newLayoutName)))
+                        {
+                           CoroutineManager.Instance.DoOnDelay(() => {
+                                TouchscreenInputManager.Instance.PopupMessage.Open(
+                                    "A layout with that name already exists.",
+                                    null,
+                                    null,
+                                    "Okay",
+                                    "",
+                                    false
+                                );
+                            }, .1f);
+                            // Restore previous selection on duplicate name
+                            layoutsDropdown.value = previousSelection;
+                            return;
+                        }
+
+                        // Create new layout based on current layout
+                        TouchscreenLayoutConfiguration newLayout = GetCurrentLayoutConfig();
+                        newLayout.name = newLayoutName;
+                        
+                        // Create directory and save layout
+                        string newLayoutPath = Path.Combine(LayoutsPath, newLayoutName);
+                        Directory.CreateDirectory(newLayoutPath);
+                        WriteLayoutToPath(newLayout);
+
+                        // Copy textures directory if it exists
+                        string sourceTexturesPath = Path.Combine(LayoutsPath, currentlyLoadedLayout.name, "textures");
+                        string destTexturesPath = Path.Combine(newLayoutPath, "textures");
+                        if (Directory.Exists(sourceTexturesPath))
+                        {
+                            Directory.CreateDirectory(destTexturesPath);
+                            foreach (string file in Directory.GetFiles(sourceTexturesPath, "*.*", SearchOption.AllDirectories))
+                            {
+                                string destFile = file.Replace(sourceTexturesPath, destTexturesPath);
+                                File.Copy(file, destFile, true);
+                            }
+                        }
+                        
+                        // Update UI and load new layout
+                        UpdateLayoutsDropdown();
+                        LoadLayoutByName(newLayoutName);
+                    }
+                );
+            }
+            else
+            {
+                LoadLayoutByName(selectedLayout);
+            }
+        }
         private void OnSpriteDropdownValueChanged(int newVal)
         {
             ChangeCurrentButtonSprite(newVal, false);
