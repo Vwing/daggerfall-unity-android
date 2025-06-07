@@ -291,7 +291,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
                 // finalize
                 SetProgress(100f, "Finalizing...");
-                yield return new WaitForSeconds(0.2f);
+                yield return new WaitForSecondsRealtime(0.2f);
 
                 // validate and finish
                 if (ValidateArena2Path(outputPath))
