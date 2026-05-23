@@ -74,6 +74,12 @@ namespace DaggerfallWorkshop.Game
         }
         private void Update()
         {
+            if (!DaggerfallUnity.Settings.EnableObjectCulling)
+            {
+                UnCullAllObjects();
+                return;
+            }
+
             Vector3 playerPosition = GameManager.Instance.PlayerMotor.transform.position;
             // Remove any deleted gameObjects from the culled objects
             RemoveAnyDeletedObjectsFromCulledDictionary();
@@ -288,9 +294,39 @@ namespace DaggerfallWorkshop.Game
             block.transform.Find("Action Models").GetComponentsInChildren<MeshRenderer>().ToList().ForEach(p => p.enabled = !culled);
         }
 
+        private void UnCullAllObjects()
+        {
+            if (culledObjects.Count == 0)
+                return;
+
+            keysToRemove.Clear();
+            foreach (var kvp in culledObjects)
+                keysToRemove.Add(kvp.Key);
+
+            foreach (int key in keysToRemove)
+            {
+                CulledGameObject culledObject = culledObjects[key];
+                if (!culledObject.gameObject)
+                {
+                    culledObjects.Remove(key);
+                    continue;
+                }
+
+                if (culledObject.gameObject.transform.parent == culledObjectsParent.transform)
+                    UnCullObject(culledObject.gameObject);
+                else
+                    UnCullDungeonBlock(culledObject.gameObject);
+            }
+
+            keysToRemove.Clear();
+        }
+
         private void OnLoadEvent(SaveData_v1 saveData)
         {
-            UpdateAllCullableObjects(GameManager.Instance.PlayerMotor.transform.position);
+            if (DaggerfallUnity.Settings.EnableObjectCulling)
+                UpdateAllCullableObjects(GameManager.Instance.PlayerMotor.transform.position);
+            else
+                UnCullAllObjects();
         }
     }
 }

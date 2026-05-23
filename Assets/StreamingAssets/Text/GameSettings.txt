@@ -180,6 +180,8 @@ shadowResolutionMode,                               Shadow Resolution
 shadowResolutionModeInfo,                           Quality of shadows
 screenOrientationMode,                              Screen Orientation
 screenOrientationModeInfo,                          Allowed screen orientation(s)
+enableObjectCulling,                                Object Culling
+enableObjectCullingInfo,                            Cull distant objects to improve performance
 dungeonLightShadows,                                Dungeon Light Shadows
 dungeonLightShadowsInfo,                            Dungeon lights cast shadows
 interiorLightShadows,                               Interior Light Shadows

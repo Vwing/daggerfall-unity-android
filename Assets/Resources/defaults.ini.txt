@@ -32,6 +32,7 @@ DungeonShadowDistance=20.0
 InteriorShadowDistance=30.0
 ExteriorShadowDistance=90.0
 EnableTextureArrays=True
+EnableObjectCulling=True
 RandomDungeonTextures=0
 
 [Effects]

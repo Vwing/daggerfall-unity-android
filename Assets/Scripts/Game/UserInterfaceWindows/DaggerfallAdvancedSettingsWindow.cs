@@ -161,6 +161,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         Checkbox interiorLightShadows;
         Checkbox exteriorLightShadows;
         Checkbox ambientLitInteriors;
+        Checkbox enableObjectCulling;
 
         // Accessibility
         Button automapTempleColor;
@@ -391,6 +392,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             interiorLightShadows = AddCheckbox(rightPanel, "interiorLightShadows", DaggerfallUnity.Settings.InteriorLightShadows);
             exteriorLightShadows = AddCheckbox(rightPanel, "exteriorLightShadows", DaggerfallUnity.Settings.ExteriorLightShadows);
             ambientLitInteriors = AddCheckbox(rightPanel, "ambientLitInteriors", DaggerfallUnity.Settings.AmbientLitInteriors);
+            enableObjectCulling = AddCheckbox(rightPanel, "enableObjectCulling", DaggerfallUnity.Settings.EnableObjectCulling);
             string textureArrayLabel = TextManager.Instance.GetLocalizedText("textureArrayLabel", TextCollections.TextSettings);
             if (!SystemInfo.supports2DArrayTextures)
                 textureArrayLabel += TextManager.Instance.GetLocalizedText("unsupported", TextCollections.TextSettings);
@@ -525,6 +527,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             DaggerfallUnity.Settings.InteriorLightShadows = interiorLightShadows.IsChecked;
             DaggerfallUnity.Settings.ExteriorLightShadows = exteriorLightShadows.IsChecked;
             DaggerfallUnity.Settings.AmbientLitInteriors = ambientLitInteriors.IsChecked;
+            DaggerfallUnity.Settings.EnableObjectCulling = enableObjectCulling.IsChecked;
             float lastFramerate = DaggerfallUnity.Settings.TargetFrameRate == 0 ? 30 : DaggerfallUnity.Settings.TargetFrameRate;
             if (framerate.Value != lastFramerate)
             {
@@ -831,6 +834,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     return "Screen Orientation";
                 case "screenOrientationModeInfo":
                     return "Allowed screen orientation(s)";
+                case "enableObjectCulling":
+                    return "Object Culling";
+                case "enableObjectCullingInfo":
+                    return "Cull distant objects to improve performance";
                 default:
                     return "<TextError-NotFound>";
             }
