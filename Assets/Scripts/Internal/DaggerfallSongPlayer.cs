@@ -29,7 +29,7 @@ namespace DaggerfallWorkshop
     {
         const string sourceFolderName = "SoundFonts";
         const string defaultSoundFontFilename = "TimGM6mb.sf2";
-        const int sampleRate = 48000;
+        const int fallbackSampleRate = 48000;
         const int polyphony = 100;
 
         private static AudioMixerGroup _defaultAudioMixerGroup;
@@ -57,6 +57,7 @@ namespace DaggerfallWorkshop
         int channels = 0;
         int bufferLength = 0;
         int numBuffers = 0;
+        int synthSampleRate = 0;
         bool playEnabled = false;
         bool awakeComplete = false;
         float oldGain;
@@ -232,15 +233,15 @@ namespace DaggerfallWorkshop
             // Create synthesizer and load bank
             if (midiSynthesizer == null)
             {
-                // Get number of channels
-                if (AudioSettings.driverCapabilities.ToString() == "Mono")
-                    channels = 1;
-                else
-                    channels = 2;
+                // Get output format from Unity's active audio configuration. Some Android devices
+                // use a non-48 kHz output path, and the synth must match it to keep MIDI timing stable.
+                synthSampleRate = AudioSettings.outputSampleRate > 0 ? AudioSettings.outputSampleRate : fallbackSampleRate;
+                channels = AudioSettings.speakerMode == AudioSpeakerMode.Mono ? 1 : 2;
 
                 // Create synth
                 AudioSettings.GetDSPBufferSize(out bufferLength, out numBuffers);
-                midiSynthesizer = new Synthesizer(sampleRate, channels, bufferLength / numBuffers, numBuffers, polyphony);
+                numBuffers = Math.Max(1, numBuffers);
+                midiSynthesizer = new Synthesizer(synthSampleRate, channels, bufferLength / numBuffers, numBuffers, polyphony);
 
                 // Load bank data
                 string filename = DaggerfallUnity.Settings.SoundFont;
@@ -394,6 +395,9 @@ namespace DaggerfallWorkshop
             if (midiSynthesizer == null || midiSequencer == null)
                 return;
 
+            if (channels != midiSynthesizer.AudioChannels)
+                midiSynthesizer.SetAudioChannelCount(channels);
+
             // Sample buffer size must match working buffer size
             if (sampleBuffer.Length != midiSynthesizer.WorkingBufferSize)
                 sampleBuffer = new float[midiSynthesizer.WorkingBufferSize];
@@ -405,7 +409,8 @@ namespace DaggerfallWorkshop
                 {
                     midiSequencer.FillMidiEventQueue();
                     midiSynthesizer.GetNext(sampleBuffer);
-                    for (int i = 0; i < data.Length; i++)
+                    int length = Math.Min(data.Length, sampleBuffer.Length);
+                    for (int i = 0; i < length; i++)
                     {
                         data[i] = sampleBuffer[i] * Gain;
                     }
