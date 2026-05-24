@@ -288,8 +288,9 @@ namespace DaggerfallWorkshop.Game
                         float largeHUDHeight = 0;
                         if (DaggerfallUI.Instance.DaggerfallHUD != null && DaggerfallUI.Instance.DaggerfallHUD.LargeHUD.Enabled && DaggerfallUnity.Settings.LargeHUDDocked)
                             largeHUDHeight = DaggerfallUI.Instance.DaggerfallHUD.LargeHUD.ScreenHeight;
-                        float xm = Input.mousePosition.x / AScreen.width;
-                        float ym = (Input.mousePosition.y - largeHUDHeight) / (AScreen.height - largeHUDHeight);
+                        Vector3 mousePosition = InputManager.Instance.MousePosition;
+                        float xm = mousePosition.x / AScreen.width;
+                        float ym = (mousePosition.y - largeHUDHeight) / (AScreen.height - largeHUDHeight);
                         Vector2 retroMousePos = new Vector2(mainCamera.targetTexture.width * xm, mainCamera.targetTexture.height * ym);
                         ray = mainCamera.ScreenPointToRay(retroMousePos);
                         //Debug.Log(retroMousePos);
@@ -297,7 +298,7 @@ namespace DaggerfallWorkshop.Game
                     else
                     {
                         // Ray from mouse position into viewport
-                        ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+                        ray = mainCamera.ScreenPointToRay(InputManager.Instance.MousePosition);
                     }
                 }
                 else

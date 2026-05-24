@@ -18,6 +18,7 @@ using System.IO;
 using FullSerializer;
 using DaggerfallWorkshop.Game.Serialization;
 using System.Linq;
+using OpenPointerCapture;
 
 namespace DaggerfallWorkshop.Game
 {
@@ -384,7 +385,7 @@ namespace DaggerfallWorkshop.Game
                 if (UsingController)
                     return controllerCursorPosition;
                 else
-                    return Input.mousePosition;
+                    return CapturedInput.mousePosition;
             }
         }
 
@@ -546,6 +547,8 @@ namespace DaggerfallWorkshop.Game
         void Awake()
         {
             SetupSingleton();
+            if (!GetComponent<PointerCaptureManager>())
+                gameObject.AddComponent<PointerCaptureManager>();
         }
 
         void Start()
@@ -656,8 +659,8 @@ namespace DaggerfallWorkshop.Game
                 }
             }
             else{
-                mouseX = Input.GetAxisRaw("Mouse X");
-                mouseY = Input.GetAxisRaw("Mouse Y");
+                mouseX = CapturedInput.GetAxis("Mouse X");
+                mouseY = CapturedInput.GetAxis("Mouse Y");
             }
 
             if (TouchscreenInputManager.IsTouchscreenActive)
@@ -1182,17 +1185,17 @@ namespace DaggerfallWorkshop.Game
 
         public bool GetMouseButtonDown(int button)
         {
-            return Input.GetMouseButtonDown(button) || (EnableController && GetKeyDown(joystickUICache[button], false));
+            return CapturedInput.GetMouseButtonDown(button) || (EnableController && GetKeyDown(joystickUICache[button], false));
         }
 
         public bool GetMouseButtonUp(int button)
         {
-            return Input.GetMouseButtonUp(button) || (EnableController && GetKeyUp(joystickUICache[button], false));
+            return CapturedInput.GetMouseButtonUp(button) || (EnableController && GetKeyUp(joystickUICache[button], false));
         }
 
         public bool GetMouseButton(int button)
         {
-            return Input.GetMouseButton(button) || (EnableController && GetKey(joystickUICache[button], false));
+            return CapturedInput.GetMouseButton(button) || (EnableController && GetKey(joystickUICache[button], false));
         }
 
         public bool GetBackButtonDown()
@@ -1675,14 +1678,14 @@ namespace DaggerfallWorkshop.Game
             float distMovement = Mathf.Sqrt(horizj * horizj + vertj * vertj);
             float distCamera = Mathf.Sqrt(cameraHorizJ * cameraHorizJ + cameraVertJ * cameraVertJ);
 
-            bool movingMouse = (Input.GetAxisRaw("Mouse X") != 0 || Input.GetAxisRaw("Mouse Y") != 0);
+            bool movingMouse = (CapturedInput.GetAxis("Mouse X") != 0 || CapturedInput.GetAxis("Mouse Y") != 0);
 
             pauseController = movingMouse;
 
             if (!UsingController && (distMovement > JoystickDeadzone || distCamera > JoystickDeadzone))
             {
                 usingControllerCursor = true;
-                controllerCursorPosition = Input.mousePosition;
+                controllerCursorPosition = CapturedInput.mousePosition;
             }
 
             if (movingMouse)

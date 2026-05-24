@@ -58,6 +58,22 @@ namespace DaggerfallWorkshop.Game
         // Yaw rotation will affect this object instead of the camera if set.
         public GameObject characterBody;
 
+        CursorLockMode MouseLookLockState
+        {
+            get
+            {
+                if (!TouchscreenInputManager.IsTouchscreenActive)
+                    return CursorLockMode.Locked;
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+                if (Input.mousePresent)
+                    return CursorLockMode.Locked;
+#endif
+
+                return CursorLockMode.None;
+            }
+        }
+
         /// <summary>
         /// Gets or sets pitch rotation of camera in degrees.
         /// </summary>
@@ -168,7 +184,7 @@ namespace DaggerfallWorkshop.Game
         {
             if (forceHideCursor)
             {
-                Cursor.lockState = TouchscreenInputManager.IsTouchscreenActive ? CursorLockMode.None : CursorLockMode.Locked;
+                Cursor.lockState = MouseLookLockState;
                 InputManager.Instance.CursorVisible = false;
                 return;
             }
@@ -198,7 +214,7 @@ namespace DaggerfallWorkshop.Game
                 Cursor.lockState = CursorLockMode.None;
                 InputManager.Instance.CursorVisible = true;
 
-                if (Input.GetMouseButtonDown(0))
+                if (InputManager.Instance.GetMouseButtonDown(0))
                 {
                     // TODO: Activate object clicked by mouse - this should take precedence over activate centre object if that is also mouse0
                 }
@@ -209,7 +225,7 @@ namespace DaggerfallWorkshop.Game
             // Ensure the cursor always locked when set
             if (lockCursor && enableMouseLook)
             {
-                Cursor.lockState = TouchscreenInputManager.IsTouchscreenActive ? CursorLockMode.None : CursorLockMode.Locked;
+                Cursor.lockState = MouseLookLockState;
                 InputManager.Instance.CursorVisible = false;
             }
             else
@@ -223,7 +239,7 @@ namespace DaggerfallWorkshop.Game
             {
                 if (Input.GetKeyDown(KeyCode.Escape))
                     enableMouseLook = !enableMouseLook;
-                if (!enableMouseLook && Input.GetMouseButtonDown(0) || !enableMouseLook && Input.GetMouseButtonDown(1))
+                if (!enableMouseLook && InputManager.Instance.GetMouseButtonDown(0) || !enableMouseLook && InputManager.Instance.GetMouseButtonDown(1))
                     enableMouseLook = true;
             }
             else

@@ -127,12 +127,13 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     GameObjectHelper.CreateFoeSpawner(true, DaggerfallQuestPopupWindow.daedricFoes[UnityEngine.Random.Range(0, 5)], UnityEngine.Random.Range(3, 6), 8, 64);
                 }
 #if UNITY_ANDROID
-                if (Input.GetMouseButtonUp(0)){
+                if (InputManager.Instance.GetMouseButtonUp(0)){
                     Rect rect = NativePanel.Rectangle;
                     Vector2 screenPos = Vector2.zero;
                     screenPos.x = rect.x + rect.width * (textCursor.Position.x / 320f);
                     screenPos.y = rect.y + rect.height * (1 - textCursor.Position.y / 200f);
-                    if (Input.mousePosition.y < screenPos.y + 20 && Input.mousePosition.x > screenPos.x - 200)
+                    Vector3 mousePosition = InputManager.Instance.MousePosition;
+                    if (mousePosition.y < screenPos.y + 20 && mousePosition.x > screenPos.x - 200)
                         TouchscreenKeyboardManager.Instance.ToggleKeyboardOn(androidTextbox);
                 }
                 if (androidTextbox.Text.ToLower().Contains('y'))
