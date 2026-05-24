@@ -10,6 +10,8 @@
 //
 
 #region Using Statements
+using System;
+using System.Collections.Generic;
 using System.IO;
 using DaggerfallConnect.Arena2;
 #endregion
@@ -97,13 +99,13 @@ namespace DaggerfallConnect.Utility
                 results.FolderValid = true;
 
             // Get files
-            string[] textures = Directory.GetFiles(path, textureSearchPattern);
-            string[] models = Directory.GetFiles(path, Arch3dFile.Filename);
-            string[] blocks = Directory.GetFiles(path, BlocksFile.Filename);
-            string[] maps = Directory.GetFiles(path, MapsFile.Filename);
-            string[] sounds = Directory.GetFiles(path, SndFile.Filename);
-            string[] woods = Directory.GetFiles(path, WoodsFile.Filename);
-            string[] videos = Directory.GetFiles(path, vidSearchPattern);
+            string[] textures = GetFilesIgnoreCase(path, textureSearchPattern);
+            string[] models = GetFilesIgnoreCase(path, Arch3dFile.Filename);
+            string[] blocks = GetFilesIgnoreCase(path, BlocksFile.Filename);
+            string[] maps = GetFilesIgnoreCase(path, MapsFile.Filename);
+            string[] sounds = GetFilesIgnoreCase(path, SndFile.Filename);
+            string[] woods = GetFilesIgnoreCase(path, WoodsFile.Filename);
+            string[] videos = GetFilesIgnoreCase(path, vidSearchPattern);
 
             // Validate texture count
             if (textures.Length >= minTextureCount)
@@ -198,6 +200,38 @@ namespace DaggerfallConnect.Utility
             // Check videos
             if (requireVideos && !results.VideosValid)
                 results.AppearsValid = false;
+        }
+
+        static string[] GetFilesIgnoreCase(string path, string searchPattern)
+        {
+            List<string> results = new List<string>();
+            foreach (string file in Directory.GetFiles(path))
+            {
+                if (FilenameMatchesPattern(Path.GetFileName(file), searchPattern))
+                    results.Add(file);
+            }
+
+            return results.ToArray();
+        }
+
+        static bool FilenameMatchesPattern(string filename, string searchPattern)
+        {
+            if (searchPattern.StartsWith("*."))
+                return filename.EndsWith(searchPattern.Substring(1), StringComparison.OrdinalIgnoreCase);
+
+            if (filename.Length != searchPattern.Length)
+                return false;
+
+            for (int i = 0; i < searchPattern.Length; i++)
+            {
+                if (searchPattern[i] == '?')
+                    continue;
+
+                if (char.ToUpperInvariant(filename[i]) != char.ToUpperInvariant(searchPattern[i]))
+                    return false;
+            }
+
+            return true;
         }
 
         #endregion

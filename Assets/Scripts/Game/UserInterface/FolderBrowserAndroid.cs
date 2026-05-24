@@ -15,7 +15,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 using DaggerfallWorkshop.Utility;
-using System.Linq;
 using System.Collections;
 
 
@@ -232,8 +231,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
         {
             string outputPath = Path.Combine(Paths.PersistentDataPath, daggerfallDataDirName);
             string cachePath = Path.Combine(Application.temporaryCachePath, "DaggerfallArena2Unzipped");
-            bool foundValid = false;
-            string validSubdir = null;
+            string sourcePath = null;
+            string destinationPath = null;
+            DaggerfallConnect.Utility.DFValidator.ValidationResults validationResults;
             try
             {
                 // unzip phase
@@ -248,20 +248,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 // search phase
                 SetProgress(25f, "Searching data...");
                 yield return null;
-                var dirs = Directory.EnumerateDirectories(cachePath, "*", new EnumerationOptions { RecurseSubdirectories = true });
-                dirs = dirs.Prepend(cachePath);
-                foreach (var sub in dirs)
+                SetProgress(25f, "Expanding data...");
+                if (!TryGetValidImportSource(cachePath, outputPath, out sourcePath, out destinationPath, out validationResults))
                 {
-                    if (!string.IsNullOrEmpty(DaggerfallUnity.TestArena2Exists(sub)))
-                    {
-                        validSubdir = sub;
-                        foundValid = true;
-                        break;
-                    }
-                }
-                if (!foundValid)
-                {
-                    SetPathLabelText("Archive did not contain a valid Daggerfall folder", Color.red);
+                    SetPathLabelText(GetValidationFailureText(validationResults), Color.red);
                     HideProgressBar();
                     yield break;
                 }
@@ -273,17 +263,17 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 }
 
                 // copy phase
-                var allFiles = Directory.GetFiles(validSubdir, "*", SearchOption.AllDirectories);
+                var allFiles = Directory.GetFiles(sourcePath, "*", SearchOption.AllDirectories);
                 int total = allFiles.Length;
                 for (int i = 0; i < total; i++)
                 {
                     var src = allFiles[i];
-                    var rel = src.Substring(validSubdir.Length + 1);
-                    var dst = Path.Combine(outputPath, rel);
+                    var rel = src.Substring(sourcePath.Length + 1);
+                    var dst = Path.Combine(destinationPath, rel);
                     Directory.CreateDirectory(Path.GetDirectoryName(dst));
                     File.Copy(src, dst, true);
 
-                    float pct = 25f + 75f * (i + 1) / total;
+                    float pct = total > 0 ? 25f + 75f * (i + 1) / total : 100f;
                     SetProgress(pct, "Copying data...");
                     if (i % 10 == 0)
                         yield return null;
@@ -316,6 +306,143 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 }
                 HideProgressBar();
             }
+        }
+
+        private bool TryGetValidImportSource(
+            string cachePath,
+            string outputPath,
+            out string sourcePath,
+            out string destinationPath,
+            out DaggerfallConnect.Utility.DFValidator.ValidationResults bestValidationResults)
+        {
+            sourcePath = null;
+            destinationPath = null;
+            bestValidationResults = new DaggerfallConnect.Utility.DFValidator.ValidationResults();
+            int bestScore = -1;
+
+            foreach (var arena2Path in GetArena2Candidates(cachePath))
+            {
+                TryUnpackPackedDat(arena2Path);
+
+                DaggerfallConnect.Utility.DFValidator.ValidationResults validationResults;
+                DaggerfallConnect.Utility.DFValidator.ValidateArena2Folder(arena2Path, out validationResults, true);
+
+                int score = GetValidationScore(validationResults);
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestValidationResults = validationResults;
+                }
+
+                if (!validationResults.AppearsValid)
+                    continue;
+
+                sourcePath = GetImportSourcePath(cachePath, arena2Path);
+                destinationPath = string.Equals(sourcePath, arena2Path, StringComparison.OrdinalIgnoreCase)
+                    ? Path.Combine(outputPath, "arena2")
+                    : outputPath;
+                return true;
+            }
+
+            return false;
+        }
+
+        private void TryUnpackPackedDat(string arena2Path)
+        {
+            string packedDatPath = GetFileIgnoreCase(arena2Path, "PACKED.DAT");
+            if (string.IsNullOrEmpty(packedDatPath))
+                return;
+
+            bool arch3dExists = !string.IsNullOrEmpty(GetFileIgnoreCase(arena2Path, "ARCH3D.BSA"));
+            bool daggerSndExists = !string.IsNullOrEmpty(GetFileIgnoreCase(arena2Path, "DAGGER.SND"));
+            if (arch3dExists && daggerSndExists)
+                return;
+
+            DirectoryInfo arena2Parent = Directory.GetParent(arena2Path);
+            string outputPath = arena2Parent != null ? arena2Parent.FullName : arena2Path;
+
+            try
+            {
+                PackedDatFileUtils.UnpackFile(packedDatPath, outputPath);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("Failed to unpack PACKED.DAT: " + ex.Message);
+            }
+        }
+
+        private string GetFileIgnoreCase(string path, string filename)
+        {
+            if (!Directory.Exists(path))
+                return null;
+
+            foreach (var file in Directory.GetFiles(path))
+            {
+                if (string.Equals(Path.GetFileName(file), filename, StringComparison.OrdinalIgnoreCase))
+                    return file;
+            }
+
+            return null;
+        }
+
+        private IEnumerable<string> GetArena2Candidates(string cachePath)
+        {
+            if (Directory.Exists(cachePath))
+            {
+                yield return cachePath;
+
+                foreach (var dir in Directory.EnumerateDirectories(cachePath, "*", SearchOption.AllDirectories))
+                {
+                    if (string.Equals(Path.GetFileName(dir), "arena2", StringComparison.OrdinalIgnoreCase))
+                        yield return dir;
+                }
+            }
+        }
+
+        private string GetImportSourcePath(string cachePath, string arena2Path)
+        {
+            if (string.Equals(cachePath, arena2Path, StringComparison.OrdinalIgnoreCase))
+                return arena2Path;
+
+            DirectoryInfo parent = Directory.GetParent(arena2Path);
+            if (parent == null || string.Equals(parent.FullName, cachePath, StringComparison.OrdinalIgnoreCase))
+                return cachePath;
+
+            return parent.FullName;
+        }
+
+        private int GetValidationScore(DaggerfallConnect.Utility.DFValidator.ValidationResults validationResults)
+        {
+            int score = 0;
+            if (validationResults.FolderValid) score++;
+            if (validationResults.TexturesValid) score++;
+            if (validationResults.ModelsValid) score++;
+            if (validationResults.BlocksValid) score++;
+            if (validationResults.MapsValid) score++;
+            if (validationResults.SoundsValid) score++;
+            if (validationResults.WoodsValid) score++;
+            if (validationResults.VideosValid) score++;
+            return score;
+        }
+
+        private string GetValidationFailureText(DaggerfallConnect.Utility.DFValidator.ValidationResults validationResults)
+        {
+            if (string.IsNullOrEmpty(validationResults.PathTested))
+                return "Archive did not contain an arena2 folder";
+
+            List<string> missing = new List<string>();
+            if (!validationResults.TexturesValid) missing.Add("textures");
+            if (!validationResults.ModelsValid) missing.Add("ARCH3D.BSA");
+            if (!validationResults.BlocksValid) missing.Add("BLOCKS.BSA");
+            if (!validationResults.MapsValid) missing.Add("MAPS.BSA");
+            if (!validationResults.SoundsValid) missing.Add("DAGGER.SND");
+            if (!validationResults.WoodsValid) missing.Add("WOODS.WLD");
+            if (!validationResults.VideosValid) missing.Add("videos");
+
+            if (missing.Count == 0)
+                return "Archive did not contain a valid Daggerfall folder";
+
+            return "Archive is missing " + string.Join(", ", missing.ToArray());
         }
 
         private void ShowProgressBar()
