@@ -4,7 +4,7 @@
 // License:         MIT License (http://www.opensource.org/licenses/mit-license.php)
 // Source Code:     https://github.com/Interkarma/daggerfall-unity
 // Original Author: marcoscampi
-// Contributors: Vincent Wing (vwing@uci.edu)
+// Contributors: Vivian V Wing (vwing@multitude.city)
 // 
 // Notes:
 //
