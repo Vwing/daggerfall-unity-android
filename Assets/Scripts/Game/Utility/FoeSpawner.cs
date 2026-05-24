@@ -56,8 +56,7 @@ namespace DaggerfallWorkshop.Game.Utility
             if (FoeType != MobileTypes.None && FoeType != lastFoeType && SpawnCount > 0)
             {
                 DestroyOldFoeGameObjects(pendingFoeGameObjects);
-                Vector3 inactiveSpawnPos = GameManager.Instance.PlayerController.transform.position + Vector3.up * 4f;
-                SetFoeGameObjects(GameObjectHelper.CreateFoeGameObjects(inactiveSpawnPos, FoeType, SpawnCount, alliedToPlayer: AlliedToPlayer));
+                SetFoeGameObjects(GameObjectHelper.CreateFoeGameObjects(Vector3.zero, FoeType, SpawnCount, alliedToPlayer: AlliedToPlayer));
                 lastFoeType = FoeType;
             }
 

@@ -169,6 +169,11 @@ namespace DaggerfallWorkshop.Game
         {
             foreach (GameObject obj in cullableObjects)
             {
+                if(obj.transform.position.sqrMagnitude < 0.0001f){
+                    // Don't cull objects that are at the world origin; they tend to be things like enemy spawners,
+                    // not stuff that's yet in the world.
+                    continue;
+                }
                 float sqrDistance = (playerPosition - obj.transform.position).sqrMagnitude;
                 if (sqrDistance > maxSquaredDistance)
                 {

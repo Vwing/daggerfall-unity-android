@@ -166,8 +166,7 @@ namespace DaggerfallWorkshop.Game.Questing
         void CreatePendingFoeSpawn(Foe foe)
         {
             // Get foe GameObjects
-            Vector3 inactiveSpawnPos = GameManager.Instance.PlayerController.transform.position + Vector3.up * 4f;
-            pendingFoeGameObjects = GameObjectHelper.CreateFoeGameObjects(inactiveSpawnPos, foe.FoeType, foe.SpawnCount, MobileReactions.Hostile, foe);
+            pendingFoeGameObjects = GameObjectHelper.CreateFoeGameObjects(Vector3.zero, foe.FoeType, foe.SpawnCount, MobileReactions.Hostile, foe);
             if (pendingFoeGameObjects == null || pendingFoeGameObjects.Length != foe.SpawnCount)
             {
                 SetComplete();
