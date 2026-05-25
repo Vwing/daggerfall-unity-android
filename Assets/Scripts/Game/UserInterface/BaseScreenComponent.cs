@@ -723,7 +723,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             }
 
             // Handle mouse wheel
-            float mouseScroll = Input.GetAxis("Mouse ScrollWheel");
+            float mouseScroll = OpenPointerCapture.CapturedInput.GetAxis("Mouse ScrollWheel");
             if (mouseOverComponent && mouseScroll != 0)
             {
                 if (mouseScroll > 0)

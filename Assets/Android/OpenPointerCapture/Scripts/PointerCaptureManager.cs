@@ -16,6 +16,8 @@ namespace OpenPointerCapture
         public bool toggleCapturedStateWithCursorLockState = true;
 
         private CursorLockMode lastLockState;
+        private const bool debugMouseLook = false;
+        private float nextDebugLogTime;
 
         void Awake()
         {
@@ -45,10 +47,11 @@ namespace OpenPointerCapture
                 }
             }
 
-            // Poll for captured input *only* if the helper reports capture is active
-            // This relies on the Android helper's `hasCaptureConfirmed` state becoming true
-            // after a capture request and the first captured event.
-            if (PointerCaptureNativeInterface.isPointerCaptured())
+            bool isPointerCaptured = PointerCaptureNativeInterface.isPointerCaptured();
+
+            // Poll captured relative movement only after capture is active. Buttons and
+            // scroll are polled below so they can also be mapped while menus are open.
+            if (isPointerCaptured)
             {
                 // --- Handle Pointer Movement ---
                 float dx = PointerCaptureNativeInterface.getLastDx();
@@ -56,38 +59,38 @@ namespace OpenPointerCapture
                 Vector2 delta = new Vector2(dx, -dy);
                 if (delta.x != 0 || delta.y != 0)
                 {
-                    //Debug.Log($"Captured Mouse Moved: dx={delta.x}, dy={delta.y}");
+                    LogMouseLookDebug("ML_POINTER_MANAGER poll dx=" + dx + " dy=" + dy + " unityDelta=" + delta);
                     OnCapturedPointerMoved?.Invoke(delta);
                 }
+            }
 
-                // --- Handle Mouse Buttons ---
-                // We check getLastActionButton which tells us which button changed state
-                int actionButton = PointerCaptureNativeInterface.getLastActionButton();
-                if (actionButton != 0)
+            // --- Handle Mouse Buttons ---
+            // We check getLastActionButton which tells us which button changed state
+            int actionButton = PointerCaptureNativeInterface.getLastActionButton();
+            if (actionButton != 0)
+            {
+                // We need to map the Android button constants to Unity button indices
+                int unityButtonIndex = MapAndroidButtonToUnity(actionButton);
+                if (unityButtonIndex != -1) // Only process if it's a button we map (0-6)
                 {
-                    // We need to map the Android button constants to Unity button indices
-                    int unityButtonIndex = MapAndroidButtonToUnity(actionButton);
-                    if (unityButtonIndex != -1) // Only process if it's a button we map (0-6)
-                    {
-                        // Check the current state of this button using getLastButtonState
-                        // Note: getButtonState is a bitfield, so we check if the specific button's bit is set.
-                        int buttonStateBit = GetAndroidButtonStateBit(actionButton);
-                        bool isDown = (PointerCaptureNativeInterface.getLastButtonState() & buttonStateBit) != 0;
+                    // Check the current state of this button using getLastButtonState
+                    // Note: getButtonState is a bitfield, so we check if the specific button's bit is set.
+                    int buttonStateBit = GetAndroidButtonStateBit(actionButton);
+                    bool isDown = (PointerCaptureNativeInterface.getLastButtonState() & buttonStateBit) != 0;
 
-                        //Debug.Log($"Captured Mouse Button: button={unityButtonIndex} (Android:{actionButton}), isDown={isDown}");
-                        OnCapturedMouseButton?.Invoke(unityButtonIndex, isDown);
-                    }
+                    //Debug.Log($"Captured Mouse Button: button={unityButtonIndex} (Android:{actionButton}), isDown={isDown}");
+                    OnCapturedMouseButton?.Invoke(unityButtonIndex, isDown);
                 }
+            }
 
-                // --- Handle Scroll Wheel ---
-                float vScroll = PointerCaptureNativeInterface.getLastVerticalScrollDelta();
-                float hScroll = PointerCaptureNativeInterface.getLastHorizontalScrollDelta();
-                Vector2 scrollDelta = new Vector2(hScroll, vScroll); // Unity's scrollDelta is (x, y)
-                if (scrollDelta.x != 0 || scrollDelta.y != 0)
-                {
-                    //Debug.Log($"Captured Scroll: delta={scrollDelta}");
-                    OnCapturedScroll?.Invoke(scrollDelta);
-                }
+            // --- Handle Scroll Wheel ---
+            float vScroll = PointerCaptureNativeInterface.getLastVerticalScrollDelta();
+            float hScroll = PointerCaptureNativeInterface.getLastHorizontalScrollDelta();
+            Vector2 scrollDelta = new Vector2(hScroll, vScroll); // Unity's scrollDelta is (x, y)
+            if (scrollDelta.x != 0 || scrollDelta.y != 0)
+            {
+                //Debug.Log($"Captured Scroll: delta={scrollDelta}");
+                OnCapturedScroll?.Invoke(scrollDelta);
             }
 
             lastLockState = Cursor.lockState;
@@ -119,6 +122,15 @@ namespace OpenPointerCapture
         {
             // The bitfield uses the same values as the action button constants
             return androidButton;
+        }
+
+        private void LogMouseLookDebug(string message)
+        {
+            if (!debugMouseLook || Time.realtimeSinceStartup < nextDebugLogTime)
+                return;
+
+            nextDebugLogTime = Time.realtimeSinceStartup + 0.25f;
+            Debug.Log(message);
         }
     }
 

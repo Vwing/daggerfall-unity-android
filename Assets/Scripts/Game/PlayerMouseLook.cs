@@ -44,6 +44,8 @@ namespace DaggerfallWorkshop.Game
 
         public const float SmoothingMax = 0.9f;
         float smoothing = 0.5f; // This value now comes from user-defined settings
+        const bool debugMouseLook = false;
+        float nextDebugLogTime;
 
         /// <summary>
         /// Gets or sets degree of mouse-look camera smoothing (0.0 is none, 0.1 is a little, 0.9 is a lot).
@@ -135,6 +137,8 @@ namespace DaggerfallWorkshop.Game
             Vector2 rawMouseDelta = new Vector2(InputManager.Instance.MouseLookX, InputManager.Instance.MouseLookY);
             Vector2 rawJoyDelta = new Vector2(InputManager.Instance.JoyLookX, InputManager.Instance.JoyLookY);
             Vector2 rawTouchDelta = new Vector2(InputManager.Instance.TouchJoyLookX, InputManager.Instance.TouchJoyLookY);
+            Vector2 previousLookTarget = lookTarget;
+            Vector2 previousLookCurrent = lookCurrent;
 
             lookTarget += Vector2.Scale(rawMouseDelta, new Vector2(mouseSensitivityX, mouseSensitivityY * (invertMouseY ? -1 : 1)));
             lookTarget += Vector2.Scale(rawJoyDelta, new Vector2(joySensitivityX, joySensitivityY * (invertMouseY ? -1 : 1)));
@@ -156,6 +160,8 @@ namespace DaggerfallWorkshop.Game
 
             Yaw = lookCurrent.x;
             Pitch = -lookCurrent.y;
+
+            LogMouseLookDebug(rawMouseDelta, previousLookTarget, previousLookCurrent, mouseSensitivityX, mouseSensitivityY);
         }
 
         // Updates lookCurrent by moving it a fraction towards lookTarget
@@ -310,6 +316,22 @@ namespace DaggerfallWorkshop.Game
         public void ForceHideCursor(bool hideCursor)
         {
             this.forceHideCursor = hideCursor;
+        }
+
+        void LogMouseLookDebug(Vector2 rawMouseDelta, Vector2 previousLookTarget, Vector2 previousLookCurrent, float mouseSensitivityX, float mouseSensitivityY)
+        {
+            if (!debugMouseLook || rawMouseDelta == Vector2.zero || Time.realtimeSinceStartup < nextDebugLogTime)
+                return;
+
+            nextDebugLogTime = Time.realtimeSinceStartup + 0.25f;
+            Debug.Log("ML_PLAYER_LOOK rawMouse=" + rawMouseDelta
+                + " sensitivity=(" + mouseSensitivityX + "," + mouseSensitivityY + ")"
+                + " target=" + previousLookTarget + "->" + lookTarget
+                + " current=" + previousLookCurrent + "->" + lookCurrent
+                + " yaw=" + Yaw
+                + " pitch=" + Pitch
+                + " smoothing=" + Smoothing
+                + " dt=" + Time.unscaledDeltaTime);
         }
     }
 }

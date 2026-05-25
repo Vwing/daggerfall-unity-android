@@ -1644,8 +1644,9 @@ namespace DaggerfallWorkshop.Game
         {
             // Assign mouse
             bool mouseLookAllowed = !TouchscreenInputManager.IsTouchscreenActive || Input.touchCount == 0 && !Application.isEditor || VirtualJoystick.JoystickThatIsCurrentlyMouseLooking;
-            mouseLookX = keyboardLookX != 0 ? keyboardLookX : mouseLookAllowed ? mouseX : 0;
-            mouseLookY = keyboardLookY != 0 ? keyboardLookY : mouseLookAllowed ? mouseY : 0;
+            bool capturedMouseLook = OpenPointerCapture.CapturedInput.IsPointerCaptured && mouseLookAllowed;
+            mouseLookX = capturedMouseLook && mouseX != 0 ? mouseX : keyboardLookX != 0 ? keyboardLookX : mouseLookAllowed ? mouseX : 0;
+            mouseLookY = capturedMouseLook && mouseY != 0 ? mouseY : keyboardLookY != 0 ? keyboardLookY : mouseLookAllowed ? mouseY : 0;
 
             // Inversion
             if (invertLookX)
@@ -1793,8 +1794,13 @@ namespace DaggerfallWorkshop.Game
         
         bool GetPollKey(KeyCode k)
         {
-            bool isDepressed = (int)k < startingAxisKeyCode ? Input.GetKey(k) : GetAxisKey((int)k);
+            bool isDepressed = (int)k < startingAxisKeyCode ? CapturedInput.GetKey(k) : IsAxisKeyCode((int)k) && GetAxisKey((int)k);
             return isDepressed || TouchscreenInputManager.GetPollKey(k);
+        }
+
+        bool IsAxisKeyCode(int key)
+        {
+            return key >= startingAxisKeyCode && key < startingAxisKeyCode + numAxes * 2;
         }
 
         bool GetAxisKey(int key)

@@ -21,6 +21,8 @@ namespace OpenPointerCapture
 
         // Match the Mouse X/Y axis sensitivity configured in ProjectSettings/InputManager.asset.
         private const float mouseAxisSensitivity = 0.1f;
+        private const bool debugMouseLook = false;
+        private static float nextDebugLogTime;
 
         // This flag indicates if the CapturedInput system is initialized and listening
         private static bool isInitialized = false;
@@ -74,6 +76,8 @@ namespace OpenPointerCapture
             // For the example script's needs, we don't need to store this in CapturedInput.
             capturedPointerDeltaThisFrame += delta;
             simulatedMousePosition += delta;
+
+            LogMouseLookDebug("ML_CAPTURED_INPUT move delta=" + delta + " frameTotal=" + capturedPointerDeltaThisFrame);
         }
 
         private static void HandleCapturedMouseButton(int buttonIndex, bool isDown)
@@ -100,6 +104,11 @@ namespace OpenPointerCapture
 
         // --- Facade Methods ---
 
+        public static bool IsPointerCaptured
+        {
+            get { return isInitialized && PointerCaptureNativeInterface.isPointerCaptured(); }
+        }
+
         public static bool GetMouseButtonDown(int button)
         {
             if (!isInitialized)
@@ -118,7 +127,9 @@ namespace OpenPointerCapture
             else
             {
                 // If not captured, use Unity's default Input system
-                return Input.GetMouseButtonDown(button);
+                bool wasDownLastFrame = lastButtonState.ContainsKey(button) ? lastButtonState[button] : false;
+                bool isDownThisFrame = currentButtonState.ContainsKey(button) ? currentButtonState[button] : false;
+                return Input.GetMouseButtonDown(button) || (isDownThisFrame && !wasDownLastFrame);
             }
         }
 
@@ -140,7 +151,9 @@ namespace OpenPointerCapture
             else
             {
                 // If not captured, use Unity's default Input
-                return Input.GetMouseButtonUp(button);
+                bool wasDownLastFrame = lastButtonState.ContainsKey(button) ? lastButtonState[button] : false;
+                bool isDownThisFrame = currentButtonState.ContainsKey(button) ? currentButtonState[button] : false;
+                return Input.GetMouseButtonUp(button) || (!isDownThisFrame && wasDownLastFrame);
             }
         }
 
@@ -160,9 +173,38 @@ namespace OpenPointerCapture
             else
             {
                 // If not captured, use Unity's default Input
-                return Input.GetMouseButton(button);
+                bool isDownThisFrame = currentButtonState.ContainsKey(button) ? currentButtonState[button] : false;
+                return Input.GetMouseButton(button) || isDownThisFrame;
             }
         }
+
+        public static bool GetKey(KeyCode key)
+        {
+            int mouseButton = GetMouseButtonIndex(key);
+            if (mouseButton != -1)
+                return GetMouseButton(mouseButton);
+
+            return Input.GetKey(key);
+        }
+
+        public static bool GetKeyDown(KeyCode key)
+        {
+            int mouseButton = GetMouseButtonIndex(key);
+            if (mouseButton != -1)
+                return GetMouseButtonDown(mouseButton);
+
+            return Input.GetKeyDown(key);
+        }
+
+        public static bool GetKeyUp(KeyCode key)
+        {
+            int mouseButton = GetMouseButtonIndex(key);
+            if (mouseButton != -1)
+                return GetMouseButtonUp(mouseButton);
+
+            return Input.GetKeyUp(key);
+        }
+
         public static float GetAxis(string axisName)
         {
             if (!isInitialized)
@@ -177,9 +219,19 @@ namespace OpenPointerCapture
                 switch (axisName)
                 {
                     case "Mouse X":
-                        return capturedPointerDeltaThisFrame.x * mouseAxisSensitivity;
+                    {
+                        float value = capturedPointerDeltaThisFrame.x * mouseAxisSensitivity;
+                        LogMouseLookDebug("ML_CAPTURED_INPUT axis=Mouse X raw=" + capturedPointerDeltaThisFrame.x + " scaled=" + value);
+                        return value;
+                    }
                     case "Mouse Y":
-                        return capturedPointerDeltaThisFrame.y * mouseAxisSensitivity;
+                    {
+                        float value = capturedPointerDeltaThisFrame.y * mouseAxisSensitivity;
+                        LogMouseLookDebug("ML_CAPTURED_INPUT axis=Mouse Y raw=" + capturedPointerDeltaThisFrame.y + " scaled=" + value);
+                        return value;
+                    }
+                    case "Mouse ScrollWheel":
+                        return capturedScrollDeltaThisFrame.y;
                     default:
                         return Input.GetAxis(axisName);
                 }
@@ -187,6 +239,9 @@ namespace OpenPointerCapture
             else
             {
                 // If not captured, use Unity's default Input system for all axes
+                if (axisName == "Mouse ScrollWheel")
+                    return Input.GetAxis(axisName) + capturedScrollDeltaThisFrame.y;
+
                 return Input.GetAxis(axisName);
             }
         }
@@ -210,9 +265,26 @@ namespace OpenPointerCapture
                 else
                 {
                     // If not captured, use Unity's default Input
-                    return Input.mouseScrollDelta;
+                    return Input.mouseScrollDelta + capturedScrollDeltaThisFrame;
                 }
             }
+        }
+
+        private static int GetMouseButtonIndex(KeyCode key)
+        {
+            if (key < KeyCode.Mouse0 || key > KeyCode.Mouse6)
+                return -1;
+
+            return (int)key - (int)KeyCode.Mouse0;
+        }
+
+        private static void LogMouseLookDebug(string message)
+        {
+            if (!debugMouseLook || Time.realtimeSinceStartup < nextDebugLogTime)
+                return;
+
+            nextDebugLogTime = Time.realtimeSinceStartup + 0.25f;
+            Debug.Log(message);
         }
     }
 }
