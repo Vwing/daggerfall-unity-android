@@ -160,8 +160,6 @@ namespace DaggerfallWorkshop.Game
 
             Yaw = lookCurrent.x;
             Pitch = -lookCurrent.y;
-
-            LogMouseLookDebug(rawMouseDelta, previousLookTarget, previousLookCurrent, mouseSensitivityX, mouseSensitivityY);
         }
 
         // Updates lookCurrent by moving it a fraction towards lookTarget
@@ -316,22 +314,6 @@ namespace DaggerfallWorkshop.Game
         public void ForceHideCursor(bool hideCursor)
         {
             this.forceHideCursor = hideCursor;
-        }
-
-        void LogMouseLookDebug(Vector2 rawMouseDelta, Vector2 previousLookTarget, Vector2 previousLookCurrent, float mouseSensitivityX, float mouseSensitivityY)
-        {
-            if (!debugMouseLook || rawMouseDelta == Vector2.zero || Time.realtimeSinceStartup < nextDebugLogTime)
-                return;
-
-            nextDebugLogTime = Time.realtimeSinceStartup + 0.25f;
-            Debug.Log("ML_PLAYER_LOOK rawMouse=" + rawMouseDelta
-                + " sensitivity=(" + mouseSensitivityX + "," + mouseSensitivityY + ")"
-                + " target=" + previousLookTarget + "->" + lookTarget
-                + " current=" + previousLookCurrent + "->" + lookCurrent
-                + " yaw=" + Yaw
-                + " pitch=" + Pitch
-                + " smoothing=" + Smoothing
-                + " dt=" + Time.unscaledDeltaTime);
         }
     }
 }

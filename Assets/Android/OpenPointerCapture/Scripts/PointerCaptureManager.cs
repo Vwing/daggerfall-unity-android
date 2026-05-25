@@ -59,7 +59,6 @@ namespace OpenPointerCapture
                 Vector2 delta = new Vector2(dx, -dy);
                 if (delta.x != 0 || delta.y != 0)
                 {
-                    LogMouseLookDebug("ML_POINTER_MANAGER poll dx=" + dx + " dy=" + dy + " unityDelta=" + delta);
                     OnCapturedPointerMoved?.Invoke(delta);
                 }
             }
@@ -122,15 +121,6 @@ namespace OpenPointerCapture
         {
             // The bitfield uses the same values as the action button constants
             return androidButton;
-        }
-
-        private void LogMouseLookDebug(string message)
-        {
-            if (!debugMouseLook || Time.realtimeSinceStartup < nextDebugLogTime)
-                return;
-
-            nextDebugLogTime = Time.realtimeSinceStartup + 0.25f;
-            Debug.Log(message);
         }
     }
 

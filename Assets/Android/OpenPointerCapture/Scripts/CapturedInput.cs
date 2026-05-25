@@ -76,8 +76,6 @@ namespace OpenPointerCapture
             // For the example script's needs, we don't need to store this in CapturedInput.
             capturedPointerDeltaThisFrame += delta;
             simulatedMousePosition += delta;
-
-            LogMouseLookDebug("ML_CAPTURED_INPUT move delta=" + delta + " frameTotal=" + capturedPointerDeltaThisFrame);
         }
 
         private static void HandleCapturedMouseButton(int buttonIndex, bool isDown)
@@ -221,13 +219,11 @@ namespace OpenPointerCapture
                     case "Mouse X":
                     {
                         float value = capturedPointerDeltaThisFrame.x * mouseAxisSensitivity;
-                        LogMouseLookDebug("ML_CAPTURED_INPUT axis=Mouse X raw=" + capturedPointerDeltaThisFrame.x + " scaled=" + value);
                         return value;
                     }
                     case "Mouse Y":
                     {
                         float value = capturedPointerDeltaThisFrame.y * mouseAxisSensitivity;
-                        LogMouseLookDebug("ML_CAPTURED_INPUT axis=Mouse Y raw=" + capturedPointerDeltaThisFrame.y + " scaled=" + value);
                         return value;
                     }
                     case "Mouse ScrollWheel":
@@ -276,15 +272,6 @@ namespace OpenPointerCapture
                 return -1;
 
             return (int)key - (int)KeyCode.Mouse0;
-        }
-
-        private static void LogMouseLookDebug(string message)
-        {
-            if (!debugMouseLook || Time.realtimeSinceStartup < nextDebugLogTime)
-                return;
-
-            nextDebugLogTime = Time.realtimeSinceStartup + 0.25f;
-            Debug.Log(message);
         }
     }
 }
