@@ -822,12 +822,12 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
     {
         int overwriteCount = looseStreamingAssets.Count(file => File.Exists(file.DestinationPath));
         string overwriteText = overwriteCount > 0
-            ? string.Format("\n\n{0} existing file{1} will be overwritten.", overwriteCount, overwriteCount == 1 ? string.Empty : "s")
-            : "\n\nNo existing files will be overwritten.";
+            ? string.Format(" {0} existing file{1} will be overwritten.", overwriteCount, overwriteCount == 1 ? string.Empty : "s")
+            : " No existing files will be overwritten.";
 
         DaggerfallMessageBox messageBox = new DaggerfallMessageBox(uiManager, this, true);
         messageBox.SetText(string.Format(
-            "This mod zip contains {0} loose StreamingAssets file{1}.{2}\n\nImport these files?",
+            "This mod zip contains {0} loose StreamingAssets file{1}.{2} Import these files?",
             looseStreamingAssets.Count,
             looseStreamingAssets.Count == 1 ? string.Empty : "s",
             overwriteText));

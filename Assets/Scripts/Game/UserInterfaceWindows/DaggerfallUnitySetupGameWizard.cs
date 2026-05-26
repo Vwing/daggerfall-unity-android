@@ -564,8 +564,13 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 #endif
                     settingsPathLabel.Text = DaggerfallUnity.Settings.PersistentDataPath;
                     settingsPathLabel.ToolTip = defaultToolTip;
+#if UNITY_ANDROID
+                    settingsPathLabel.ToolTipText = GetText("settingsFolderInfoAndroid");
+                    settingsPathLabel.OnMouseClick += SettingsPathLabel_OnMouseClick;
+#else
                     settingsPathLabel.ToolTipText = GetText("settingsFolderInfo");
                     settingsPathLabel.OnMouseDoubleClick += SettingsPathLabel_OnMouseClick;
+#endif
                     settingsPathLabel.ShadowPosition = Vector2.zero;
                     settingsPathLabel.TextColor = secondaryTextColor;
 
@@ -690,7 +695,11 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         private void SettingsPathLabel_OnMouseClick(BaseScreenComponent sender, Vector2 position)
         {
             // Open the persistent data path
+#if UNITY_ANDROID
+            AndroidUtils.OpenFolder(DaggerfallUnity.Settings.PersistentDataPath);
+#else
             System.Diagnostics.Process.Start(DaggerfallUnity.Settings.PersistentDataPath);
+#endif
         }
 
 #if UNITY_ANDROID

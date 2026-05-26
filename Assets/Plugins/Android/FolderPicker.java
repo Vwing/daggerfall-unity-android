@@ -51,6 +51,73 @@ public final class FolderPicker
         activity.startActivity(intent);
     }
 
+    public static void openFolder(Activity activity, String path) {
+        if (activity == null || path == null || path.length() == 0) {
+            return;
+        }
+
+        Uri uri = getTreeUriFromPath(path);
+        if (uri == null) {
+            return;
+        }
+
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(uri, "vnd.android.document/directory");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
+
+        try {
+            activity.startActivity(intent);
+        } catch (Exception ex) {
+            openFolderPickerAt(activity, uri);
+        }
+    }
+
+    private static void openFolderPickerAt(Activity activity, Uri uri) {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
+
+        if (android.os.Build.VERSION.SDK_INT >= 26) {
+            intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri);
+        }
+
+        try {
+            activity.startActivity(intent);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static Uri getTreeUriFromPath(String path) {
+        String normalizedPath = path.replace('\\', '/');
+        String primaryStoragePath = Environment.getExternalStorageDirectory().getAbsolutePath().replace('\\', '/');
+        if (normalizedPath.equals(primaryStoragePath)) {
+            return DocumentsContract.buildTreeDocumentUri("com.android.externalstorage.documents", "primary:");
+        }
+
+        String primaryStoragePrefix = primaryStoragePath + "/";
+        if (normalizedPath.startsWith(primaryStoragePrefix)) {
+            String relativePath = normalizedPath.substring(primaryStoragePrefix.length());
+            return DocumentsContract.buildTreeDocumentUri("com.android.externalstorage.documents", "primary:" + relativePath);
+        }
+
+        String documentsPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).getAbsolutePath().replace('\\', '/');
+        if (normalizedPath.equals(documentsPath)) {
+            return DocumentsContract.buildTreeDocumentUri("com.android.externalstorage.documents", "home:");
+        }
+
+        String documentsPrefix = documentsPath + "/";
+        if (normalizedPath.startsWith(documentsPrefix)) {
+            String relativePath = normalizedPath.substring(documentsPrefix.length());
+            return DocumentsContract.buildTreeDocumentUri("com.android.externalstorage.documents", "home:" + relativePath);
+        }
+
+        return null;
+    }
+
     public static class ResultFragment extends Fragment {
         static final String EXTRA_GAME_OBJECT_NAME = "gameObjectName";
         static final String EXTRA_CALLBACK_METHOD_NAME = "callbackMethodName";

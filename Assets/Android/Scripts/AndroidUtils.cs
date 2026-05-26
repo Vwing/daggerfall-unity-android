@@ -85,6 +85,20 @@ namespace DaggerfallWorkshop
 #endif
         }
 
+        public static void OpenFolder(string path)
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+            using (var picker = new AndroidJavaClass("com.dfworkshop.daggerfallunityandroid.FolderPicker"))
+            {
+                AndroidJavaObject currentActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                picker.CallStatic("openFolder", currentActivity, path);
+            }
+#else
+            Application.OpenURL(path);
+#endif
+        }
+
         private static void EnsureFolderPickerReceiver()
         {
             if (folderPickerReceiver != null)
