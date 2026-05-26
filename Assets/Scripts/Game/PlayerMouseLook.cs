@@ -76,6 +76,11 @@ namespace DaggerfallWorkshop.Game
             }
         }
 
+        public bool WantsPointerCapture
+        {
+            get { return lockCursor && enableMouseLook && !cursorActive && !forceHideCursor && !GameManager.IsGamePaused; }
+        }
+
         /// <summary>
         /// Gets or sets pitch rotation of camera in degrees.
         /// </summary>

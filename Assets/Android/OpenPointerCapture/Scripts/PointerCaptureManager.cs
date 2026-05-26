@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using DaggerfallWorkshop.Game;
 
 namespace OpenPointerCapture
 {
@@ -33,16 +34,15 @@ namespace OpenPointerCapture
         {
             if (toggleCapturedStateWithCursorLockState)
             {
-                // Manage capture state based on Cursor.lockState
-                if (Cursor.lockState == CursorLockMode.Locked && !PointerCaptureNativeInterface.isPointerCaptured())
+                // Manage capture state based on gameplay mouse-look, not cursor lock alone.
+                bool shouldCapturePointer = Cursor.lockState == CursorLockMode.Locked && IsPointerCaptureAllowed();
+                if (shouldCapturePointer && !PointerCaptureNativeInterface.isPointerCaptured())
                 {
-                    // Request capture when Cursor.lockState becomes Locked
                     CapturedInput.SetSimulatedMousePosition(Input.mousePosition);
                     PointerCaptureNativeInterface.beginCapture();
                 }
-                else if (Cursor.lockState != CursorLockMode.Locked && PointerCaptureNativeInterface.isPointerCaptured())
+                else if (!shouldCapturePointer && PointerCaptureNativeInterface.isPointerCaptured())
                 {
-                    // Release capture when Cursor.lockState becomes unlocked
                     PointerCaptureNativeInterface.endCapture();
                 }
             }
@@ -93,6 +93,18 @@ namespace OpenPointerCapture
             }
 
             lastLockState = Cursor.lockState;
+        }
+
+        private bool IsPointerCaptureAllowed()
+        {
+            if (!Input.mousePresent)
+                return false;
+
+            GameManager gameManager = GameManager.Instance;
+            if (!gameManager || !gameManager.IsReady || !gameManager.PlayerMouseLook)
+                return false;
+
+            return gameManager.PlayerMouseLook.WantsPointerCapture;
         }
 
         void LateUpdate()
