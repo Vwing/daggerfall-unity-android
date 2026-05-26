@@ -12,6 +12,7 @@ public class AndroidBuildTool : EditorWindow
     [System.Serializable]
     private class BuildConfig
     {
+        public bool enabled = true;
         public bool armv7 = true;
         public bool armv64 = false;
         public bool il2cpp = true;
@@ -23,6 +24,7 @@ public class AndroidBuildTool : EditorWindow
         public BuildConfig Copy()
         {
             return new BuildConfig(){
+                enabled = this.enabled,
                 armv7 = this.armv7,
                 armv64 = this.armv64,
                 il2cpp = this.il2cpp,
@@ -56,13 +58,18 @@ public class AndroidBuildTool : EditorWindow
 
             BuildConfig config = buildConfigs[i];
 
-            config.armv7 = EditorGUILayout.Toggle("ARMv7", config.armv7);
-            config.armv64 = EditorGUILayout.Toggle("ARMv64", config.armv64);
-            config.il2cpp = EditorGUILayout.Toggle("IL2CPP", config.il2cpp);
-            config.devBuild = EditorGUILayout.Toggle("Development Build", config.devBuild);
-            config.apkName = EditorGUILayout.TextField("APK Name", config.apkName);
-            config.version = EditorGUILayout.TextField("Version", config.version);
-            config.bundleVersion = EditorGUILayout.TextField("Bundle Version", config.bundleVersion);
+            config.enabled = EditorGUILayout.Toggle("Enabled", config.enabled);
+            EditorGUI.BeginDisabledGroup(!config.enabled);
+            {
+                config.armv7 = EditorGUILayout.Toggle("ARMv7", config.armv7);
+                config.armv64 = EditorGUILayout.Toggle("ARMv64", config.armv64);
+                config.il2cpp = EditorGUILayout.Toggle("IL2CPP", config.il2cpp);
+                config.devBuild = EditorGUILayout.Toggle("Development Build", config.devBuild);
+                config.apkName = EditorGUILayout.TextField("APK Name", config.apkName);
+                config.version = EditorGUILayout.TextField("Version", config.version);
+                config.bundleVersion = EditorGUILayout.TextField("Bundle Version", config.bundleVersion);
+            }
+            EditorGUI.EndDisabledGroup();
 
             if (GUILayout.Button("Remove"))
             {
@@ -94,6 +101,9 @@ public class AndroidBuildTool : EditorWindow
         for (int i = 0; i < buildConfigs.Count; i++)
         {
             BuildConfig config = buildConfigs[i];
+            if (!config.enabled)
+                continue;
+
             BuildAndroid(config, i + 1);
         }
     }
@@ -159,7 +169,15 @@ public class AndroidBuildTool : EditorWindow
         if (!string.IsNullOrEmpty(json))
         {
             SerializableList<BuildConfig> loadedList = JsonUtility.FromJson<SerializableList<BuildConfig>>(json);
-            buildConfigs = loadedList.list;
+            buildConfigs = loadedList != null && loadedList.list != null ? loadedList.list : new List<BuildConfig>();
+
+            if (!json.Contains("\"enabled\""))
+            {
+                foreach (BuildConfig config in buildConfigs)
+                {
+                    config.enabled = true;
+                }
+            }
         }
     }
 

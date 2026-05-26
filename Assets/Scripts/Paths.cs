@@ -68,7 +68,7 @@ namespace DaggerfallWorkshop
             persistentDataPath = dataPath;
             streamingAssetsPath = Path.Combine(dataPath, "assets");
 
-            if (!Directory.Exists(dataPath))
+            if (!Directory.Exists(streamingAssetsPath))
             {
                 Directory.CreateDirectory(dataPath);
                 // Extract apk
