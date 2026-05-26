@@ -37,6 +37,12 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         public bool enabled;
     }
 
+    class LooseStreamingAssetFile
+    {
+        public string SourcePath;
+        public string DestinationPath;
+    }
+
     #region Fields
 
     DaggerfallMessageBox ModDescriptionMessageBox;
@@ -713,6 +719,8 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         {
             // Extract zip and copy any .dfmod files contained to mods folder
             string cachePath = Path.Combine(Application.temporaryCachePath, "ImportedMods");
+            if (Directory.Exists(cachePath))
+                Directory.Delete(cachePath, true);
             Directory.CreateDirectory(cachePath);
             DaggerfallWorkshop.Utility.ZipFileUtils.UnzipFile(filePath, cachePath);
 
@@ -727,6 +735,14 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
                 File.Copy(file, destFile, true);
                 File.Delete(file);
             }
+
+            List<LooseStreamingAssetFile> looseStreamingAssets = GetLooseStreamingAssetFiles(cachePath);
+            if (looseStreamingAssets.Count > 0)
+            {
+                PromptForLooseStreamingAssetsImport(looseStreamingAssets, cachePath, upgradedMod);
+                return;
+            }
+
             Directory.Delete(cachePath, true);
         }
         else if (filePath.ToLower().EndsWith(".dfmod"))
@@ -751,6 +767,114 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         if (upgradedMod){
             ShowConfirmationBox("A mod was upgraded; this requires restarting the game. Restart now?", AndroidUtils.RestartAndroid, null);
         }
+    }
+
+    private List<LooseStreamingAssetFile> GetLooseStreamingAssetFiles(string extractedPath)
+    {
+        List<LooseStreamingAssetFile> files = new List<LooseStreamingAssetFile>();
+        string streamingAssetsPath = DaggerfallWorkshop.Paths.StreamingAssetsPath;
+        if (!Directory.Exists(extractedPath) || !Directory.Exists(streamingAssetsPath))
+            return files;
+
+        HashSet<string> streamingAssetFolderNames = new HashSet<string>();
+        foreach (string directory in Directory.GetDirectories(streamingAssetsPath))
+        {
+            string folderName = Path.GetFileName(directory);
+            if (folderName != "Mods")
+                streamingAssetFolderNames.Add(folderName);
+        }
+
+        List<string> matchingDirectories = Directory.GetDirectories(extractedPath, "*", SearchOption.AllDirectories)
+            .Where(directory => streamingAssetFolderNames.Contains(Path.GetFileName(directory)))
+            .OrderBy(directory => directory.Length)
+            .ToList();
+
+        List<string> roots = new List<string>();
+        foreach (string directory in matchingDirectories)
+        {
+            if (!roots.Any(root => IsPathInside(root, directory)))
+                roots.Add(directory);
+        }
+
+        HashSet<string> destinationPaths = new HashSet<string>();
+        foreach (string root in roots)
+        {
+            string streamingAssetsFolderName = Path.GetFileName(root);
+            foreach (string sourceFile in Directory.GetFiles(root, "*", SearchOption.AllDirectories))
+            {
+                string relativePath = Path.Combine(streamingAssetsFolderName, GetRelativePath(root, sourceFile));
+                string destinationPath = Path.Combine(streamingAssetsPath, relativePath);
+                if (destinationPaths.Add(destinationPath))
+                {
+                    files.Add(new LooseStreamingAssetFile()
+                    {
+                        SourcePath = sourceFile,
+                        DestinationPath = destinationPath,
+                    });
+                }
+            }
+        }
+
+        return files;
+    }
+
+    private void PromptForLooseStreamingAssetsImport(List<LooseStreamingAssetFile> looseStreamingAssets, string cachePath, bool upgradedMod)
+    {
+        int overwriteCount = looseStreamingAssets.Count(file => File.Exists(file.DestinationPath));
+        string overwriteText = overwriteCount > 0
+            ? string.Format("\n\n{0} existing file{1} will be overwritten.", overwriteCount, overwriteCount == 1 ? string.Empty : "s")
+            : "\n\nNo existing files will be overwritten.";
+
+        DaggerfallMessageBox messageBox = new DaggerfallMessageBox(uiManager, this, true);
+        messageBox.SetText(string.Format(
+            "This mod zip contains {0} loose StreamingAssets file{1}.{2}\n\nImport these files?",
+            looseStreamingAssets.Count,
+            looseStreamingAssets.Count == 1 ? string.Empty : "s",
+            overwriteText));
+        messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.Yes);
+        messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.No, true);
+        messageBox.OnButtonClick += (sender, messageBoxButton) =>
+        {
+            sender.CloseWindow();
+
+            if (messageBoxButton == DaggerfallMessageBox.MessageBoxButtons.Yes)
+                ImportLooseStreamingAssets(looseStreamingAssets);
+
+            if (Directory.Exists(cachePath))
+                Directory.Delete(cachePath, true);
+
+            FinishModImport(upgradedMod);
+        };
+        uiManager.PushWindow(messageBox);
+    }
+
+    private void ImportLooseStreamingAssets(List<LooseStreamingAssetFile> looseStreamingAssets)
+    {
+        foreach (LooseStreamingAssetFile file in looseStreamingAssets)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(file.DestinationPath));
+            File.Copy(file.SourcePath, file.DestinationPath, true);
+        }
+    }
+
+    private void FinishModImport(bool upgradedMod)
+    {
+        RefreshButton_OnMouseClick(null, Vector2.zero);
+        if (upgradedMod)
+            ShowConfirmationBox("A mod was upgraded; this requires restarting the game. Restart now?", AndroidUtils.RestartAndroid, null);
+    }
+
+    private static bool IsPathInside(string parentPath, string childPath)
+    {
+        string parent = parentPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        string child = childPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        return child.StartsWith(parent, StringComparison.Ordinal);
+    }
+
+    private static string GetRelativePath(string rootPath, string path)
+    {
+        string root = rootPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        return path.Substring(root.Length);
     }
 
     private void ShowConfirmationBox(string text, Action onSelectedYes, Action onSelectedNo)
