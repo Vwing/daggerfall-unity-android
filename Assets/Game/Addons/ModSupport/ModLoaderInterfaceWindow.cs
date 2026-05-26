@@ -709,6 +709,27 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         if (string.IsNullOrEmpty(filePath))
             return;
 
+        try
+        {
+            ImportModFile(filePath);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Debug.LogWarning("Android denied access while importing mod: " + ex.Message);
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if (!AndroidUtils.HasAllFilesAccess())
+            {
+                ShowAllFilesAccessBox("Android denied access while importing this mod. Grant Daggerfall Unity all files access, then import the mod again.");
+                return;
+            }
+#endif
+
+            throw;
+        }
+    }
+
+    void ImportModFile(string filePath)
+    {
         string modsFolderPath = Path.Combine(DaggerfallWorkshop.Paths.StreamingAssetsPath, "Mods");
         if (!Directory.Exists(modsFolderPath))
             Directory.CreateDirectory(modsFolderPath);
@@ -838,7 +859,28 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             sender.CloseWindow();
 
             if (messageBoxButton == DaggerfallMessageBox.MessageBoxButtons.Yes)
-                ImportLooseStreamingAssets(looseStreamingAssets);
+            {
+                try
+                {
+                    ImportLooseStreamingAssets(looseStreamingAssets);
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    Debug.LogWarning("Android denied access while importing loose StreamingAssets files: " + ex.Message);
+#if UNITY_ANDROID && !UNITY_EDITOR
+                    if (!AndroidUtils.HasAllFilesAccess())
+                    {
+                        if (Directory.Exists(cachePath))
+                            Directory.Delete(cachePath, true);
+
+                        ShowAllFilesAccessBox("Android denied access while importing loose StreamingAssets files. Grant Daggerfall Unity all files access, then import the mod again.");
+                        return;
+                    }
+#endif
+
+                    throw;
+                }
+            }
 
             if (Directory.Exists(cachePath))
                 Directory.Delete(cachePath, true);
@@ -895,6 +937,23 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             messageBox.CancelWindow();
         };
         uiManager.PushWindow(confirmationBox);
+    }
+
+    private void ShowAllFilesAccessBox(string text)
+    {
+        var messageBox = new DaggerfallMessageBox(uiManager, this, true);
+        messageBox.ParentPanel.BackgroundTexture = null;
+        messageBox.SetText(text);
+        messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.Yes);
+        messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.No, true);
+        messageBox.OnButtonClick += (sender, messageBoxButton) =>
+        {
+            sender.CloseWindow();
+
+            if (messageBoxButton == DaggerfallMessageBox.MessageBoxButtons.Yes)
+                AndroidUtils.OpenAllFilesAccessSettings();
+        };
+        uiManager.PushWindow(messageBox);
     }
     void ImportMod_OnMouseClick(BaseScreenComponent sender, Vector2 position)
     {

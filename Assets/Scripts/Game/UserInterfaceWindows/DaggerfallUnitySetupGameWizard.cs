@@ -801,6 +801,16 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
             yield return null;
 
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if (!resetToDefault && AndroidUtils.RequiresAllFilesAccess(targetPath) && !AndroidUtils.HasAllFilesAccess())
+            {
+                HideDataPathProgress();
+                dataPathChangeInProgress = false;
+                PromptForAllFilesAccess();
+                yield break;
+            }
+#endif
+
             string fullCurrentPath = Path.GetFullPath(currentPath);
             if (!string.Equals(fullCurrentPath, targetPath, StringComparison.OrdinalIgnoreCase) && IsPathInside(fullCurrentPath, targetPath))
                 throw new Exception("Choose a folder outside the current data folder.");
@@ -923,7 +933,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         private void PromptForAllFilesAccess()
         {
             DaggerfallMessageBox messageBox = new DaggerfallMessageBox(uiManager, this, true);
-            messageBox.SetText("Android denied access to this folder.\n\nGrant Daggerfall Unity all files access, then choose the folder again.");
+            messageBox.SetText("Android requires all files access to use this custom data folder. Grant Daggerfall Unity all files access, then choose the folder again.");
             messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.Yes);
             messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.No, true);
             messageBox.OnButtonClick += (sender, messageBoxButton) =>

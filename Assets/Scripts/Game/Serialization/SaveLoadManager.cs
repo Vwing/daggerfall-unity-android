@@ -720,6 +720,31 @@ namespace DaggerfallWorkshop.Game.Serialization
             File.WriteAllText(path, json);
         }
 
+        void HandleSaveUnauthorizedAccess(UnauthorizedAccessException ex)
+        {
+            Debug.LogWarning("Android denied access while saving game: " + ex.Message);
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if (!AndroidUtils.HasAllFilesAccess())
+            {
+                DaggerfallMessageBox messageBox = new DaggerfallMessageBox(DaggerfallUI.UIManager, DaggerfallUI.UIManager.TopWindow, true);
+                messageBox.SetText("Android denied access while saving the game. Grant Daggerfall Unity all files access, then save again.");
+                messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.Yes);
+                messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.No, true);
+                messageBox.OnButtonClick += (sender, messageBoxButton) =>
+                {
+                    sender.CloseWindow();
+
+                    if (messageBoxButton == DaggerfallMessageBox.MessageBoxButtons.Yes)
+                        AndroidUtils.OpenAllFilesAccessSettings();
+                };
+                DaggerfallUI.UIManager.PushWindow(messageBox);
+                return;
+            }
+#endif
+
+            DaggerfallUI.MessageBox("Could not save game: " + ex.Message, true);
+        }
+
         string ReadSaveFile(string path)
         {
             try
@@ -1157,8 +1182,18 @@ namespace DaggerfallWorkshop.Game.Serialization
             //    rawImage.enabled = true;
             //}
 
+            // First write probes storage permission before the rest of the save is committed.
+            try
+            {
+                WriteSaveFile(Path.Combine(path, saveDataFilename), saveDataJson);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                HandleSaveUnauthorizedAccess(ex);
+                yield break;
+            }
+
             // Save data to files
-            WriteSaveFile(Path.Combine(path, saveDataFilename), saveDataJson);
             WriteSaveFile(Path.Combine(path, saveInfoFilename), saveInfoJson);
             WriteSaveFile(Path.Combine(path, factionDataFilename), factionDataJson);
             WriteSaveFile(Path.Combine(path, questDataFilename), questDataJson);

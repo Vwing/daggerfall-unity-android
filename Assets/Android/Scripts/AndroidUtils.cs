@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using System.Collections;
+using System.IO;
 
 namespace DaggerfallWorkshop
 {
@@ -83,6 +84,27 @@ namespace DaggerfallWorkshop
                 picker.CallStatic("openAllFilesAccessSettings", currentActivity);
             }
 #endif
+        }
+
+        public static bool RequiresAllFilesAccess(string path)
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if (string.IsNullOrEmpty(path))
+                return false;
+
+            string fullPath = Path.GetFullPath(path);
+            string appPrivatePath = Path.GetFullPath(Application.persistentDataPath);
+            return !IsPathInside(appPrivatePath, fullPath);
+#else
+            return false;
+#endif
+        }
+
+        private static bool IsPathInside(string parentPath, string childPath)
+        {
+            string parent = parentPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            string child = childPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            return child.StartsWith(parent, StringComparison.OrdinalIgnoreCase);
         }
 
         public static void OpenFolder(string path)
