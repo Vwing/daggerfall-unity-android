@@ -565,7 +565,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     settingsPathLabel.Text = DaggerfallUnity.Settings.PersistentDataPath;
                     settingsPathLabel.ToolTip = defaultToolTip;
 #if UNITY_ANDROID
-                    settingsPathLabel.ToolTipText = GetText("settingsFolderInfoAndroid");
+                    settingsPathLabel.ToolTipText = "Tap to open folder";
                     settingsPathLabel.OnMouseClick += SettingsPathLabel_OnMouseClick;
 #else
                     settingsPathLabel.ToolTipText = GetText("settingsFolderInfo");

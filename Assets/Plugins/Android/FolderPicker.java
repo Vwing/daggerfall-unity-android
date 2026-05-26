@@ -6,8 +6,10 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.provider.DocumentsContract;
 import android.provider.Settings;
+import android.os.StrictMode;
+import java.io.File;
+import java.lang.reflect.Method;
 
 import com.unity3d.player.UnityPlayer;
 
@@ -56,34 +58,12 @@ public final class FolderPicker
             return;
         }
 
-        Uri uri = getTreeUriFromPath(path);
-        if (uri == null) {
-            return;
-        }
-
+        disableFileUriExposureDeath();
         Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(uri, "vnd.android.document/directory");
+        intent.setDataAndType(Uri.fromFile(new File(path)), "resource/folder");
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
                 | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
                 | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
-
-        try {
-            activity.startActivity(intent);
-        } catch (Exception ex) {
-            openFolderPickerAt(activity, uri);
-        }
-    }
-
-    private static void openFolderPickerAt(Activity activity, Uri uri) {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
-                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
-                | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
-
-        if (android.os.Build.VERSION.SDK_INT >= 26) {
-            intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri);
-        }
 
         try {
             activity.startActivity(intent);
@@ -91,31 +71,16 @@ public final class FolderPicker
         }
     }
 
-    private static Uri getTreeUriFromPath(String path) {
-        String normalizedPath = path.replace('\\', '/');
-        String primaryStoragePath = Environment.getExternalStorageDirectory().getAbsolutePath().replace('\\', '/');
-        if (normalizedPath.equals(primaryStoragePath)) {
-            return DocumentsContract.buildTreeDocumentUri("com.android.externalstorage.documents", "primary:");
+    private static void disableFileUriExposureDeath() {
+        if (android.os.Build.VERSION.SDK_INT < 18) {
+            return;
         }
 
-        String primaryStoragePrefix = primaryStoragePath + "/";
-        if (normalizedPath.startsWith(primaryStoragePrefix)) {
-            String relativePath = normalizedPath.substring(primaryStoragePrefix.length());
-            return DocumentsContract.buildTreeDocumentUri("com.android.externalstorage.documents", "primary:" + relativePath);
+        try {
+            Method method = StrictMode.class.getMethod("disableDeathOnFileUriExposure");
+            method.invoke(null);
+        } catch (Exception ignored) {
         }
-
-        String documentsPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).getAbsolutePath().replace('\\', '/');
-        if (normalizedPath.equals(documentsPath)) {
-            return DocumentsContract.buildTreeDocumentUri("com.android.externalstorage.documents", "home:");
-        }
-
-        String documentsPrefix = documentsPath + "/";
-        if (normalizedPath.startsWith(documentsPrefix)) {
-            String relativePath = normalizedPath.substring(documentsPrefix.length());
-            return DocumentsContract.buildTreeDocumentUri("com.android.externalstorage.documents", "home:" + relativePath);
-        }
-
-        return null;
     }
 
     public static class ResultFragment extends Fragment {
@@ -184,11 +149,11 @@ public final class FolderPicker
         }
 
         private static String getPathFromTreeUri(Uri uri) {
-            if (!DocumentsContract.isTreeUri(uri)) {
+            if (!android.provider.DocumentsContract.isTreeUri(uri)) {
                 return "";
             }
 
-            String documentId = DocumentsContract.getTreeDocumentId(uri);
+            String documentId = android.provider.DocumentsContract.getTreeDocumentId(uri);
             String[] parts = documentId.split(":", 2);
             String volume = parts.length > 0 ? parts[0] : "";
             String relativePath = parts.length > 1 ? parts[1] : "";
