@@ -183,6 +183,12 @@ namespace DaggerfallWorkshop
             MidiFile midiFile = new MidiFile(new MyMemoryFile(songData, filename));
             if (midiSequencer.LoadMidi(midiFile))
             {
+                // MIDI playback is generated in OnAudioFilterRead, which only runs
+                // while the AudioSource is active. Do not rely on playOnAwake here,
+                // as some platforms can leave the source silent during startup.
+                if (!audioSource.isPlaying)
+                    audioSource.Play();
+
                 midiSequencer.Play();
                 currentMidiName = filename;
                 playEnabled = true;
