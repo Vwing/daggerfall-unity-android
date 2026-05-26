@@ -17,6 +17,9 @@ using UnityEngine;
 
 public static class DaggerfallUnityApplication
 {
+    const string customPersistentDataPathKey = "DaggerfallUnity_CustomPersistentDataPath";
+    const string customPersistentDataPathFile = "DaggerfallUnityDataPath.txt";
+
     static string persistentDataPath;
     private static bool? isPortableInstall;
 
@@ -46,10 +49,77 @@ public static class DaggerfallUnityApplication
         }
     }
 
+    public static string DefaultPersistentDataPath
+    {
+        get
+        {
+#if UNITY_EDITOR
+            return DaggerfallWorkshop.Paths.PersistentDataPath;
+#elif UNITY_ANDROID
+            return Path.Combine(Application.persistentDataPath, "DaggerfallUnity");
+#else
+            return DaggerfallWorkshop.Paths.PersistentDataPath;
+#endif
+        }
+    }
+
+    public static string CustomPersistentDataPath
+    {
+        get { return ReadCustomPersistentDataPath(); }
+    }
+
+    public static bool HasCustomPersistentDataPath
+    {
+        get { return !string.IsNullOrEmpty(CustomPersistentDataPath); }
+    }
+
+    public static void SetCustomPersistentDataPath(string path)
+    {
+        Directory.CreateDirectory(Application.persistentDataPath);
+        File.WriteAllText(CustomPersistentDataPathFilePath, path);
+        PlayerPrefs.DeleteKey(customPersistentDataPathKey);
+        PlayerPrefs.Save();
+        persistentDataPath = path;
+    }
+
+    public static void ResetCustomPersistentDataPath()
+    {
+        string locatorPath = CustomPersistentDataPathFilePath;
+        if (File.Exists(locatorPath))
+            File.Delete(locatorPath);
+
+        PlayerPrefs.DeleteKey(customPersistentDataPathKey);
+        PlayerPrefs.Save();
+        persistentDataPath = DefaultPersistentDataPath;
+    }
+
+    private static string CustomPersistentDataPathFilePath
+    {
+        get { return Path.Combine(Application.persistentDataPath, customPersistentDataPathFile); }
+    }
+
+    private static string ReadCustomPersistentDataPath()
+    {
+        string locatorPath = CustomPersistentDataPathFilePath;
+        if (File.Exists(locatorPath))
+            return File.ReadAllText(locatorPath).Trim();
+
+        string legacyPath = PlayerPrefs.GetString(customPersistentDataPathKey, string.Empty);
+        if (!string.IsNullOrEmpty(legacyPath))
+        {
+            Directory.CreateDirectory(Application.persistentDataPath);
+            File.WriteAllText(locatorPath, legacyPath);
+            PlayerPrefs.DeleteKey(customPersistentDataPathKey);
+            PlayerPrefs.Save();
+        }
+
+        return legacyPath;
+    }
+
     private static void InitializePersistentPath()
     {
 #if UNITY_EDITOR && SEPARATE_DEV_PERSISTENT_PATH
-        persistentDataPath = String.Concat(DaggerfallWorkshop.Paths.PersistentDataPath, ".devenv");
+        persistentDataPath = String.Concat(DefaultPersistentDataPath, ".devenv");
         Directory.CreateDirectory(persistentDataPath);
 #else
         if (IsPortableInstall)
@@ -59,7 +129,9 @@ public static class DaggerfallUnityApplication
         }
         else
         {
-            persistentDataPath = DaggerfallWorkshop.Paths.PersistentDataPath;
+            string customPath = CustomPersistentDataPath;
+            persistentDataPath = !string.IsNullOrEmpty(customPath) ? customPath : DefaultPersistentDataPath;
+            Directory.CreateDirectory(persistentDataPath);
         }
 #endif
     }

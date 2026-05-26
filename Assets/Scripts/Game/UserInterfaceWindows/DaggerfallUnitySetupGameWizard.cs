@@ -21,6 +21,7 @@ using DaggerfallConnect.Arena2;
 using DaggerfallConnect.Utility;
 using DaggerfallConnect.FallExe;
 using DaggerfallWorkshop;
+using DaggerfallWorkshop.Game;
 using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop.Game.UserInterface;
 using DaggerfallWorkshop.Game.Player;
@@ -73,6 +74,13 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         Checkbox sdfFontRendering;
         Checkbox enableController;
         Checkbox retro320x200WorldRendering;
+        TextLabel settingsPathLabel;
+#if UNITY_ANDROID
+        Panel dataPathProgressPanel;
+        Panel dataPathProgressBarBg;
+        Panel dataPathProgressBarFill;
+        TextLabel dataPathProgressText;
+#endif
 
         Color unselectedTextColor = new Color(0.6f, 0.6f, 0.6f, 1f);
         Color selectedTextColor = new Color(0.0f, 0.8f, 0.0f, 1.0f);
@@ -108,6 +116,9 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         SetupStages currentStage = SetupStages.None;
         string arena2Path = string.Empty;
         bool moveNextStage = false;
+#if UNITY_ANDROID
+        bool dataPathChangeInProgress = false;
+#endif
 
 #endregion
 
@@ -536,10 +547,22 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     settingsPathHeaderLabel.Text = GetText("settingsFolder");
                     settingsPathHeaderLabel.HorizontalAlignment = HorizontalAlignment.Center;
 
-                    TextLabel settingsPathLabel = new TextLabel();
-                    settingsPathLabel.Position = new Vector2(0, 8);
-                    settingsPathLabel.Text = DaggerfallUnity.Settings.PersistentDataPath;
+#if UNITY_ANDROID
+                    Panel settingsPathTextPanel = new Panel();
+                    settingsPathTextPanel.Position = new Vector2(0, 7);
+                    settingsPathTextPanel.Size = new Vector2(268, 10);
+#endif
+
+                    settingsPathLabel = new TextLabel();
+#if UNITY_ANDROID
+                    settingsPathLabel.Position = new Vector2(0, 1);
                     settingsPathLabel.HorizontalAlignment = HorizontalAlignment.Center;
+                    settingsPathLabel.MaxWidth = 264;
+#else
+                    settingsPathLabel.Position = new Vector2(0, 8);
+                    settingsPathLabel.HorizontalAlignment = HorizontalAlignment.Center;
+#endif
+                    settingsPathLabel.Text = DaggerfallUnity.Settings.PersistentDataPath;
                     settingsPathLabel.ToolTip = defaultToolTip;
                     settingsPathLabel.ToolTipText = GetText("settingsFolderInfo");
                     settingsPathLabel.OnMouseDoubleClick += SettingsPathLabel_OnMouseClick;
@@ -547,11 +570,31 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     settingsPathLabel.TextColor = secondaryTextColor;
 
                     settingsPanel.Components.Add(settingsPathHeaderLabel);
+#if UNITY_ANDROID
+                    settingsPathTextPanel.Components.Add(settingsPathLabel);
+                    settingsPanel.Components.Add(settingsPathTextPanel);
+#else
                     settingsPanel.Components.Add(settingsPathLabel);
+#endif
+
+#if UNITY_ANDROID
+                    Button changeDataPathButton = new Button();
+                    changeDataPathButton.Position = new Vector2(270, 7);
+                    changeDataPathButton.Size = new Vector2(42, 10);
+                    changeDataPathButton.Label.Text = "Change";
+                    changeDataPathButton.BackgroundColor = new Color(0.0f, 0.5f, 0.0f, 0.4f);
+                    changeDataPathButton.Outline.Enabled = true;
+                    changeDataPathButton.OnMouseClick += ChangeDataPathButton_OnMouseClick;
+                    settingsPanel.Components.Add(changeDataPathButton);
+#endif
                 }
 
                 optionsPanel.Components.Add(settingsPanel);
             }
+
+#if UNITY_ANDROID
+            SetupDataPathProgressPanel();
+#endif
 
             // Setup options checkboxes
             float x = 8;
@@ -649,6 +692,387 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             // Open the persistent data path
             System.Diagnostics.Process.Start(DaggerfallUnity.Settings.PersistentDataPath);
         }
+
+#if UNITY_ANDROID
+        private void ChangeDataPathButton_OnMouseClick(BaseScreenComponent sender, Vector2 position)
+        {
+            if (dataPathChangeInProgress)
+                return;
+
+            DaggerfallMessageBox messageBox = new DaggerfallMessageBox(uiManager, this, true);
+            messageBox.AllowCancel = true;
+
+            if (DaggerfallUnityApplication.HasCustomPersistentDataPath)
+            {
+                messageBox.SetText("Change data folder? Yes: choose a new folder. No: reset to default path. Cancel: do nothing.");
+                messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.Yes);
+                messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.No);
+                messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.Cancel, true);
+            }
+            else
+            {
+                messageBox.SetText("Change where Daggerfall Unity stores data? Current data will be copied to the new folder and the app will restart.");
+                messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.Yes);
+                messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.No, true);
+            }
+
+            messageBox.OnButtonClick += ChangeDataPathConfirm_OnButtonClick;
+            uiManager.PushWindow(messageBox);
+        }
+
+        private void ChangeDataPathConfirm_OnButtonClick(DaggerfallMessageBox sender, DaggerfallMessageBox.MessageBoxButtons messageBoxButton)
+        {
+            sender.CloseWindow();
+
+            if (messageBoxButton == DaggerfallMessageBox.MessageBoxButtons.Yes)
+            {
+                AndroidUtils.PickFolder(OnDataPathFolderPicked);
+            }
+            else if (messageBoxButton == DaggerfallMessageBox.MessageBoxButtons.No && DaggerfallUnityApplication.HasCustomPersistentDataPath)
+            {
+                ApplyDataPathChange(DaggerfallUnityApplication.DefaultPersistentDataPath, true);
+            }
+        }
+
+        private void OnDataPathFolderPicked(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return;
+
+            ApplyDataPathChange(path, false);
+        }
+
+        private void ApplyDataPathChange(string newPath, bool resetToDefault)
+        {
+            ApplyDataPathChange(newPath, resetToDefault, false);
+        }
+
+        private void ApplyDataPathChange(string newPath, bool resetToDefault, bool overwriteConfirmed)
+        {
+            if (dataPathChangeInProgress)
+                return;
+
+            dataPathChangeInProgress = true;
+            ShowDataPathProgress();
+            SetDataPathProgress(0f, "Checking folder...");
+            CoroutineManager.Instance.StartCoroutine(ApplyDataPathChangeCoroutine(newPath, resetToDefault, overwriteConfirmed));
+        }
+
+        private IEnumerator ApplyDataPathChangeCoroutine(string newPath, bool resetToDefault, bool overwriteConfirmed)
+        {
+            IEnumerator operation = ApplyDataPathChangeOperation(newPath, resetToDefault, overwriteConfirmed);
+            while (true)
+            {
+                object current = null;
+                bool moveNext = false;
+
+                try
+                {
+                    moveNext = operation.MoveNext();
+                    if (moveNext)
+                        current = operation.Current;
+                }
+                catch (Exception ex)
+                {
+                    HandleDataPathChangeError(ex);
+                    yield break;
+                }
+
+                if (!moveNext)
+                    yield break;
+
+                yield return current;
+            }
+        }
+
+        private IEnumerator ApplyDataPathChangeOperation(string newPath, bool resetToDefault, bool overwriteConfirmed)
+        {
+            string currentPath = DaggerfallUnity.Settings.PersistentDataPath;
+            string targetPath = Path.GetFullPath(newPath);
+
+            yield return null;
+
+            string fullCurrentPath = Path.GetFullPath(currentPath);
+            if (!string.Equals(fullCurrentPath, targetPath, StringComparison.OrdinalIgnoreCase) && IsPathInside(fullCurrentPath, targetPath))
+                throw new Exception("Choose a folder outside the current data folder.");
+
+            if (!Directory.Exists(targetPath))
+                Directory.CreateDirectory(targetPath);
+
+            string testFile = Path.Combine(targetPath, ".dfu_write_test");
+            File.WriteAllText(testFile, "ok");
+            File.Delete(testFile);
+
+            IEnumerable<string> migrationSources = GetDataPathMigrationSources(currentPath, targetPath);
+            SetDataPathProgress(5f, "Checking files...");
+            yield return null;
+
+            int overwriteCount = CountExistingTargetFiles(migrationSources, targetPath);
+            if (overwriteCount > 0 && !overwriteConfirmed)
+            {
+                HideDataPathProgress();
+                dataPathChangeInProgress = false;
+                PromptForDataPathOverwrite(newPath, resetToDefault, overwriteCount);
+                yield break;
+            }
+
+            SetDataPathProgress(10f, "Copying data...");
+            yield return null;
+
+            IEnumerator copyOperation = CopyDirectoryContentsCoroutine(migrationSources, targetPath);
+            while (copyOperation.MoveNext())
+                yield return copyOperation.Current;
+
+            if (resetToDefault)
+                DaggerfallUnityApplication.ResetCustomPersistentDataPath();
+            else
+                DaggerfallUnityApplication.SetCustomPersistentDataPath(targetPath);
+
+            if (settingsPathLabel != null)
+                settingsPathLabel.Text = targetPath;
+
+            SetDataPathProgress(100f, "Restarting...");
+            yield return new WaitForSecondsRealtime(0.2f);
+            RestartAfterDataPathChange();
+        }
+
+        private void HandleDataPathChangeError(Exception ex)
+        {
+            HideDataPathProgress();
+            dataPathChangeInProgress = false;
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if (ex is UnauthorizedAccessException && !AndroidUtils.HasAllFilesAccess())
+            {
+                PromptForAllFilesAccess();
+                return;
+            }
+#endif
+
+            DaggerfallMessageBox messageBox = new DaggerfallMessageBox(uiManager, this, true);
+            messageBox.SetText("Could not use this folder:\n" + ex.Message);
+            messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.OK);
+            messageBox.OnButtonClick += (sender, messageBoxButton) => sender.CloseWindow();
+            uiManager.PushWindow(messageBox);
+        }
+
+        private void SetupDataPathProgressPanel()
+        {
+            dataPathProgressPanel = new Panel();
+            dataPathProgressPanel.Position = new Vector2(54, 145);
+            dataPathProgressPanel.Size = new Vector2(210, 10);
+            dataPathProgressPanel.BackgroundColor = new Color(0f, 0f, 0f, 0.75f);
+            dataPathProgressPanel.Outline.Enabled = true;
+            dataPathProgressPanel.Enabled = false;
+            optionsPanel.Components.Add(dataPathProgressPanel);
+
+            dataPathProgressBarBg = new Panel();
+            dataPathProgressBarBg.Position = new Vector2(8, 1);
+            dataPathProgressBarBg.Size = new Vector2(194, 8);
+            dataPathProgressBarBg.BackgroundColor = new Color(0.6f, 0.6f, 0.6f, 1f);
+            dataPathProgressBarBg.Outline.Enabled = true;
+            dataPathProgressPanel.Components.Add(dataPathProgressBarBg);
+
+            dataPathProgressBarFill = new Panel();
+            dataPathProgressBarFill.Position = dataPathProgressBarBg.Position + new Vector2(1, 1);
+            dataPathProgressBarFill.Size = new Vector2(0, dataPathProgressBarBg.Size.y - 2);
+            dataPathProgressBarFill.BackgroundColor = Color.green;
+            dataPathProgressPanel.Components.Add(dataPathProgressBarFill);
+
+            dataPathProgressText = new TextLabel();
+            dataPathProgressText.Position = new Vector2(0, 1);
+            dataPathProgressText.Size = new Vector2(dataPathProgressPanel.Size.x, 10);
+            dataPathProgressText.HorizontalAlignment = HorizontalAlignment.Center;
+            dataPathProgressText.TextColor = Color.black;
+            dataPathProgressText.ShadowPosition = Vector2.zero;
+            dataPathProgressPanel.Components.Add(dataPathProgressText);
+        }
+
+        private void ShowDataPathProgress()
+        {
+            if (dataPathProgressPanel != null)
+                dataPathProgressPanel.Enabled = true;
+        }
+
+        private void HideDataPathProgress()
+        {
+            if (dataPathProgressPanel != null)
+                dataPathProgressPanel.Enabled = false;
+        }
+
+        private void SetDataPathProgress(float percent, string status)
+        {
+            if (dataPathProgressBarBg == null || dataPathProgressBarFill == null || dataPathProgressText == null)
+                return;
+
+            float width = (dataPathProgressBarBg.Size.x - 2) * Mathf.Clamp01(percent / 100f);
+            dataPathProgressBarFill.Size = new Vector2(width, dataPathProgressBarBg.Size.y - 2);
+            dataPathProgressText.Text = string.Format("{0} {1:0}%", status, percent);
+        }
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+        private void PromptForAllFilesAccess()
+        {
+            DaggerfallMessageBox messageBox = new DaggerfallMessageBox(uiManager, this, true);
+            messageBox.SetText("Android denied access to this folder.\n\nGrant Daggerfall Unity all files access, then choose the folder again.");
+            messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.Yes);
+            messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.No, true);
+            messageBox.OnButtonClick += (sender, messageBoxButton) =>
+            {
+                sender.CloseWindow();
+
+                if (messageBoxButton == DaggerfallMessageBox.MessageBoxButtons.Yes)
+                    AndroidUtils.OpenAllFilesAccessSettings();
+            };
+            uiManager.PushWindow(messageBox);
+        }
+#endif
+
+        private void PromptForDataPathOverwrite(string newPath, bool resetToDefault, int overwriteCount)
+        {
+            DaggerfallMessageBox messageBox = new DaggerfallMessageBox(uiManager, this, true);
+            messageBox.SetText(string.Format(
+                "This folder already contains {0} data file{1} that will be overwritten. Continue?",
+                overwriteCount,
+                overwriteCount == 1 ? string.Empty : "s"));
+            messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.Yes);
+            messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.No, true);
+            messageBox.OnButtonClick += (sender, messageBoxButton) =>
+            {
+                sender.CloseWindow();
+
+                if (messageBoxButton == DaggerfallMessageBox.MessageBoxButtons.Yes)
+                    ApplyDataPathChange(newPath, resetToDefault, true);
+            };
+            uiManager.PushWindow(messageBox);
+        }
+
+        private static IEnumerable<string> GetDataPathMigrationSources(string currentPath, string targetPath)
+        {
+            HashSet<string> sources = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            AddMigrationSource(sources, DaggerfallUnityApplication.DefaultPersistentDataPath, targetPath);
+            AddMigrationSource(sources, currentPath, targetPath);
+
+            return sources;
+        }
+
+        private static void AddMigrationSource(HashSet<string> sources, string sourcePath, string targetPath)
+        {
+            if (string.IsNullOrEmpty(sourcePath))
+                return;
+
+            string fullSourcePath = Path.GetFullPath(sourcePath);
+            if (string.Equals(fullSourcePath, targetPath, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            if (Directory.Exists(fullSourcePath))
+                sources.Add(fullSourcePath);
+        }
+
+        private static bool IsPathInside(string parentPath, string childPath)
+        {
+            string parent = parentPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            string child = childPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            return child.StartsWith(parent, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static int CountExistingTargetFiles(IEnumerable<string> sourcePaths, string targetPath)
+        {
+            int count = 0;
+
+            foreach (string sourcePath in sourcePaths)
+            {
+                foreach (string file in Directory.GetFiles(sourcePath, "*", SearchOption.AllDirectories))
+                {
+                    string targetFile = Path.Combine(targetPath, GetRelativeDataPath(sourcePath, file));
+                    if (File.Exists(targetFile))
+                        count++;
+                }
+            }
+
+            return count;
+        }
+
+        private static void CopyDirectoryContents(string sourcePath, string targetPath)
+        {
+            if (!Directory.Exists(sourcePath))
+                return;
+
+            Directory.CreateDirectory(targetPath);
+
+            foreach (string directory in Directory.GetDirectories(sourcePath, "*", SearchOption.AllDirectories))
+            {
+                string targetDirectory = Path.Combine(targetPath, GetRelativeDataPath(sourcePath, directory));
+                Directory.CreateDirectory(targetDirectory);
+            }
+
+            foreach (string file in Directory.GetFiles(sourcePath, "*", SearchOption.AllDirectories))
+            {
+                string targetFile = Path.Combine(targetPath, GetRelativeDataPath(sourcePath, file));
+                Directory.CreateDirectory(Path.GetDirectoryName(targetFile));
+                File.Copy(file, targetFile, true);
+            }
+        }
+
+        private IEnumerator CopyDirectoryContentsCoroutine(IEnumerable<string> sourcePaths, string targetPath)
+        {
+            List<string> files = new List<string>();
+
+            foreach (string sourcePath in sourcePaths)
+            {
+                if (!Directory.Exists(sourcePath))
+                    continue;
+
+                foreach (string directory in Directory.GetDirectories(sourcePath, "*", SearchOption.AllDirectories))
+                {
+                    string targetDirectory = Path.Combine(targetPath, GetRelativeDataPath(sourcePath, directory));
+                    Directory.CreateDirectory(targetDirectory);
+                }
+
+                files.AddRange(Directory.GetFiles(sourcePath, "*", SearchOption.AllDirectories));
+                yield return null;
+            }
+
+            int total = files.Count;
+            for (int i = 0; i < total; i++)
+            {
+                string file = files[i];
+                string sourcePath = GetSourcePathForFile(sourcePaths, file);
+                string targetFile = Path.Combine(targetPath, GetRelativeDataPath(sourcePath, file));
+                Directory.CreateDirectory(Path.GetDirectoryName(targetFile));
+                File.Copy(file, targetFile, true);
+
+                float pct = total > 0 ? 10f + 85f * (i + 1) / total : 95f;
+                SetDataPathProgress(pct, "Copying data...");
+                if (i % 10 == 0)
+                    yield return null;
+            }
+        }
+
+        private static string GetSourcePathForFile(IEnumerable<string> sourcePaths, string file)
+        {
+            foreach (string sourcePath in sourcePaths)
+            {
+                if (IsPathInside(sourcePath, file))
+                    return sourcePath;
+            }
+
+            throw new Exception("Could not resolve migration source for " + file);
+        }
+
+        private static string GetRelativeDataPath(string rootPath, string path)
+        {
+            string root = rootPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            return path.Substring(root.Length);
+        }
+
+        private void RestartAfterDataPathChange()
+        {
+            AndroidUtils.RestartAndroid();
+            SceneManager.LoadScene(Utility.SceneControl.StartupSceneIndex);
+        }
+#endif
 
         private void SDFFontRendering_OnToggleState()
         {

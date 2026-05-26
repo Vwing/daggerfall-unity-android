@@ -64,7 +64,7 @@ namespace DaggerfallWorkshop
             var apkPath = Application.dataPath;
             
             storagePath = Application.persistentDataPath;
-            dataPath = Path.Combine(Application.persistentDataPath, "DaggerfallUnity");
+            dataPath = DaggerfallUnityApplication.PersistentDataPath;
             persistentDataPath = dataPath;
             streamingAssetsPath = Path.Combine(dataPath, "assets");
 

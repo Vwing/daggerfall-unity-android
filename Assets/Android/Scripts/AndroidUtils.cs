@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 using System.Collections;
 
 namespace DaggerfallWorkshop
@@ -28,6 +29,86 @@ namespace DaggerfallWorkshop
                 process.CallStatic("killProcess", pid);
             }
 #endif
+        }
+
+        private const string folderPickerCallbackObjectName = "AndroidFolderPickerCallback";
+        private static Action<string> folderPickerCallback;
+        private static FolderPickerCallbackReceiver folderPickerReceiver;
+
+        public static void PickFolder(Action<string> folderPickedCallback)
+        {
+            folderPickerCallback = folderPickedCallback;
+
+#if UNITY_EDITOR
+            string path = UnityEditor.EditorUtility.OpenFolderPanel("Select data folder", "", "");
+            InvokeFolderPickerCallback(string.IsNullOrEmpty(path) ? null : path);
+#elif UNITY_ANDROID
+            if (Application.isEditor)
+            {
+                InvokeFolderPickerCallback(null);
+                return;
+            }
+
+            EnsureFolderPickerReceiver();
+            using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+            using (var picker = new AndroidJavaClass("com.dfworkshop.daggerfallunityandroid.FolderPicker"))
+            {
+                AndroidJavaObject currentActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                picker.CallStatic("pickFolder", currentActivity, folderPickerCallbackObjectName, "OnFolderPicked");
+            }
+#else
+            InvokeFolderPickerCallback(null);
+#endif
+        }
+
+        public static bool HasAllFilesAccess()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            using (var picker = new AndroidJavaClass("com.dfworkshop.daggerfallunityandroid.FolderPicker"))
+            {
+                return picker.CallStatic<bool>("hasAllFilesAccess");
+            }
+#else
+            return true;
+#endif
+        }
+
+        public static void OpenAllFilesAccessSettings()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+            using (var picker = new AndroidJavaClass("com.dfworkshop.daggerfallunityandroid.FolderPicker"))
+            {
+                AndroidJavaObject currentActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                picker.CallStatic("openAllFilesAccessSettings", currentActivity);
+            }
+#endif
+        }
+
+        private static void EnsureFolderPickerReceiver()
+        {
+            if (folderPickerReceiver != null)
+                return;
+
+            GameObject go = new GameObject(folderPickerCallbackObjectName);
+            UnityEngine.Object.DontDestroyOnLoad(go);
+            folderPickerReceiver = go.AddComponent<FolderPickerCallbackReceiver>();
+        }
+
+        private static void InvokeFolderPickerCallback(string path)
+        {
+            Action<string> pickedCallback = folderPickerCallback;
+            folderPickerCallback = null;
+            if (pickedCallback != null)
+                pickedCallback(path);
+        }
+
+        private class FolderPickerCallbackReceiver : MonoBehaviour
+        {
+            public void OnFolderPicked(string path)
+            {
+                InvokeFolderPickerCallback(string.IsNullOrEmpty(path) ? null : path);
+            }
         }
 
         public enum ApplicationRunMode
