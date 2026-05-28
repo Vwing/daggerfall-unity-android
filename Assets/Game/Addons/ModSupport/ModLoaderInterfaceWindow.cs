@@ -43,6 +43,12 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         public string DestinationPath;
     }
 
+    class ImportableModFile
+    {
+        public string SourcePath;
+        public string FileName;
+    }
+
     #region Fields
 
     DaggerfallMessageBox ModDescriptionMessageBox;
@@ -736,7 +742,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
 
         bool upgradedMod = false;
 
-        if (filePath.ToLower().EndsWith(".zip"))
+        if (filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
         {
             // Extract zip and copy any .dfmod files contained to mods folder
             string cachePath = Path.Combine(Application.temporaryCachePath, "ImportedMods");
@@ -745,16 +751,25 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             Directory.CreateDirectory(cachePath);
             DaggerfallWorkshop.Utility.ZipFileUtils.UnzipFile(filePath, cachePath);
 
-            // Find any .dfmod files within the unzipped path, and move them to mods folder path
-            foreach (string file in Directory.GetFiles(cachePath, "*.dfmod", SearchOption.AllDirectories))
+            // Find any .dfmod files within the unzipped path that can load on this platform.
+            string[] modFiles = Directory.GetFiles(cachePath, "*.dfmod", SearchOption.AllDirectories);
+            List<ImportableModFile> importableMods = GetImportableModFiles(modFiles);
+            foreach (ImportableModFile modFile in importableMods)
             {
-                string destFile = Path.Combine(modsFolderPath, Path.GetFileName(file));
+                string destFile = Path.Combine(modsFolderPath, modFile.FileName);
                 if (File.Exists(destFile)){
                     Debug.LogWarning($"DFMod file already exists: {destFile}. Overwriting it!");
                     upgradedMod = true;
                 }
-                File.Copy(file, destFile, true);
-                File.Delete(file);
+                File.Copy(modFile.SourcePath, destFile, true);
+                File.Delete(modFile.SourcePath);
+            }
+
+            if (modFiles.Length > 0 && importableMods.Count == 0)
+            {
+                Directory.Delete(cachePath, true);
+                ShowMessageBox("This mod zip does not contain a Daggerfall Unity mod built for Android. Download the Android version of the mod and import that file instead.");
+                return;
             }
 
             List<LooseStreamingAssetFile> looseStreamingAssets = GetLooseStreamingAssetFiles(cachePath);
@@ -766,8 +781,14 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
 
             Directory.Delete(cachePath, true);
         }
-        else if (filePath.ToLower().EndsWith(".dfmod"))
+        else if (filePath.EndsWith(".dfmod", StringComparison.OrdinalIgnoreCase))
         {
+            if (!IsLoadableModFile(filePath))
+            {
+                ShowMessageBox("This Daggerfall Unity mod file is not compatible with Android. Download the Android version of the mod and import that file instead.");
+                return;
+            }
+
             // Copy .dfmod to mods folder
             string destFilePath = Path.Combine(modsFolderPath, Path.GetFileName(filePath));
             if (File.Exists(destFilePath)){
@@ -777,16 +798,59 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             File.Copy(filePath, destFilePath, true);
         } else {
             // inform user that the only valid filters are .zip and .dfmod
-            var messageBox = new DaggerfallMessageBox(uiManager, this, true);
-            messageBox.AllowCancel = true;
-            messageBox.ClickAnywhereToClose = true;
-            messageBox.ParentPanel.BackgroundTexture = null;
-            messageBox.SetText("Only .zip and .dfmod files are supported for import.");
-            uiManager.PushWindow(messageBox);
+            ShowMessageBox("Only .zip and .dfmod files are supported for import.");
         }
         RefreshButton_OnMouseClick(null, Vector2.zero);
         if (upgradedMod){
             ShowConfirmationBox("A mod was upgraded; this requires restarting the game. Restart now?", AndroidUtils.RestartAndroid, null);
+        }
+    }
+
+    private List<ImportableModFile> GetImportableModFiles(string[] modFiles)
+    {
+        List<ImportableModFile> importableMods = new List<ImportableModFile>();
+        if (modFiles.Length == 0)
+            return importableMods;
+
+        foreach (string file in modFiles)
+        {
+            if (!IsLoadableModFile(file))
+            {
+                Debug.LogWarning($"Skipping non-Android or invalid mod file: {file}");
+                continue;
+            }
+
+            importableMods.Add(new ImportableModFile()
+            {
+                SourcePath = file,
+                FileName = Path.GetFileName(file),
+            });
+        }
+
+        return importableMods;
+    }
+
+    private static bool IsLoadableModFile(string filePath)
+    {
+        AssetBundle assetBundle = null;
+        try
+        {
+            assetBundle = AssetBundle.LoadFromFile(filePath);
+            if (assetBundle == null)
+                return false;
+
+            return assetBundle.GetAllAssetNames()
+                .Any(name => name.EndsWith(ModManager.MODINFOEXTENSION, StringComparison.OrdinalIgnoreCase));
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"Failed to validate mod file {filePath}: {ex.Message}");
+            return false;
+        }
+        finally
+        {
+            if (assetBundle != null)
+                assetBundle.Unload(false);
         }
     }
 
@@ -917,6 +981,16 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
     {
         string root = rootPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
         return path.Substring(root.Length);
+    }
+
+    private void ShowMessageBox(string text)
+    {
+        var messageBox = new DaggerfallMessageBox(uiManager, this, true);
+        messageBox.AllowCancel = true;
+        messageBox.ClickAnywhereToClose = true;
+        messageBox.ParentPanel.BackgroundTexture = null;
+        messageBox.SetText(text);
+        uiManager.PushWindow(messageBox);
     }
 
     private void ShowConfirmationBox(string text, Action onSelectedYes, Action onSelectedNo)
