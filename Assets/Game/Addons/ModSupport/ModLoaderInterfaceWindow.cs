@@ -11,6 +11,7 @@
 
 using UnityEngine;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -55,6 +56,9 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
 
     readonly Panel ModPanel = new Panel();
     readonly Panel ModListPanel = new Panel();
+    readonly Panel importProgressPanel = new Panel();
+    readonly Panel importProgressBarBg = new Panel();
+    readonly Panel importProgressBarFill = new Panel();
 
     readonly ListBox modList = new ListBox();
     readonly VerticalScrollBar modListScrollBar = new VerticalScrollBar();
@@ -80,6 +84,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
     readonly TextLabel modAuthorContactLabel     = new TextLabel();
     readonly TextLabel modDFTFUVersionLabel      = new TextLabel();
     readonly TextLabel modsFound                 = new TextLabel();
+    readonly TextLabel importProgressText        = new TextLabel();
 
     readonly Color backgroundColor = new Color(0, 0, 0, 0.7f);
     readonly Color unselectedTextColor = new Color(0.6f, 0.6f, 0.6f, 1f);
@@ -90,6 +95,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
 
     Stage currentStage = Stage.None;
     bool moveNextStage = false;
+    bool importInProgress = false;
 
     int currentSelection = -1;
     ModSettings[] modSettings;
@@ -314,6 +320,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
 
         GetLoadedMods();
         UpdateModPanel();
+        SetupImportProgressPanel();
     }
 
     public override void Update()
@@ -712,29 +719,101 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
 
     void OnImportedModFilePicked(string filePath)
     {
-        if (string.IsNullOrEmpty(filePath))
+        if (string.IsNullOrEmpty(filePath) || importInProgress)
             return;
 
-        try
-        {
-            ImportModFile(filePath);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            Debug.LogWarning("Android denied access while importing mod: " + ex.Message);
-#if UNITY_ANDROID && !UNITY_EDITOR
-            if (!AndroidUtils.HasAllFilesAccess())
-            {
-                ShowAllFilesAccessBox("Android denied access while importing this mod. Grant Daggerfall Unity all files access, then import the mod again.");
-                return;
-            }
-#endif
+        importInProgress = true;
+        ShowImportProgress();
+        SetImportProgress(0f, "Importing mod...");
+        CoroutineManager.Instance.StartCoroutine(ImportModFileCoroutine(filePath));
+    }
 
-            throw;
+    private IEnumerator ImportModFileCoroutine(string filePath)
+    {
+        IEnumerator operation = ImportModFile(filePath);
+        while (true)
+        {
+            object current = null;
+            bool moveNext = false;
+
+            try
+            {
+                moveNext = operation.MoveNext();
+                if (moveNext)
+                    current = operation.Current;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                HandleModImportUnauthorizedAccess(ex);
+                yield break;
+            }
+            catch (Exception ex)
+            {
+                HandleModImportError(ex);
+                yield break;
+            }
+
+            if (!moveNext)
+            {
+                CleanupImportProgress();
+                yield break;
+            }
+
+            yield return current;
         }
     }
 
-    void ImportModFile(string filePath)
+    private void HandleModImportUnauthorizedAccess(UnauthorizedAccessException ex)
+    {
+        Debug.LogWarning("Android denied access while importing mod: " + ex.Message);
+        HideImportProgress();
+        importInProgress = false;
+        DeleteImportCache();
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+        if (!AndroidUtils.HasAllFilesAccess())
+        {
+            ShowAllFilesAccessBox("Android denied access while importing this mod. Grant Daggerfall Unity all files access, then import the mod again.");
+            return;
+        }
+#endif
+
+        ShowMessageBox("Could not import this mod because Android denied file access.");
+    }
+
+    private void HandleModImportError(Exception ex)
+    {
+        Debug.LogWarning("Failed to import mod: " + ex.Message);
+        HideImportProgress();
+        importInProgress = false;
+        DeleteImportCache();
+        ShowMessageBox("Could not import this mod: " + ex.Message);
+    }
+
+    private void CleanupImportProgress()
+    {
+        if (importInProgress)
+        {
+            HideImportProgress();
+            importInProgress = false;
+        }
+    }
+
+    private void DeleteImportCache()
+    {
+        string cachePath = Path.Combine(Application.temporaryCachePath, "ImportedMods");
+        try
+        {
+            if (Directory.Exists(cachePath))
+                Directory.Delete(cachePath, true);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("Failed to clean imported mod cache: " + ex.Message);
+        }
+    }
+
+    IEnumerator ImportModFile(string filePath)
     {
         string modsFolderPath = Path.Combine(DaggerfallWorkshop.Paths.StreamingAssetsPath, "Mods");
         if (!Directory.Exists(modsFolderPath))
@@ -749,11 +828,20 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             if (Directory.Exists(cachePath))
                 Directory.Delete(cachePath, true);
             Directory.CreateDirectory(cachePath);
-            DaggerfallWorkshop.Utility.ZipFileUtils.UnzipFile(filePath, cachePath);
+
+            SetImportProgress(0f, "Unzipping...");
+            yield return null;
+            yield return CoroutineManager.Instance.StartCoroutine(DaggerfallWorkshop.Utility.ZipFileUtils.UnzipFileAsync(filePath, cachePath,
+                (progress) =>
+                {
+                    SetImportProgress(progress * 35f, "Unzipping...");
+                }));
 
             // Find any .dfmod files within the unzipped path that can load on this platform.
+            SetImportProgress(35f, "Checking mods...");
+            yield return null;
             string[] modFiles = Directory.GetFiles(cachePath, "*.dfmod", SearchOption.AllDirectories);
-            List<ImportableModFile> importableMods = GetImportableModFiles(modFiles);
+            List<ImportableModFile> importableMods = GetImportableModFiles(modFiles, 35f, 55f);
             foreach (ImportableModFile modFile in importableMods)
             {
                 string destFile = Path.Combine(modsFolderPath, modFile.FileName);
@@ -763,33 +851,45 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
                 }
                 File.Copy(modFile.SourcePath, destFile, true);
                 File.Delete(modFile.SourcePath);
+                SetImportProgress(70f, "Copying mods...");
+                yield return null;
             }
 
             if (modFiles.Length > 0 && importableMods.Count == 0)
             {
                 Directory.Delete(cachePath, true);
+                CleanupImportProgress();
                 ShowMessageBox("This mod zip does not contain a Daggerfall Unity mod built for Android. Download the Android version of the mod and import that file instead.");
-                return;
+                yield break;
             }
 
+            SetImportProgress(75f, "Checking assets...");
+            yield return null;
             List<LooseStreamingAssetFile> looseStreamingAssets = GetLooseStreamingAssetFiles(cachePath);
             if (looseStreamingAssets.Count > 0)
             {
+                HideImportProgress();
+                importInProgress = false;
                 PromptForLooseStreamingAssetsImport(looseStreamingAssets, cachePath, upgradedMod);
-                return;
+                yield break;
             }
 
             Directory.Delete(cachePath, true);
         }
         else if (filePath.EndsWith(".dfmod", StringComparison.OrdinalIgnoreCase))
         {
+            SetImportProgress(20f, "Checking mod...");
+            yield return null;
             if (!IsLoadableModFile(filePath))
             {
+                CleanupImportProgress();
                 ShowMessageBox("This Daggerfall Unity mod file is not compatible with Android. Download the Android version of the mod and import that file instead.");
-                return;
+                yield break;
             }
 
             // Copy .dfmod to mods folder
+            SetImportProgress(65f, "Copying mod...");
+            yield return null;
             string destFilePath = Path.Combine(modsFolderPath, Path.GetFileName(filePath));
             if (File.Exists(destFilePath)){
                 Debug.LogWarning($"File already exists: {destFilePath}. Overwriting it!");
@@ -798,25 +898,32 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             File.Copy(filePath, destFilePath, true);
         } else {
             // inform user that the only valid filters are .zip and .dfmod
+            CleanupImportProgress();
             ShowMessageBox("Only .zip and .dfmod files are supported for import.");
+            yield break;
         }
+        SetImportProgress(90f, "Refreshing mods...");
+        yield return null;
         RefreshButton_OnMouseClick(null, Vector2.zero);
+        SetImportProgress(100f, "Done...");
+        yield return new WaitForSecondsRealtime(0.2f);
         if (upgradedMod){
             ShowConfirmationBox("A mod was upgraded; this requires restarting the game. Restart now?", AndroidUtils.RestartAndroid, null);
         }
     }
 
-    private List<ImportableModFile> GetImportableModFiles(string[] modFiles)
+    private List<ImportableModFile> GetImportableModFiles(string[] modFiles, float startPercent, float endPercent)
     {
         List<ImportableModFile> importableMods = new List<ImportableModFile>();
         if (modFiles.Length == 0)
             return importableMods;
 
-        foreach (string file in modFiles)
+        for (int i = 0; i < modFiles.Length; i++)
         {
+            string file = modFiles[i];
             if (!IsLoadableModFile(file))
             {
-                Debug.LogWarning($"Skipping non-Android or invalid mod file: {file}");
+                Debug.LogWarning($"Skipping incompatible or invalid mod file: {file}");
                 continue;
             }
 
@@ -825,6 +932,9 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
                 SourcePath = file,
                 FileName = Path.GetFileName(file),
             });
+
+            float percent = startPercent + (endPercent - startPercent) * (i + 1) / modFiles.Length;
+            SetImportProgress(percent, "Checking mods...");
         }
 
         return importableMods;
@@ -924,26 +1034,11 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
 
             if (messageBoxButton == DaggerfallMessageBox.MessageBoxButtons.Yes)
             {
-                try
-                {
-                    ImportLooseStreamingAssets(looseStreamingAssets);
-                }
-                catch (UnauthorizedAccessException ex)
-                {
-                    Debug.LogWarning("Android denied access while importing loose StreamingAssets files: " + ex.Message);
-#if UNITY_ANDROID && !UNITY_EDITOR
-                    if (!AndroidUtils.HasAllFilesAccess())
-                    {
-                        if (Directory.Exists(cachePath))
-                            Directory.Delete(cachePath, true);
-
-                        ShowAllFilesAccessBox("Android denied access while importing loose StreamingAssets files. Grant Daggerfall Unity all files access, then import the mod again.");
-                        return;
-                    }
-#endif
-
-                    throw;
-                }
+                importInProgress = true;
+                ShowImportProgress();
+                SetImportProgress(75f, "Copying assets...");
+                CoroutineManager.Instance.StartCoroutine(ImportLooseStreamingAssetsWithHandling(looseStreamingAssets, cachePath, upgradedMod));
+                return;
             }
 
             if (Directory.Exists(cachePath))
@@ -954,13 +1049,81 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         uiManager.PushWindow(messageBox);
     }
 
-    private void ImportLooseStreamingAssets(List<LooseStreamingAssetFile> looseStreamingAssets)
+    private IEnumerator ImportLooseStreamingAssetsWithHandling(List<LooseStreamingAssetFile> looseStreamingAssets, string cachePath, bool upgradedMod)
     {
-        foreach (LooseStreamingAssetFile file in looseStreamingAssets)
+        IEnumerator operation = ImportLooseStreamingAssetsCoroutine(looseStreamingAssets, cachePath, upgradedMod);
+        while (true)
         {
+            object current = null;
+            bool moveNext = false;
+
+            try
+            {
+                moveNext = operation.MoveNext();
+                if (moveNext)
+                    current = operation.Current;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Debug.LogWarning("Android denied access while importing loose StreamingAssets files: " + ex.Message);
+                CleanupImportProgress();
+
+                if (Directory.Exists(cachePath))
+                    Directory.Delete(cachePath, true);
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+                if (!AndroidUtils.HasAllFilesAccess())
+                {
+                    ShowAllFilesAccessBox("Android denied access while importing loose StreamingAssets files. Grant Daggerfall Unity all files access, then import the mod again.");
+                    yield break;
+                }
+#endif
+
+                ShowMessageBox("Could not import loose StreamingAssets files because Android denied file access.");
+                yield break;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("Failed to import loose StreamingAssets files: " + ex.Message);
+                CleanupImportProgress();
+
+                if (Directory.Exists(cachePath))
+                    Directory.Delete(cachePath, true);
+
+                ShowMessageBox("Could not import loose StreamingAssets files: " + ex.Message);
+                yield break;
+            }
+
+            if (!moveNext)
+                yield break;
+
+            yield return current;
+        }
+    }
+
+    private IEnumerator ImportLooseStreamingAssetsCoroutine(List<LooseStreamingAssetFile> looseStreamingAssets, string cachePath, bool upgradedMod)
+    {
+        for (int i = 0; i < looseStreamingAssets.Count; i++)
+        {
+            LooseStreamingAssetFile file = looseStreamingAssets[i];
             Directory.CreateDirectory(Path.GetDirectoryName(file.DestinationPath));
             File.Copy(file.SourcePath, file.DestinationPath, true);
+
+            float percent = 75f + 20f * (i + 1) / looseStreamingAssets.Count;
+            SetImportProgress(percent, "Copying assets...");
+            if (i % 10 == 0)
+                yield return null;
         }
+
+        if (Directory.Exists(cachePath))
+            Directory.Delete(cachePath, true);
+
+        SetImportProgress(95f, "Refreshing mods...");
+        yield return null;
+        FinishModImport(upgradedMod);
+        SetImportProgress(100f, "Done...");
+        yield return new WaitForSecondsRealtime(0.2f);
+        CleanupImportProgress();
     }
 
     private void FinishModImport(bool upgradedMod)
@@ -989,8 +1152,53 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         messageBox.AllowCancel = true;
         messageBox.ClickAnywhereToClose = true;
         messageBox.ParentPanel.BackgroundTexture = null;
-        messageBox.SetText(text);
+        messageBox.SetText(text.Replace('\r', ' ').Replace('\n', ' '));
         uiManager.PushWindow(messageBox);
+    }
+
+    private void SetupImportProgressPanel()
+    {
+        importProgressPanel.Position = new Vector2(54, 184);
+        importProgressPanel.Size = new Vector2(210, 10);
+        importProgressPanel.BackgroundColor = new Color(0f, 0f, 0f, 0.75f);
+        importProgressPanel.Outline.Enabled = true;
+        importProgressPanel.Enabled = false;
+        NativePanel.Components.Add(importProgressPanel);
+
+        importProgressBarBg.Position = new Vector2(8, 1);
+        importProgressBarBg.Size = new Vector2(194, 8);
+        importProgressBarBg.BackgroundColor = new Color(0.6f, 0.6f, 0.6f, 1f);
+        importProgressBarBg.Outline.Enabled = true;
+        importProgressPanel.Components.Add(importProgressBarBg);
+
+        importProgressBarFill.Position = importProgressBarBg.Position + new Vector2(1, 1);
+        importProgressBarFill.Size = new Vector2(0, importProgressBarBg.Size.y - 2);
+        importProgressBarFill.BackgroundColor = Color.green;
+        importProgressPanel.Components.Add(importProgressBarFill);
+
+        importProgressText.Position = new Vector2(0, 1);
+        importProgressText.Size = new Vector2(importProgressPanel.Size.x, 10);
+        importProgressText.HorizontalAlignment = HorizontalAlignment.Center;
+        importProgressText.TextColor = Color.black;
+        importProgressText.ShadowPosition = Vector2.zero;
+        importProgressPanel.Components.Add(importProgressText);
+    }
+
+    private void ShowImportProgress()
+    {
+        importProgressPanel.Enabled = true;
+    }
+
+    private void HideImportProgress()
+    {
+        importProgressPanel.Enabled = false;
+    }
+
+    private void SetImportProgress(float percent, string status)
+    {
+        float width = (importProgressBarBg.Size.x - 2) * Mathf.Clamp01(percent / 100f);
+        importProgressBarFill.Size = new Vector2(width, importProgressBarBg.Size.y - 2);
+        importProgressText.Text = string.Format("{0} {1:0}%", status, percent);
     }
 
     private void ShowConfirmationBox(string text, Action onSelectedYes, Action onSelectedNo)
