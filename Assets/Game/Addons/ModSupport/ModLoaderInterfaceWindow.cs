@@ -841,7 +841,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             SetImportProgress(35f, "Checking mods...");
             yield return null;
             string[] modFiles = Directory.GetFiles(cachePath, "*.dfmod", SearchOption.AllDirectories);
-            List<ImportableModFile> importableMods = GetImportableModFiles(modFiles, 35f, 55f);
+            List<ImportableModFile> importableMods = GetImportableModFiles(modFiles, modsFolderPath, 35f, 55f);
             foreach (ImportableModFile modFile in importableMods)
             {
                 string destFile = Path.Combine(modsFolderPath, modFile.FileName);
@@ -880,7 +880,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         {
             SetImportProgress(20f, "Checking mod...");
             yield return null;
-            if (!IsLoadableModFile(filePath))
+            if (!IsInstalledModUpdate(filePath, modsFolderPath) && !IsLoadableModFile(filePath))
             {
                 CleanupImportProgress();
                 ShowMessageBox("This Daggerfall Unity mod file is not compatible with Android. Download the Android version of the mod and import that file instead.");
@@ -908,11 +908,11 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         SetImportProgress(100f, "Done...");
         yield return new WaitForSecondsRealtime(0.2f);
         if (upgradedMod){
-            ShowConfirmationBox("A mod was upgraded; this requires restarting the game. Restart now?", AndroidUtils.RestartAndroid, null);
+            ShowConfirmationBox("The imported files require restarting the game. Restart now?", AndroidUtils.RestartAndroid, null);
         }
     }
 
-    private List<ImportableModFile> GetImportableModFiles(string[] modFiles, float startPercent, float endPercent)
+    private List<ImportableModFile> GetImportableModFiles(string[] modFiles, string modsFolderPath, float startPercent, float endPercent)
     {
         List<ImportableModFile> importableMods = new List<ImportableModFile>();
         if (modFiles.Length == 0)
@@ -921,7 +921,10 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         for (int i = 0; i < modFiles.Length; i++)
         {
             string file = modFiles[i];
-            if (!IsLoadableModFile(file))
+            // Unity cannot load an update for validation while the installed AssetBundle
+            // with the same identity is already loaded. The installed copy has already
+            // passed platform validation, so allow its same-named replacement.
+            if (!IsInstalledModUpdate(file, modsFolderPath) && !IsLoadableModFile(file))
             {
                 Debug.LogWarning($"Skipping incompatible or invalid mod file: {file}");
                 continue;
@@ -938,6 +941,17 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         }
 
         return importableMods;
+    }
+
+    private static bool IsInstalledModUpdate(string filePath, string modsFolderPath)
+    {
+        string fileName = Path.GetFileNameWithoutExtension(filePath);
+        string installedPath = Path.Combine(modsFolderPath, Path.GetFileName(filePath));
+        if (!File.Exists(installedPath) || ModManager.Instance == null)
+            return false;
+
+        return ModManager.Instance.GetAllModFileNames()
+            .Any(loadedFileName => string.Equals(loadedFileName, fileName, StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsLoadableModFile(string filePath)
@@ -1037,7 +1051,9 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
                 importInProgress = true;
                 ShowImportProgress();
                 SetImportProgress(75f, "Copying assets...");
-                CoroutineManager.Instance.StartCoroutine(ImportLooseStreamingAssetsWithHandling(looseStreamingAssets, cachePath, upgradedMod));
+                // Loose StreamingAssets are read during startup and cannot be reliably
+                // refreshed by the mod list. Always restart after importing them.
+                CoroutineManager.Instance.StartCoroutine(ImportLooseStreamingAssetsWithHandling(looseStreamingAssets, cachePath, true));
                 return;
             }
 
@@ -1130,7 +1146,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
     {
         RefreshButton_OnMouseClick(null, Vector2.zero);
         if (upgradedMod)
-            ShowConfirmationBox("A mod was upgraded; this requires restarting the game. Restart now?", AndroidUtils.RestartAndroid, null);
+            ShowConfirmationBox("The imported files require restarting the game. Restart now?", AndroidUtils.RestartAndroid, null);
     }
 
     private static bool IsPathInside(string parentPath, string childPath)
