@@ -11,6 +11,9 @@ using DaggerfallWorkshop.Game.Addons.RmbBlockEditor.Elements;
 using DaggerfallWorkshop.Utility.AssetInjection;
 using UnityEngine;
 using UnityEngine.UIElements;
+// Unity 6 introduced UnityEngine.UIElements.Tab, which collides with this addon's own Tab
+// element. Alias to the addon's version, which is the one used here (it carries value/label).
+using Tab = DaggerfallWorkshop.Game.Addons.RmbBlockEditor.Elements.Tab;
 
 namespace DaggerfallWorkshop.Game.Addons.RmbBlockEditor
 {
