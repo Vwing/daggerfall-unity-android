@@ -30,6 +30,7 @@ Shader "Daggerfall/Automap"
 	SubShader // shader for target 4.0
 	{
 	    Tags { "Queue"="Geometry" /*"IgnoreProjector"="True"*/ "RenderType"="Opaque" }
+		LOD 300 // lower the shader's maximumLOD below this to use the fallback without a geometry shader
 		//Tags{ "Queue" = "Transparent" "IgnoreProjector" = "True" "RenderType" = "Transparent" }
 
     	Pass 
@@ -324,9 +325,10 @@ Shader "Daggerfall/Automap"
 		}
 	}
 
-	SubShader // fallback shader for target 3.0
+	SubShader // fallback shader for target 3.0 (no geometry shader); looks the same as the target 4.0 SubShader
 	{
 		Tags{ "Queue" = "Geometry" "IgnoreProjector" = "True" "RenderType" = "Opaque" }
+		LOD 200
 
 		Pass
 		{
@@ -398,17 +400,16 @@ Shader "Daggerfall/Automap"
 
 		}
 
-		Pass {
-	        ColorMask 0
-		}
-		
 		Tags{ "Queue" = "Transparent" "IgnoreProjector" = "True" "RenderType" = "Transparent" }
 		Blend SrcAlpha OneMinusSrcAlpha
-		BlendOp Add, Max
+		BlendOp Add, Add
 
+		// Matches the second pass of the target 4.0 SubShader, without its geometry shader. Wireframe edges come from
+		// barycentric coordinates that Automap writes into TEXCOORD3 of the automap meshes while wireframe mode is in use.
 		Pass
 		{
-			ZWrite Off
+			ZWrite On
+
 			CGPROGRAM
 
 			#include "UnityCG.cginc"
@@ -417,7 +418,7 @@ Shader "Daggerfall/Automap"
 			#pragma fragment frag
 
 			#pragma multi_compile __ RENDER_IN_GRAYSCALE
-			#pragma multi_compile __ AUTOMAP_RENDER_MODE_TRANSPARENT
+			#pragma multi_compile __ AUTOMAP_RENDER_MODE_WIREFRAME AUTOMAP_RENDER_MODE_TRANSPARENT
 
 			half4 _Color;
 			sampler2D _MainTex;
@@ -429,27 +430,41 @@ Shader "Daggerfall/Automap"
 			uniform float _WaterLevel;
 			uniform half4 _WaterColor;
 
+			struct appdata
+			{
+				float4 vertex : POSITION;
+				float2 texcoord : TEXCOORD0;
+				float3 barycentric : TEXCOORD3;
+			};
+
 			struct v2f
 			{
 				float4  pos : SV_POSITION;
 				float2  uv : TEXCOORD0;
+				float3 barycentric : TEXCOORD1;
 				float3 worldPos : TEXCOORD5;
 			};
 
-			void vert(appdata_full v, out v2f OUT)
+			void vert(appdata v, out v2f OUT)
 			{
 				OUT.pos = UnityObjectToClipPos(v.vertex);
 				OUT.uv = v.texcoord;
+				OUT.barycentric = v.barycentric;
 				OUT.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
 			}
 
-
 			half4 frag(v2f IN) : COLOR
 			{
+				#if defined(AUTOMAP_RENDER_MODE_WIREFRAME)
+					// distance of frag from the nearest triangle edge in pixels (derivatives taken before any discard)
+					float3 gradient = sqrt(ddx(IN.barycentric) * ddx(IN.barycentric) + ddy(IN.barycentric) * ddy(IN.barycentric));
+					float3 edgeDistance = IN.barycentric / max(gradient, 1e-6);
+					float d = min(edgeDistance.x, min(edgeDistance.y, edgeDistance.z));
+				#endif
+
 				float4 outColor;
 				half4 albedo = tex2D(_MainTex, IN.uv) * _Color;
-				//half3 emission = tex2D(_EmissionMap, IN.uv).rgb * _EmissionColor;
-				outColor.rgb = albedo.rgb; // - emission; // Emission cancels out other lights
+				outColor.rgb = albedo.rgb;
 				outColor.a = albedo.a;
 				if (IN.worldPos.y > _SclicingPositionY)
 				{
@@ -457,19 +472,38 @@ Shader "Daggerfall/Automap"
 					{
 						outColor.rgb = lerp(outColor.rgb, _WaterColor.rgb, _WaterColor.a);
 					}
-					#if defined(AUTOMAP_RENDER_MODE_TRANSPARENT)
-						outColor.a = 0.65;
+					#if defined(AUTOMAP_RENDER_MODE_WIREFRAME)
+						//fade based on dist from center
+						float I = exp2(-4.0*d*d);
+
+						// meshes without barycentric coordinates draw nothing, like cutout mode
+						if (I < 0.1f || dot(IN.barycentric, float3(1.0, 1.0, 1.0)) < 0.5f)
+						{
+							clip(-1.0);
+							outColor = float4(1.0, 0.0, 0.0, 1.0);
+						}
+						else
+						{
+							#if defined(RENDER_IN_GRAYSCALE)
+								outColor = float4(0.25, 0.25, 0.25, 0.6);
+							#else
+								outColor = float4(0.9, 0.9, 0.7, 0.6);
+							#endif
+						}
+					#elif defined(AUTOMAP_RENDER_MODE_TRANSPARENT)
+					outColor.a = 0.75;
 					#else //#elif defined(AUTOMAP_RENDER_MODE_CUTOUT)
 						clip(-1.0);
 						outColor = half4(1.0, 0.0, 0.0, 1.0);
-					#endif					
+					#endif
 				}
 				else
 				{
 					discard;
 				}
 
-				float dist = distance(IN.worldPos.y, _SclicingPositionY);
+				float dist = distance(min(IN.worldPos.y, _SclicingPositionY), _SclicingPositionY);
+
 				outColor.rgb *= 1.0f - max(0.0f, min(0.6f, dist / 20.0f));
 
 				#if defined(RENDER_IN_GRAYSCALE)
@@ -479,11 +513,9 @@ Shader "Daggerfall/Automap"
 				#endif
 
 				return outColor;
-
 			}
 
 			ENDCG
-
 		}
 	}
 	FallBack "Standard"

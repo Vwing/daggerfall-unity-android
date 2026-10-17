@@ -134,8 +134,25 @@ namespace DaggerfallWorkshop.Game
         {
             { (int)AxisActions.MovementHorizontal , "Axis1" },
             { (int)AxisActions.MovementVertical, "Axis2" },
+#if UNITY_ANDROID
+            // Android reports the right stick as the 3rd and 4th joystick axes
+            { (int)AxisActions.CameraHorizontal, "Axis3" },
+            { (int)AxisActions.CameraVertical, "Axis4" },
+#else
             { (int)AxisActions.CameraHorizontal, "Axis4" },
             { (int)AxisActions.CameraVertical, "Axis5" },
+#endif
+        };
+
+        /// <summary>
+        /// AxisActions that are inverted by default
+        /// </summary>
+        static readonly HashSet<int> defaultInvertedAxisActions = new HashSet<int>()
+        {
+#if UNITY_ANDROID
+            // Axis5 is inverted in the input asset, but Axis4 is not, so invert it here to keep up as up
+            (int)AxisActions.CameraVertical,
+#endif
         };
         /// <summary>
         /// key: JoystickUIActions
@@ -238,6 +255,7 @@ namespace DaggerfallWorkshop.Game
             public Dictionary<String, String> axisActionInversions;
             public Dictionary<String, String> joystickUIKeyBinds;
             public List<string> removedPrimaryActions;
+            public bool androidCameraAxesMigrated;
         }
 
         #endregion
@@ -1071,6 +1089,9 @@ namespace DaggerfallWorkshop.Game
             keyBindsData.joystickUIKeyBinds = new Dictionary<string, string>();
             keyBindsData.secondaryActionKeyBinds = new Dictionary<string, string>();
             keyBindsData.removedPrimaryActions = new List<string>();
+#if UNITY_ANDROID
+            keyBindsData.androidCameraAxesMigrated = true;
+#endif
 
             foreach (var item in actionKeyDict)
             {
@@ -1180,7 +1201,7 @@ namespace DaggerfallWorkshop.Game
 
             foreach (AxisActions axisAction in Enum.GetValues(typeof(AxisActions)))
                 if (!autofill || !axisActionInvertDict.ContainsKey((int)axisAction))
-                    SetAxisActionInversion(axisAction, false);
+                    SetAxisActionInversion(axisAction, defaultInvertedAxisActions.Contains((int)axisAction));
         }
 
         public bool GetMouseButtonDown(int button)
@@ -2178,11 +2199,36 @@ namespace DaggerfallWorkshop.Game
             {
                 keyBindsData.axisActionInversions = new Dictionary<String, string>();
                 foreach (AxisActions axisAction in Enum.GetValues(typeof(AxisActions)))
-                    SetAxisActionInversion(axisAction, false);
+                    SetAxisActionInversion(axisAction, defaultInvertedAxisActions.Contains((int)axisAction));
             }
+
+#if UNITY_ANDROID
+            if (!keyBindsData.androidCameraAxesMigrated)
+                MigrateDesktopCameraAxisDefaults();
+#endif
 
             RaiseLoadedKeyBindsEvent();
         }
+
+#if UNITY_ANDROID
+        // Older Android builds defaulted the camera to the desktop right stick axes (Axis4/Axis5), which don't match
+        // Android's axis layout. Move players who never changed those defaults over to the Android defaults.
+        void MigrateDesktopCameraAxisDefaults()
+        {
+            bool hasDesktopDefaults = GetAxisBinding(AxisActions.CameraHorizontal) == "Axis4"
+                && GetAxisBinding(AxisActions.CameraVertical) == "Axis5"
+                && !GetAxisActionInversion(AxisActions.CameraHorizontal)
+                && !GetAxisActionInversion(AxisActions.CameraVertical);
+            if (!hasDesktopDefaults)
+                return;
+
+            SetAxisBinding(GetDefaultAxisBinding(AxisActions.CameraHorizontal), AxisActions.CameraHorizontal);
+            SetAxisBinding(GetDefaultAxisBinding(AxisActions.CameraVertical), AxisActions.CameraVertical);
+            SetAxisActionInversion(AxisActions.CameraHorizontal, defaultInvertedAxisActions.Contains((int)AxisActions.CameraHorizontal));
+            SetAxisActionInversion(AxisActions.CameraVertical, defaultInvertedAxisActions.Contains((int)AxisActions.CameraVertical));
+            UpdateBindingCache();
+        }
+#endif
 
         static Actions ActionNameToEnum(string value)
         {

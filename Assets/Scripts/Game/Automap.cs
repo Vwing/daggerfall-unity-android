@@ -175,6 +175,10 @@ namespace DaggerfallWorkshop.Game
 
         GameObject gameobjectGeometry = null; // used to hold reference to instance of GameObject with level geometry used for automap        
 
+        bool useSimpleAutomapShader = false; // use the automap shader's variant without a geometry shader (mobile, or GPUs without geometry shaders)
+        Dictionary<Mesh, Mesh> wireframeMeshes = new Dictionary<Mesh, Mesh>(); // copies of automap meshes with barycentric coordinates for wireframe mode, keyed by source mesh
+        GameObject wireframeMeshesGeometry = null; // automap geometry whose meshes have been swapped for wireframeMeshes
+
         int layerAutomap; // layer used for level geometry of automap
         int layerPlayer; // player layer
 
@@ -427,6 +431,9 @@ namespace DaggerfallWorkshop.Game
 
             //SetActivationStateOfMapObjects(true);
 
+            // geometry may have been rebuilt since wireframe mode was selected
+            UpdateWireframeMeshes();
+
             gameobjectPlayerMarkerArrow.transform.position = gameObjectPlayerAdvanced.transform.position;
             gameobjectPlayerMarkerArrow.transform.rotation = gameObjectPlayerAdvanced.transform.rotation;
 
@@ -497,6 +504,7 @@ namespace DaggerfallWorkshop.Game
                     Shader.DisableKeyword("AUTOMAP_RENDER_MODE_TRANSPARENT");
                     break;
             }
+            UpdateWireframeMeshes();
         }
 
         /// <summary>
@@ -526,6 +534,7 @@ namespace DaggerfallWorkshop.Game
             currentAutomapRenderMode = AutomapRenderMode.Wireframe;
             Shader.EnableKeyword("AUTOMAP_RENDER_MODE_WIREFRAME");
             Shader.DisableKeyword("AUTOMAP_RENDER_MODE_TRANSPARENT");
+            UpdateWireframeMeshes();
         }
 
         /// <summary>
@@ -927,13 +936,17 @@ namespace DaggerfallWorkshop.Game
                 DaggerfallUnity.LogMessage("Did not find Layer with name \"Player\"! entrance/exit marker discovery will not work", true);
             }
 
+            // The geometry shader in the automap shader's main variant is slow on mobile GPUs and can hang some of them
+            // on large dungeons, so use the variant without it there. It looks the same.
+            useSimpleAutomapShader = Application.isMobilePlatform || !SystemInfo.supportsGeometryShaders;
+
 
             Camera.main.cullingMask = Camera.main.cullingMask & ~((1 << layerAutomap)); // don't render automap layer with main camera
         }
 
         void OnDestroy()
         {
-
+            ReleaseWireframeMeshes();
         }
 
         void OnEnable()
@@ -1037,6 +1050,100 @@ namespace DaggerfallWorkshop.Game
         #endregion
 
         #region Private Methods
+
+        /// <summary>
+        /// the automap shader variant without a geometry shader draws wireframe edges from barycentric coordinates stored in the meshes,
+        /// so while wireframe mode is in use swap the automap geometry's meshes for copies that have them
+        /// </summary>
+        private void UpdateWireframeMeshes()
+        {
+            if (!useSimpleAutomapShader || currentAutomapRenderMode != AutomapRenderMode.Wireframe || !gameobjectGeometry || wireframeMeshesGeometry == gameobjectGeometry)
+                return;
+
+            foreach (MeshFilter meshFilter in gameobjectGeometry.GetComponentsInChildren<MeshFilter>(true))
+            {
+                Mesh mesh = meshFilter.sharedMesh;
+                if (!mesh)
+                    continue;
+
+                Mesh wireframeMesh;
+                if (!wireframeMeshes.TryGetValue(mesh, out wireframeMesh))
+                {
+                    wireframeMesh = CreateWireframeMesh(mesh);
+                    wireframeMeshes[mesh] = wireframeMesh;
+                }
+                if (wireframeMesh)
+                    meshFilter.sharedMesh = wireframeMesh;
+            }
+            wireframeMeshesGeometry = gameobjectGeometry;
+        }
+
+        /// <summary>
+        /// destroys the wireframe mesh copies, call whenever the automap geometry is destroyed
+        /// </summary>
+        private void ReleaseWireframeMeshes()
+        {
+            foreach (Mesh wireframeMesh in wireframeMeshes.Values)
+            {
+                if (wireframeMesh)
+                    UnityEngine.Object.Destroy(wireframeMesh);
+            }
+            wireframeMeshes.Clear();
+            wireframeMeshesGeometry = null;
+        }
+
+        /// <summary>
+        /// copies a mesh with every triangle given its own vertices, with the barycentric coordinates of each corner in TEXCOORD3
+        /// </summary>
+        /// <returns>the copy, or null if the mesh can't be read or isn't made of triangles (it then shows no wireframe edges)</returns>
+        private static Mesh CreateWireframeMesh(Mesh source)
+        {
+            if (!source.isReadable)
+                return null;
+            for (int subMesh = 0; subMesh < source.subMeshCount; subMesh++)
+            {
+                if (source.GetTopology(subMesh) != MeshTopology.Triangles)
+                    return null;
+            }
+
+            Vector3[] sourceVertices = source.vertices;
+            Vector2[] sourceUVs = source.uv;
+            int[][] subMeshTriangles = new int[source.subMeshCount][];
+            int vertexCount = 0;
+            for (int subMesh = 0; subMesh < source.subMeshCount; subMesh++)
+            {
+                subMeshTriangles[subMesh] = source.GetTriangles(subMesh);
+                vertexCount += subMeshTriangles[subMesh].Length;
+            }
+
+            Vector3[] vertices = new Vector3[vertexCount];
+            Vector2[] uvs = new Vector2[vertexCount];
+            Vector3[] barycentric = new Vector3[vertexCount];
+            Vector3[] corners = { new Vector3(1, 0, 0), new Vector3(0, 1, 0), new Vector3(0, 0, 1) };
+            int vertex = 0;
+            foreach (int[] triangles in subMeshTriangles)
+            {
+                for (int i = 0; i < triangles.Length; i++)
+                {
+                    vertices[vertex] = sourceVertices[triangles[i]];
+                    uvs[vertex] = sourceUVs.Length > 0 ? sourceUVs[triangles[i]] : Vector2.zero;
+                    barycentric[vertex] = corners[i % 3];
+                    triangles[i] = vertex++;
+                }
+            }
+
+            Mesh mesh = new Mesh();
+            mesh.name = source.name + " (automap wireframe)";
+            mesh.indexFormat = vertexCount > 65535 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16;
+            mesh.vertices = vertices;
+            mesh.uv = uvs;
+            mesh.SetUVs(3, barycentric);
+            mesh.subMeshCount = subMeshTriangles.Length;
+            for (int subMesh = 0; subMesh < subMeshTriangles.Length; subMesh++)
+                mesh.SetTriangles(subMeshTriangles[subMesh], subMesh, false);
+            mesh.bounds = source.bounds;
+            return mesh;
+        }
 
         /// <summary>
         /// does a raycast based hit test with additional protection raycast and marks automap level geometry meshes as discovered and visited in this entering/dungeon run
@@ -1866,6 +1973,7 @@ namespace DaggerfallWorkshop.Game
             {
                 UnityEngine.Object.Destroy(gameobjectGeometry);
                 gameobjectGeometry = null;
+                ReleaseWireframeMeshes();
             }
 
             gameobjectGeometry = new GameObject("GeometryAutomap (Interior)");
@@ -1920,6 +2028,7 @@ namespace DaggerfallWorkshop.Game
             {
                 UnityEngine.Object.Destroy(gameobjectGeometry);
                 gameobjectGeometry = null;
+                ReleaseWireframeMeshes();
             }
 
             gameobjectGeometry = new GameObject("GeometryAutomap (Dungeon)");
@@ -2522,6 +2631,7 @@ namespace DaggerfallWorkshop.Game
             {
                 UnityEngine.Object.Destroy(gameobjectGeometry);
                 gameobjectGeometry = null;
+                ReleaseWireframeMeshes();
             }
         }
 
@@ -2533,6 +2643,7 @@ namespace DaggerfallWorkshop.Game
             {
                 UnityEngine.Object.Destroy(gameobjectGeometry);
                 gameobjectGeometry = null;
+                ReleaseWireframeMeshes();
             }
         }
 
@@ -2559,6 +2670,7 @@ namespace DaggerfallWorkshop.Game
             {
                 UnityEngine.Object.Destroy(gameobjectGeometry);
                 gameobjectGeometry = null;
+                ReleaseWireframeMeshes();
             }
             DestroyBeacons();
             DestroyUserMarkerNotes();
@@ -2590,6 +2702,8 @@ namespace DaggerfallWorkshop.Game
 
                 Vector3 playerAdvancedPos = gameObjectPlayerAdvanced.transform.position;
                 Material automapMaterial = new Material(Shader.Find("Daggerfall/Automap"));
+                if (useSimpleAutomapShader)
+                    automapMaterial.shader.maximumLOD = 200; // the variant without a geometry shader
                 automapMaterial.SetColor("_WaterColor", GameManager.Instance.PlayerEnterExit.UnderwaterFog.waterMapColor);
 
                 OnInjectMeshAndMaterialProperties(playerIsInsideBuilding, playerAdvancedPos, automapMaterial, resetDiscoveryState);

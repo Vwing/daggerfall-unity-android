@@ -30,7 +30,9 @@ namespace DaggerfallWorkshop
         const string sourceFolderName = "SoundFonts";
         const string defaultSoundFontFilename = "TimGM6mb.sf2";
         const int fallbackSampleRate = 48000;
+        const int maxSynthSampleRate = 96000;
         const int polyphony = 100;
+        const float synthRetryDelay = 10f;
 
         private static AudioMixerGroup _defaultAudioMixerGroup;
 
@@ -54,10 +56,17 @@ namespace DaggerfallWorkshop
         MidiFileSequencer midiSequencer = null;
         string currentMidiName;
         float[] sampleBuffer = new float[0];
+        int sampleBufferPosition = 0;
         int channels = 0;
         int bufferLength = 0;
         int numBuffers = 0;
         int synthSampleRate = 0;
+        int synthOutputSampleRate = 0;
+        int synthUpsampleFactor = 1;
+        int upsampleCounter = 0;
+        float nextSynthRetryTime = 0;
+        bool loggedSynthFailure = false;
+        bool loggedSourceRestart = false;
         bool playEnabled = false;
         bool awakeComplete = false;
         float oldGain;
@@ -75,10 +84,18 @@ namespace DaggerfallWorkshop
 
         void Start()
         {
-            InitSynth();
-
             DaggerfallVidPlayerWindow.OnVideoStart += DaggerfallVidPlayerWindow_OnVideoStart;
             DaggerfallVidPlayerWindow.OnVideoEnd += DaggerfallVidPlayerWindow_OnVideoEnd;
+            AudioSettings.OnAudioConfigurationChanged += AudioSettings_OnAudioConfigurationChanged;
+
+            InitSynth();
+        }
+
+        void OnDestroy()
+        {
+            DaggerfallVidPlayerWindow.OnVideoStart -= DaggerfallVidPlayerWindow_OnVideoStart;
+            DaggerfallVidPlayerWindow.OnVideoEnd -= DaggerfallVidPlayerWindow_OnVideoEnd;
+            AudioSettings.OnAudioConfigurationChanged -= AudioSettings_OnAudioConfigurationChanged;
         }
 
         void Update()
@@ -91,6 +108,18 @@ namespace DaggerfallWorkshop
                     IsPlaying = midiSequencer.IsPlaying;
                     CurrentTime = midiSequencer.CurrentTime;
                     EndTime = midiSequencer.EndTime;
+                }
+
+                // The sequencer only advances while the AudioSource is playing. If something stops the source
+                // (such as the audio output being reset), restart it rather than leaving the song stuck as playing.
+                if (playEnabled && IsPlaying && !audioSource.isPlaying)
+                {
+                    if (!loggedSourceRestart)
+                    {
+                        Debug.LogFormat("DaggerfallSongPlayer: Music AudioSource stopped while '{0}' was playing; restarting it. {1}", currentMidiName, GetAudioConfigurationString());
+                        loggedSourceRestart = true;
+                    }
+                    audioSource.Play();
                 }
             }
             else
@@ -125,7 +154,7 @@ namespace DaggerfallWorkshop
                     Play();
                     awakeComplete = true;
                 }
-                if (audioSource.loop && !midiSequencer.IsPlaying)
+                if (audioSource.loop && midiSequencer != null && !midiSequencer.IsPlaying)
                 {
                     Play();
                 }
@@ -157,13 +186,10 @@ namespace DaggerfallWorkshop
         /// </summary>
         public void Play(SongFiles song)
         {
-            if (!InitSynth())
-                return;
-
             // Stop if playing another song
             Stop();
 
-            // Import custom song
+            // Import custom song. Imported songs don't use the synth, so they still play if it couldn't start.
             AudioClip clip;
             if (isImported = SoundReplacement.TryImportSong(song, out clip))
             {
@@ -173,11 +199,19 @@ namespace DaggerfallWorkshop
                 return;
             }
 
+            if (!InitSynth())
+                return;
+
             // Load song data
             string filename = EnumToFilename(song);
             byte[] songData = LoadSong(filename);
             if (songData == null)
                 return;
+
+            // Drop any samples left over from the previous song
+            sampleBufferPosition = sampleBuffer.Length;
+            upsampleCounter = 0;
+            loggedSourceRestart = false;
 
             // Create song
             MidiFile midiFile = new MidiFile(new MyMemoryFile(songData, filename));
@@ -201,8 +235,8 @@ namespace DaggerfallWorkshop
         /// </summary>
         public void Stop()
         {
-            if (!InitSynth())
-                return;
+            if (!audioSource)
+                audioSource = GetComponent<AudioSource>();
 
             // Reset audiosource clip
             if (isImported)
@@ -214,7 +248,7 @@ namespace DaggerfallWorkshop
             }
 
             // Stop if playing a song
-            if (midiSequencer.IsPlaying)
+            if (midiSequencer != null && midiSequencer.IsPlaying)
             {
                 midiSequencer.Stop();
                 midiSynthesizer.NoteOffAll(true);
@@ -239,38 +273,70 @@ namespace DaggerfallWorkshop
             // Create synthesizer and load bank
             if (midiSynthesizer == null)
             {
-                // Get output format from Unity's active audio configuration. Some Android devices
-                // use a non-48 kHz output path, and the synth must match it to keep MIDI timing stable.
-                synthSampleRate = AudioSettings.outputSampleRate > 0 ? AudioSettings.outputSampleRate : fallbackSampleRate;
-                channels = AudioSettings.speakerMode == AudioSpeakerMode.Mono ? 1 : 2;
-
-                // Create synth
-                AudioSettings.GetDSPBufferSize(out bufferLength, out numBuffers);
-                numBuffers = Math.Max(1, numBuffers);
-                midiSynthesizer = new Synthesizer(synthSampleRate, channels, bufferLength / numBuffers, numBuffers, polyphony);
-
-                // Load bank data
-                string filename = DaggerfallUnity.Settings.SoundFont;
-                byte[] bankData = LoadBank(filename);
-                if (bankData == null)
-                {
-                    // Attempt to fallback to default internal soundfont
-                    bankData = LoadDefaultSoundFont();
-                    filename = defaultSoundFontFilename;
-                    Debug.LogFormat("Using default SoundFont {0}", defaultSoundFontFilename);
-                }
-                else
-                {
-                    Debug.LogFormat("Trying custom SoundFont {0}", filename);
-                }
-
-                // Assign to synth
-                if (bankData == null)
+                // SongManager asks for a song every frame while nothing plays, so retry a synth that failed to start
+                // only every few seconds rather than on every request
+                if (Time.realtimeSinceStartup < nextSynthRetryTime)
                     return false;
-                else
+
+                try
                 {
-                    midiSynthesizer.LoadBank(new MyMemoryFile(bankData, filename));
-                    midiSynthesizer.ResetSynthControls(); // Need to do this for bank to load properly, don't know why
+                    // Get output format from Unity's active audio configuration. Some Android devices
+                    // use a non-48 kHz output path, and the synth must match it to keep MIDI timing stable.
+                    synthOutputSampleRate = AudioSettings.outputSampleRate > 0 ? AudioSettings.outputSampleRate : fallbackSampleRate;
+                    // The synth only supports up to 96 kHz, so faster outputs run it at an exact fraction of the output rate
+                    // and repeat each of its samples to fill the gap.
+                    synthUpsampleFactor = (synthOutputSampleRate + maxSynthSampleRate - 1) / maxSynthSampleRate;
+                    synthSampleRate = synthOutputSampleRate / synthUpsampleFactor;
+                    channels = AudioSettings.speakerMode == AudioSpeakerMode.Mono ? 1 : 2;
+                    if (!loggedSynthFailure)
+                        Debug.LogFormat("DaggerfallSongPlayer: {0}. Starting MIDI synth at {1} Hz.", GetAudioConfigurationString(), synthSampleRate);
+
+                    // Create synth
+                    AudioSettings.GetDSPBufferSize(out bufferLength, out numBuffers);
+                    numBuffers = Math.Max(1, numBuffers);
+                    Synthesizer synth = new Synthesizer(synthSampleRate, channels, bufferLength / numBuffers, numBuffers, polyphony);
+
+                    // Load bank data
+                    string filename = DaggerfallUnity.Settings.SoundFont;
+                    byte[] bankData = LoadBank(filename);
+                    if (bankData == null)
+                    {
+                        // Attempt to fallback to default internal soundfont
+                        bankData = LoadDefaultSoundFont();
+                        filename = defaultSoundFontFilename;
+                        Debug.LogFormat("Using default SoundFont {0}", defaultSoundFontFilename);
+                    }
+                    else
+                    {
+                        Debug.LogFormat("Trying custom SoundFont {0}", filename);
+                    }
+
+                    // Assign to synth
+                    if (bankData == null)
+                    {
+                        nextSynthRetryTime = Time.realtimeSinceStartup + synthRetryDelay;
+                        return false;
+                    }
+                    synth.LoadBank(new MyMemoryFile(bankData, filename));
+                    synth.ResetSynthControls(); // Need to do this for bank to load properly, don't know why
+                    midiSynthesizer = synth;
+
+                    if (loggedSynthFailure)
+                    {
+                        Debug.LogFormat("DaggerfallSongPlayer: MIDI synth started at {0} Hz after an earlier failure. {1}", synthSampleRate, GetAudioConfigurationString());
+                        loggedSynthFailure = false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log only the first failure; retries until one succeeds are silent
+                    nextSynthRetryTime = Time.realtimeSinceStartup + synthRetryDelay;
+                    if (!loggedSynthFailure)
+                    {
+                        Debug.LogErrorFormat("DaggerfallSongPlayer: Could not start the MIDI synth, so MIDI music is off. Retrying every {0} seconds. {1}\n{2}", synthRetryDelay, GetAudioConfigurationString(), ex);
+                        loggedSynthFailure = true;
+                    }
+                    return false;
                 }
             }
 
@@ -369,6 +435,34 @@ namespace DaggerfallWorkshop
             return final;
         }
 
+        private static string GetAudioConfigurationString()
+        {
+            AudioSettings.GetDSPBufferSize(out int dspBufferLength, out int dspNumBuffers);
+            return string.Format("Audio output {0} Hz, speaker mode {1}, driver {2}, DSP buffer {3} x {4}",
+                AudioSettings.outputSampleRate, AudioSettings.speakerMode, AudioSettings.driverCapabilities, dspBufferLength, dspNumBuffers);
+        }
+
+        // Unity rebuilds the audio output when the output device or format changes, which stops AudioSources and can change
+        // the output sample rate. The synth is built for one sample rate, so rebuild it if that changed; SongManager restarts
+        // the song once IsPlaying drops. A stopped source at an unchanged rate is restarted in Update().
+        private void AudioSettings_OnAudioConfigurationChanged(bool deviceWasChanged)
+        {
+            Debug.LogFormat("DaggerfallSongPlayer: Audio configuration changed (device changed: {0}). {1}", deviceWasChanged, GetAudioConfigurationString());
+
+            if (AudioSettings.outputSampleRate == synthOutputSampleRate)
+                return;
+
+            playEnabled = false;
+            if (!isImported)
+            {
+                Stop();
+                IsPlaying = false;
+            }
+            midiSynthesizer = null;
+            midiSequencer = null;
+            nextSynthRetryTime = 0; // retry a failed synth right away at the new rate
+        }
+
         private void DaggerfallVidPlayerWindow_OnVideoStart()
         {
             // Mute music while video is playing
@@ -397,28 +491,46 @@ namespace DaggerfallWorkshop
             if (!playEnabled)
                 return;
 
-            // Must have synth and seq
-            if (midiSynthesizer == null || midiSequencer == null)
+            // Must have synth and seq. Use local copies, as the main thread can replace them when the audio output changes.
+            Synthesizer synth = midiSynthesizer;
+            MidiFileSequencer sequencer = midiSequencer;
+            if (synth == null || sequencer == null)
                 return;
 
-            if (channels != midiSynthesizer.AudioChannels)
-                midiSynthesizer.SetAudioChannelCount(channels);
-
-            // Sample buffer size must match working buffer size
-            if (sampleBuffer.Length != midiSynthesizer.WorkingBufferSize)
-                sampleBuffer = new float[midiSynthesizer.WorkingBufferSize];
+            // The synth renders mono or stereo; any extra output channels are left silent
+            int synthChannels = Math.Min(channels, 2);
+            if (synthChannels != synth.AudioChannels)
+            {
+                synth.SetAudioChannelCount(synthChannels);
+                sampleBufferPosition = sampleBuffer.Length; // drop samples rendered with the old channel count
+            }
 
             try
             {
                 // Update sequencing - must be playing a song
-                if (midiSequencer.IsMidiLoaded && midiSequencer.IsPlaying)
+                if (sequencer.IsMidiLoaded && sequencer.IsPlaying)
                 {
-                    midiSequencer.FillMidiEventQueue();
-                    midiSynthesizer.GetNext(sampleBuffer);
-                    int length = Math.Min(data.Length, sampleBuffer.Length);
-                    for (int i = 0; i < length; i++)
+                    int frames = data.Length / channels;
+                    for (int frame = 0; frame < frames; frame++)
                     {
-                        data[i] = sampleBuffer[i] * Gain;
+                        // The synth's working buffer rarely matches Unity's buffer, so render more whenever it runs out
+                        if (sampleBufferPosition >= sampleBuffer.Length)
+                        {
+                            if (sampleBuffer.Length != synth.WorkingBufferSize)
+                                sampleBuffer = new float[synth.WorkingBufferSize];
+                            sequencer.FillMidiEventQueue();
+                            synth.GetNext(sampleBuffer);
+                            sampleBufferPosition = 0;
+                        }
+
+                        for (int channel = 0; channel < channels; channel++)
+                            data[frame * channels + channel] = channel < synthChannels ? sampleBuffer[sampleBufferPosition + channel] * Gain : 0f;
+
+                        if (++upsampleCounter >= synthUpsampleFactor)
+                        {
+                            upsampleCounter = 0;
+                            sampleBufferPosition += synthChannels;
+                        }
                     }
                 }
             }

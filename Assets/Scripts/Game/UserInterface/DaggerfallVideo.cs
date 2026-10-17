@@ -110,12 +110,22 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             data[pos++] = (vidFile.AudioBuffer[i] - 128) * divisor;
                         }
                         clip.SetData(data, 0);
+                        AudioClip oldClip = clips[flip];
                         clips[flip] = clip;
 
                         // Schedule clip
                         audioSources[flip].clip = clips[flip];
                         audioSources[flip].volume = DaggerfallUnity.Settings.SoundVolume;
-                        audioSources[flip].PlayScheduled(nextEventTime);
+                        // PlayScheduled should start late blocks right away, but play them directly in case a device's
+                        // audio clock doesn't agree with dspTime
+                        if (nextEventTime <= time)
+                            audioSources[flip].Play();
+                        else
+                            audioSources[flip].PlayScheduled(nextEventTime);
+
+                        // The source has let go of the previous clip, so free it rather than leaking one per block
+                        if (oldClip)
+                            UnityEngine.Object.Destroy(oldClip);
                         nextEventTime += vidFile.FrameDelay;
                         flip = (clipQueueLength - 1) - flip;
                         lastPlayedAudioFrame = true;
@@ -171,6 +181,11 @@ namespace DaggerfallWorkshop.Game.UserInterface
         {
             base.Dispose();
             GameObject.Destroy(audioPlayer);
+            foreach (AudioClip clip in clips)
+            {
+                if (clip)
+                    UnityEngine.Object.Destroy(clip);
+            }
         }
     }
 }
