@@ -32,6 +32,25 @@ namespace DaggerfallWorkshop
 #endif
         }
 
+        // Replaces Unity's startup request, which the manifest turns off. Android 11 and later always deny this permission,
+        // but Unity's request still paused the game while it loaded, which left music and cutscenes silent on some devices.
+        // Android 10 and earlier still need it for data folders outside app storage.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void RequestLegacyStoragePermission()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            const int android11 = 30;
+            using (var version = new AndroidJavaClass("android.os.Build$VERSION"))
+            {
+                if (version.GetStatic<int>("SDK_INT") >= android11)
+                    return;
+            }
+
+            if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(UnityEngine.Android.Permission.ExternalStorageWrite))
+                UnityEngine.Android.Permission.RequestUserPermission(UnityEngine.Android.Permission.ExternalStorageWrite);
+#endif
+        }
+
         private const string folderPickerCallbackObjectName = "AndroidFolderPickerCallback";
         private static Action<string> folderPickerCallback;
         private static FolderPickerCallbackReceiver folderPickerReceiver;
