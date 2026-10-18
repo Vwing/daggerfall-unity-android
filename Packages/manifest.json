@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.code-philosophy.hybridclr": "file:../../hybridclr_unity",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.addressables": "1.22.3",
     "com.unity.burst": "1.8.29",

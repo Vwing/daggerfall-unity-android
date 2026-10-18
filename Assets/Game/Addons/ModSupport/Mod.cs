@@ -154,6 +154,30 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
         public bool HasSettings { get; private set; }
 
         /// <summary>
+        /// True if the assetbundle contains C# source (.cs.txt) that must be compiled at runtime.
+        /// Runtime compilation needs a Mono build, so IL2CPP builds can only load precompiled (.dll.bytes) code.
+        /// </summary>
+        public bool HasSourceCode { get; private set; }
+
+        /// <summary>
+        /// True if the assetbundle contains a precompiled assembly (.dll.bytes), as made by the Mod Builder's Precompiled option.
+        /// </summary>
+        public bool HasPrecompiledCode { get; private set; }
+
+        /// <summary>
+        /// True if the manifest lists C# files but the assetbundle contains neither their source nor a precompiled assembly.
+        /// </summary>
+        public bool IsMissingCode { get; private set; }
+
+        /// <summary>
+        /// True if this mod has to be rebuilt with the Mod Builder's Precompiled option to load on IL2CPP builds.
+        /// </summary>
+        public bool NeedsPrecompiledRebuild
+        {
+            get { return HasSourceCode || IsMissingCode; }
+        }
+
+        /// <summary>
         /// If not null, this callback is invoked when settings are changed or when raised with <see cref="LoadSettings()"/>.
         /// </summary>
         public Action<ModSettings.ModSettings, ModSettingsChange> LoadSettingsCallback { internal get; set; }
@@ -909,11 +933,13 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
                     {
                         isSource = true;
                         isPrecompiled = false;
+                        HasSourceCode = true;
                     }
                     else if (assetName.EndsWith(".dll.bytes", StringComparison.Ordinal))
                     {
                         isSource = true;
-                        isPrecompiled = true;    
+                        isPrecompiled = true;
+                        HasPrecompiledCode = true;
                     }
 
                     if (isSource)
@@ -927,8 +953,16 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
                                 isPreCompiled = isPrecompiled
                             });
                         }
-                    }  
+                    }
                 }
+
+                IsMissingCode = !HasSourceCode && !HasPrecompiledCode && ModInfo.Files != null &&
+                    ModInfo.Files.Any(x => x.EndsWith(".cs", StringComparison.OrdinalIgnoreCase));
+
+                if (HasSourceCode)
+                    Debug.LogWarning($"Mod {Title} contains C# source instead of precompiled code; IL2CPP builds can't load it until it's rebuilt with the Mod Builder's Precompiled option.");
+                else if (IsMissingCode)
+                    Debug.LogWarning($"Mod {Title} lists C# files but contains no code; it has to be rebuilt to work.");
 
                 return true;
             }
@@ -961,7 +995,10 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
                     {
                         assembly = Assembly.Load(sources[i].sourceTxt.bytes);
                         if (assembly != null)
+                        {
                             assemblies.Add(assembly);
+                            Debug.Log($"[{Title}] Loaded precompiled assembly {assembly.GetName().Name}");
+                        }
                     }
                     else
                     {

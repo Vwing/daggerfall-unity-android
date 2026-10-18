@@ -58,3 +58,6 @@ Assets/Resources/PerformanceTestRunInfo.json
 Assets/Resources/PerformanceTestRunInfo.json.meta
 Assets/Resources/PerformanceTestRunSettings.json
 Assets/Resources/PerformanceTestRunSettings.json.meta
+# HybridCLR spike: stripped AOT metadata copied in at build time
+/Assets/Android/HybridCLR/Resources/
+/Assets/Android/HybridCLR/Resources.meta

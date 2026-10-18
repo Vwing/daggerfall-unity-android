@@ -36,6 +36,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
     {
         public ModInfo modInfo;
         public bool enabled;
+        public bool needsRebuild;
     }
 
     class LooseStreamingAssetFile
@@ -83,6 +84,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
     readonly TextLabel modAuthorLabel            = new TextLabel();
     readonly TextLabel modAuthorContactLabel     = new TextLabel();
     readonly TextLabel modDFTFUVersionLabel      = new TextLabel();
+    readonly TextLabel modScriptsLabel           = new TextLabel();
     readonly TextLabel modsFound                 = new TextLabel();
     readonly TextLabel importProgressText        = new TextLabel();
 
@@ -91,6 +93,8 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
     readonly Color selectedTextColor = new Color(0.0f, 0.8f, 0.0f, 1.0f);
     readonly Color textColor = new Color(0.0f, 0.5f, 0.0f, 0.4f);
     readonly Color disabledModTextColor = new Color(0.35f, 0.35f, 0.35f, 1);
+    readonly Color needsRebuildTextColor = new Color(0.95f, 0.55f, 0.15f, 1);
+    readonly Color disabledNeedsRebuildTextColor = new Color(0.5f, 0.3f, 0.1f, 1);
     readonly Color disabledButtonBackground = new Color(0.35f, 0.35f, 0.35f, 0.4f);
 
     Stage currentStage = Stage.None;
@@ -254,6 +258,10 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         modDFTFUVersionLabel.MaxCharacters = 40;
         ModPanel.Components.Add(modDFTFUVersionLabel);
 
+        modScriptsLabel.Position = new Vector2(5, 80);
+        modScriptsLabel.MaxCharacters = 40;
+        ModPanel.Components.Add(modScriptsLabel);
+
         showModDescriptionButton.Position = new Vector2(5, 95);
         showModDescriptionButton.Size = new Vector2(75, 12);
         showModDescriptionButton.HorizontalAlignment = HorizontalAlignment.Center;
@@ -377,9 +385,10 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             ModSettings modsett = new ModSettings();
             modsett.modInfo = mods[i].ModInfo;
             modsett.enabled = mods[i].Enabled;
+            modsett.needsRebuild = mods[i].NeedsPrecompiledRebuild;
             modSettings[i] = modsett;
             modList.AddItem(modsett.modInfo.ModTitle, out ListBox.ListItem item);
-            item.textColor = modsett.enabled ? unselectedTextColor : disabledModTextColor;
+            item.textColor = GetModListTextColor(modsett);
         }
 
         if (modList.SelectedIndex < 0 || modList.SelectedIndex >= modList.Count)
@@ -387,6 +396,26 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             modList.SelectedIndex = 0;
         }
         mods = null;
+    }
+
+    Color GetModListTextColor(ModSettings ms)
+    {
+        if (ms.needsRebuild)
+            return ms.enabled ? needsRebuildTextColor : disabledNeedsRebuildTextColor;
+
+        return ms.enabled ? unselectedTextColor : disabledModTextColor;
+    }
+
+    static string GetScriptsText(Mod mod)
+    {
+        if (mod.HasSourceCode)
+            return "C# source, needs rebuild";
+        if (mod.IsMissingCode)
+            return "missing, needs rebuild";
+        if (mod.HasPrecompiledCode)
+            return "precompiled";
+
+        return "none";
     }
 
     void UpdateModPanel()
@@ -397,6 +426,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         modAuthorLabel.Text         = string.Format("{0}: ", ModManager.GetText("modAuthor"));
         modAuthorContactLabel.Text  = string.Format("{0}: ", ModManager.GetText("modAuthorContact"));
         modDFTFUVersionLabel.Text   = string.Format("{0}: ", ModManager.GetText("modDFTFUVersion"));
+        modScriptsLabel.Text        = "Scripts: ";
 
         if (modSettings.Length < 1 || currentSelection < 0)
         {
@@ -420,6 +450,9 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
 
         modDFTFUVersionLabel.TextColor = mod.IsGameVersionSatisfied() == false ? Color.red : DaggerfallUI.DaggerfallDefaultTextColor;
 
+        modScriptsLabel.Text += GetScriptsText(mod);
+        modScriptsLabel.TextColor = mod.NeedsPrecompiledRebuild ? needsRebuildTextColor : DaggerfallUI.DaggerfallDefaultTextColor;
+
 #if UNITY_EDITOR
         if (mod.IsVirtual)
             modTitleLabel.Text += " (debug)";
@@ -432,8 +465,9 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         if (mod.HasSettings)
         {
             modSettingsButton.Enabled = true;
-            showModDescriptionButton.Position = new Vector2(5, 83);
-            extractFilesButton.Position = new Vector2(5, 123);
+            showModDescriptionButton.Position = new Vector2(5, 89);
+            modSettingsButton.Position = new Vector2(5, 107);
+            extractFilesButton.Position = new Vector2(5, 125);
             refreshButton.Position = new Vector2(5, 143);
         }
         else
@@ -698,7 +732,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         for (int i = 0; i < modSettings.Length; i++)
         {
             modSettings[i].enabled = true;
-            modList.GetItem(i).textColor = unselectedTextColor;
+            modList.GetItem(i).textColor = GetModListTextColor(modSettings[i]);
         }
         UpdateModPanel();
     }
@@ -711,7 +745,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         for (int i = 0; i < modSettings.Length; i++)
         {
             modSettings[i].enabled = false;
-            modList.GetItem(i).textColor = disabledModTextColor;
+            modList.GetItem(i).textColor = GetModListTextColor(modSettings[i]);
         }
 
         UpdateModPanel();
@@ -1327,7 +1361,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             return;
 
         modSettings[modList.SelectedIndex].enabled = modEnabledCheckBox.IsChecked;
-        modList.SelectedValue.textColor = modEnabledCheckBox.IsChecked ? unselectedTextColor : disabledModTextColor;
+        modList.SelectedValue.textColor = GetModListTextColor(modSettings[modList.SelectedIndex]);
         UpdateModPanel();
     }
 

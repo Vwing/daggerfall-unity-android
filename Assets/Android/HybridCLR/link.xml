@@ -1,0 +1,23 @@
+<!--
+    Mod assemblies are loaded at runtime by HybridCLR, so the linker never sees what they call.
+    Keep the APIs mods commonly use instead of stripping whatever the base game doesn't touch.
+-->
+<linker>
+    <assembly fullname="Assembly-CSharp" preserve="all" />
+    <assembly fullname="Assembly-CSharp-firstpass" preserve="all" ignoreIfMissing="1" />
+    <assembly fullname="mscorlib" preserve="all" />
+    <assembly fullname="System" preserve="all" />
+    <assembly fullname="System.Core" preserve="all" />
+    <assembly fullname="UnityEngine.CoreModule" preserve="all" />
+    <assembly fullname="UnityEngine.AnimationModule" preserve="all" ignoreIfMissing="1" />
+    <assembly fullname="UnityEngine.AssetBundleModule" preserve="all" ignoreIfMissing="1" />
+    <assembly fullname="UnityEngine.AudioModule" preserve="all" ignoreIfMissing="1" />
+    <assembly fullname="UnityEngine.IMGUIModule" preserve="all" ignoreIfMissing="1" />
+    <assembly fullname="UnityEngine.InputLegacyModule" preserve="all" ignoreIfMissing="1" />
+    <assembly fullname="UnityEngine.JSONSerializeModule" preserve="all" ignoreIfMissing="1" />
+    <assembly fullname="UnityEngine.ParticleSystemModule" preserve="all" ignoreIfMissing="1" />
+    <assembly fullname="UnityEngine.PhysicsModule" preserve="all" ignoreIfMissing="1" />
+    <assembly fullname="UnityEngine.TextRenderingModule" preserve="all" ignoreIfMissing="1" />
+    <assembly fullname="UnityEngine.UI" preserve="all" ignoreIfMissing="1" />
+    <assembly fullname="UnityEngine.UIModule" preserve="all" ignoreIfMissing="1" />
+</linker>

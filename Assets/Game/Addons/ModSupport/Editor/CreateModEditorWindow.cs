@@ -46,7 +46,8 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
         int assetSelection = -1;
         ModInfo modInfo;
 
-        bool precompiledMod;
+        // On by default: IL2CPP builds (e.g. 64-bit Android) can't compile C# source at runtime.
+        bool precompiledMod = true;
 
         //asset bundles will be created for any targets here
         readonly BuildTarget[] buildTargets = new BuildTarget[]
@@ -419,7 +420,17 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
             EditorGUILayout.TextArea("", GUI.skin.horizontalSlider);
 
             EditorGUILayout.Space();
-            precompiledMod = EditorGUILayout.ToggleLeft(new GUIContent("Precompiled (experimental)", "Compile C# files into a .dll."), precompiledMod);
+            bool precompiledToggle = EditorGUILayout.ToggleLeft(new GUIContent("Precompiled (recommended)", "Compile C# files into a .dll. Required for IL2CPP builds of the game, such as 64-bit Android, which can't compile source at runtime."), precompiledMod);
+            if (precompiledMod && !precompiledToggle)
+            {
+                precompiledToggle = !EditorUtility.DisplayDialog(
+                    "Turn off Precompiled?",
+                    "Without Precompiled, the mod's C# files are packed as source and compiled when the game starts. IL2CPP builds of Daggerfall Unity, such as 64-bit Android, can't compile source, so the mod's scripts won't load there.",
+                    "Turn Off", "Keep Precompiled");
+            }
+            precompiledMod = precompiledToggle;
+            if (!precompiledMod)
+                EditorGUILayout.HelpBox("Precompiled is off: C# files will be packed as source. IL2CPP builds of the game, such as 64-bit Android, can't load source scripts, so the mod will need a precompiled rebuild to work there.", MessageType.Warning);
 
             GUILayoutHelper.Horizontal(() =>
             {

@@ -38,10 +38,10 @@ namespace DaggerfallWorkshop.Game
         private void UpdateSettings()
         {
             var versionSplit = LastInstalledVersion.Split('.');
-            int first = int.Parse(versionSplit[0]);
-            int second = int.Parse(versionSplit[1]);
-            int third = int.Parse(versionSplit[2]);
-            int fourth = int.Parse(versionSplit[3]);
+            int first = ParseVersionPart(versionSplit[0]);
+            int second = ParseVersionPart(versionSplit[1]);
+            int third = ParseVersionPart(versionSplit[2]);
+            int fourth = ParseVersionPart(versionSplit[3]);
             bool isRC = versionSplit.Length > 4;
             Debug.Log($"AndroidUpgradeManager: {first} {second} {third} {fourth} {isRC}");
             
@@ -70,6 +70,15 @@ namespace DaggerfallWorkshop.Game
                         InputManager.Instance.SetBinding(defaultActivate, InputManager.Actions.ActivateCenterObject);
                 }
             }
+        }
+
+        // Dev builds append a suffix to the last part (e.g. "1.1.1.10dev"), so only its leading digits count
+        private static int ParseVersionPart(string part)
+        {
+            int digits = 0;
+            while (digits < part.Length && char.IsDigit(part[digits]))
+                digits++;
+            return digits > 0 ? int.Parse(part.Substring(0, digits)) : 0;
         }
 
         private void MigrateDefaultLayout()
