@@ -28,6 +28,12 @@ namespace DaggerfallWorkshop
 
         private static bool isUnloadingAssets;
 
+        // Upstream's signature, which precompiled mods such as Calendar still call
+        public static void ThrottledUnloadUnusedAssets()
+        {
+            ThrottledUnloadUnusedAssets(false);
+        }
+
         public static void ThrottledUnloadUnusedAssets(bool forceUnload = false, bool pruneCache = true, float overridenPruneCacheThreshold = 0)
         {
             Debug.Log("ThrottleUnloadUnusedAssets");
@@ -37,7 +43,8 @@ namespace DaggerfallWorkshop
                 ForcedUnloadUnusedAssets();
         }
 
-        private static void ForcedUnloadUnusedAssets()
+        // Public as in upstream, for precompiled mods
+        public static void ForcedUnloadUnusedAssets()
         {
             if(!isUnloadingAssets && CoroutineManager.Instance)
                 CoroutineManager.Instance.StartCoroutine(ForcedUnloadUnusedAssets_Coroutine());

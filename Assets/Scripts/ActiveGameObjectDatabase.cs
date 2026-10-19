@@ -59,13 +59,17 @@ namespace DaggerfallWorkshop
         // If a system calls SetActive(false) on an object without destroying it, it will not be returned here
         public IEnumerable<T> GetActiveComponents<T>(bool includeInactive = false) where T : MonoBehaviour
         {
-            foreach (GameObject gameObject in GetActiveObjects())
+            foreach (GameObject gameObject in GetActiveObjects(includeInactive))
             {
                 var t = gameObject.GetComponent<T>();
                 if (t != null && (includeInactive || t.isActiveAndEnabled))
                     yield return t;
             }
         }
+
+        // Upstream's signatures, which precompiled mods still call
+        public IEnumerable<GameObject> GetActiveObjects() => GetActiveObjects(false);
+        public IEnumerable<T> GetActiveComponents<T>() where T : MonoBehaviour => GetActiveComponents<T>(false);
 
         // Adds a GameObject to the cache
         // Input GameObject can be inactive in the scene. It will not be removed from the cache until Destroyed
@@ -364,6 +368,27 @@ namespace DaggerfallWorkshop
         {
             rdbCache.AddObject(rdb);
         }
+
+        // Upstream's signatures, which precompiled mods still call. Optional parameters are filled in when a mod is compiled,
+        // so adding includeInactive removed the methods those mods were built against
+        public static IEnumerable<GameObject> GetActiveEnemyObjects() => GetActiveEnemyObjects(false);
+        public static IEnumerable<DaggerfallEntityBehaviour> GetActiveEnemyBehaviours() => GetActiveEnemyBehaviours(false);
+        public static IEnumerable<DaggerfallEnemy> GetActiveEnemyEntities() => GetActiveEnemyEntities(false);
+        public static IEnumerable<QuestResourceBehaviour> GetActiveEnemyQuestResourceBehaviours() => GetActiveEnemyQuestResourceBehaviours(false);
+        public static IEnumerable<EnemyMotor> GetActiveEnemyMotors() => GetActiveEnemyMotors(false);
+        public static IEnumerable<GameObject> GetActiveCivilianMobileObjects() => GetActiveCivilianMobileObjects(false);
+        public static IEnumerable<DaggerfallEntityBehaviour> GetActiveCivilianMobileBehaviours() => GetActiveCivilianMobileBehaviours(false);
+        public static IEnumerable<GameObject> GetActiveLootObjects() => GetActiveLootObjects(false);
+        public static IEnumerable<DaggerfallLoot> GetActiveLoot() => GetActiveLoot(false);
+        public static IEnumerable<GameObject> GetActiveFoeSpawnerObjects() => GetActiveFoeSpawnerObjects(false);
+        public static IEnumerable<FoeSpawner> GetActiveFoeSpawners() => GetActiveFoeSpawners(false);
+        public static IEnumerable<GameObject> GetActiveStaticNPCObjects() => GetActiveStaticNPCObjects(false);
+        public static IEnumerable<StaticNPC> GetActiveStaticNPCs() => GetActiveStaticNPCs(false);
+        public static IEnumerable<QuestResourceBehaviour> GetActiveStaticNPCQuestResourceBehaviours() => GetActiveStaticNPCQuestResourceBehaviours(false);
+        public static IEnumerable<GameObject> GetActiveActionDoorObjects() => GetActiveActionDoorObjects(false);
+        public static IEnumerable<DaggerfallActionDoor> GetActiveActionDoors() => GetActiveActionDoors(false);
+        public static IEnumerable<GameObject> GetActiveRDBObjects() => GetActiveRDBObjects(false);
+        public static IEnumerable<DaggerfallStaticDoors> GetActiveRDBStaticDoors() => GetActiveRDBStaticDoors(false);
 
         // Used for debugging
         public static IEnumerable<string> GetCacheDebugLines()

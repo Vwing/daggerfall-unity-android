@@ -14,12 +14,13 @@ namespace DaggerfallWorkshop
         public const string ResourcesFolder = "HybridCLRAOTMetadata";
         public static readonly string[] AssemblyNames =
         {
-            "mscorlib", "System", "System.Core",
+            "mscorlib", "System", "System.Core", "System.Xml",
             "Assembly-CSharp", "Assembly-CSharp-firstpass",
             "UnityEngine.CoreModule", "UnityEngine.AnimationModule", "UnityEngine.AssetBundleModule", "UnityEngine.AudioModule",
-            "UnityEngine.IMGUIModule", "UnityEngine.InputLegacyModule", "UnityEngine.JSONSerializeModule",
-            "UnityEngine.ParticleSystemModule", "UnityEngine.PhysicsModule", "UnityEngine.TextRenderingModule",
-            "UnityEngine.UI", "UnityEngine.UIModule",
+            "UnityEngine.ImageConversionModule", "UnityEngine.IMGUIModule", "UnityEngine.InputLegacyModule", "UnityEngine.JSONSerializeModule",
+            "UnityEngine.ParticleSystemModule", "UnityEngine.PhysicsModule", "UnityEngine.TerrainModule", "UnityEngine.TextRenderingModule",
+            "UnityEngine.UI", "UnityEngine.UIModule", "UnityEngine.UnityWebRequestModule",
+            "FullSerializer - Unity", "Unity.Localization", "Unity.Postprocessing.Runtime", "Unity.ResourceManager", "Newtonsoft.Json",
         };
 
 #if ENABLE_IL2CPP && !UNITY_EDITOR

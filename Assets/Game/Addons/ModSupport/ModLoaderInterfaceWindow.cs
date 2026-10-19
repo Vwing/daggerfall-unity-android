@@ -15,6 +15,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using DaggerfallWorkshop.Game;
 using DaggerfallWorkshop.Game.UserInterface;
 using DaggerfallWorkshop.Game.UserInterfaceWindows;
@@ -38,6 +39,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         public bool enabled;
         public bool needsRebuild;
         public bool cannotLoadScripts;
+        public bool convertedMayHaveIssues;
     }
 
     class LooseStreamingAssetFile
@@ -50,7 +52,41 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
     {
         public string SourcePath;
         public string FileName;
+        public DesktopModConverter.Result Conversion;   // set if SourcePath is a copy converted from another platform
     }
+
+    // Mod list row that can show a marker in the list's left margin, so marked titles stay lined up with the rest
+    class ModListLabel : TextLabel
+    {
+        readonly TextLabel marker;
+
+        public ModListLabel(DaggerfallFont font, string text, string markerText)
+            : base(font)
+        {
+            AutoSize = AutoSizeModes.None;
+            HorizontalAlignment = HorizontalAlignment.Left;
+            Text = text;
+            if (!string.IsNullOrEmpty(markerText))
+                marker = new TextLabel(font) { Text = markerText };
+        }
+
+        public override void Draw()
+        {
+            base.Draw();
+            if (marker == null)
+                return;
+
+            marker.Parent = Parent;
+            marker.TextColor = TextColor;
+            marker.ShadowColor = ShadowColor;
+            marker.ShadowPosition = ShadowPosition;
+            marker.Position = new Vector2(Position.x - marker.TextWidth, Position.y);
+            marker.Draw();
+        }
+    }
+
+    // Marks converted mods in the list and in their Scripts status
+    const string convertedMarker = "*";
 
     #region Fields
 
@@ -153,6 +189,8 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         modList.SelectedTextColor = textColor;
         modList.ShadowPosition = Vector2.zero;
         modList.RowsDisplayed = 14;
+        // Rows are added as ModListLabels, which doesn't set the font the list uses to find the row under the pointer
+        modList.Font = DaggerfallUI.DefaultFont;
         modList.RowAlignment = HorizontalAlignment.Left;
         modList.LeftMargin += 4;
         modList.SelectedShadowPosition = DaggerfallUI.DaggerfallDefaultShadowPos;
@@ -391,8 +429,9 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             modsett.enabled = mods[i].Enabled;
             modsett.needsRebuild = mods[i].NeedsPrecompiledRebuild;
             modsett.cannotLoadScripts = mods[i].CannotLoadScripts;
+            modsett.convertedMayHaveIssues = mods[i].ConvertedMayHaveIssues;
             modSettings[i] = modsett;
-            modList.AddItem(modsett.modInfo.ModTitle, out ListBox.ListItem item);
+            modList.AddItem(new ModListLabel(modList.Font, modsett.modInfo.ModTitle, mods[i].IsConverted ? convertedMarker : null), out ListBox.ListItem item);
             item.textColor = GetModListTextColor(modsett);
             // DFU's default red-orange here would look like the colour for mods whose scripts can't load
             item.highlightedSelectedTextColor = selectedTextColor;
@@ -409,7 +448,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
     {
         if (ms.cannotLoadScripts)
             return ms.enabled ? cannotLoadScriptsTextColor : disabledCannotLoadScriptsTextColor;
-        if (ms.needsRebuild)
+        if (ms.needsRebuild || ms.convertedMayHaveIssues)
             return ms.enabled ? needsRebuildTextColor : disabledNeedsRebuildTextColor;
 
         return ms.enabled ? unselectedTextColor : disabledModTextColor;
@@ -419,7 +458,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
     {
         if (mod.CannotLoadScripts)
             return cannotLoadScriptsTextColor;
-        if (mod.NeedsPrecompiledRebuild)
+        if (mod.NeedsPrecompiledRebuild || mod.ConvertedMayHaveIssues)
             return needsRebuildTextColor;
 
         return DaggerfallUI.DaggerfallDefaultTextColor;
@@ -431,21 +470,28 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             return ModManager.GetText(mod.CannotLoadScripts ? "scriptsLoose" : "scriptsLooseWorks");
         if (mod.IsMissingCode)
             return ModManager.GetText("scriptsMissing");
-        if (mod.HasPrecompiledCode)
-            return ModManager.GetText("scriptsPrecompiled");
+        if (mod.ConvertedMayHaveIssues)
+            return convertedMarker + ModManager.GetText("scriptsConvertedIssues");
 
-        return ModManager.GetText("scriptsNone");
+        string text = ModManager.GetText(mod.HasPrecompiledCode ? "scriptsPrecompiled" : "scriptsNone");
+        return mod.IsConverted ? string.Format("{0} - {1}{2}", text, convertedMarker, ModManager.GetText("scriptsConverted")) : text;
     }
 
     // Longer explanation shown when the scripts status is tapped, or null if there's nothing to explain
     static string GetScriptsInfo(Mod mod)
     {
+        string info = null;
         if (mod.HasSourceCode)
-            return ModManager.GetText(mod.CannotLoadScripts ? "scriptsLooseInfo" : "scriptsLooseWorksInfo");
-        if (mod.IsMissingCode)
-            return ModManager.GetText("scriptsMissingInfo");
+            info = ModManager.GetText(mod.CannotLoadScripts ? "scriptsLooseInfo" : "scriptsLooseWorksInfo");
+        else if (mod.IsMissingCode)
+            info = ModManager.GetText("scriptsMissingInfo");
 
-        return null;
+        if (!mod.IsConverted)
+            return info;
+
+        string convertedInfo = string.Format(ModManager.GetText(mod.ConvertedMayHaveIssues ? "scriptsConvertedIssuesInfo" : "scriptsConvertedInfo"),
+            mod.ConvertedInfo.OriginalPlatformName);
+        return info != null ? info + " " + convertedInfo : convertedInfo;
     }
 
     void UpdateModPanel()
@@ -905,7 +951,11 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             SetImportProgress(35f, "Checking mods...");
             yield return null;
             string[] modFiles = Directory.GetFiles(cachePath, "*.dfmod", SearchOption.AllDirectories);
-            List<ImportableModFile> importableMods = GetImportableModFiles(modFiles, modsFolderPath, 35f, 55f);
+            Array.Sort(modFiles, StringComparer.Ordinal);
+            List<ImportableModFile> importableMods = new List<ImportableModFile>();
+            IEnumerator findMods = FindImportableModFiles(modFiles, modsFolderPath, importableMods, 35f, 55f);
+            while (findMods.MoveNext())
+                yield return findMods.Current;
             foreach (ImportableModFile modFile in importableMods)
             {
                 string destFile = Path.Combine(modsFolderPath, modFile.FileName);
@@ -915,6 +965,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
                 }
                 File.Copy(modFile.SourcePath, destFile, true);
                 File.Delete(modFile.SourcePath);
+                ConvertedModInfo.Save(destFile, modFile.Conversion);
                 SetImportProgress(70f, "Copying mods...");
                 yield return null;
             }
@@ -944,7 +995,11 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         {
             SetImportProgress(20f, "Checking mod...");
             yield return null;
-            if (!IsInstalledModUpdate(filePath, modsFolderPath) && !IsLoadableModFile(filePath))
+            List<ImportableModFile> importableMods = new List<ImportableModFile>();
+            IEnumerator findMods = FindImportableModFiles(new[] { filePath }, modsFolderPath, importableMods, 20f, 60f);
+            while (findMods.MoveNext())
+                yield return findMods.Current;
+            if (importableMods.Count == 0)
             {
                 CleanupImportProgress();
                 ShowMessageBox("This Daggerfall Unity mod file is not compatible with Android. Download the Android version of the mod and import that file instead.");
@@ -954,12 +1009,16 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             // Copy .dfmod to mods folder
             SetImportProgress(65f, "Copying mod...");
             yield return null;
-            string destFilePath = Path.Combine(modsFolderPath, Path.GetFileName(filePath));
+            ImportableModFile modFile = importableMods[0];
+            string destFilePath = Path.Combine(modsFolderPath, modFile.FileName);
             if (File.Exists(destFilePath)){
                 Debug.LogWarning($"File already exists: {destFilePath}. Overwriting it!");
                 upgradedMod = true;
             }
-            File.Copy(filePath, destFilePath, true);
+            File.Copy(modFile.SourcePath, destFilePath, true);
+            ConvertedModInfo.Save(destFilePath, modFile.Conversion);
+            if (modFile.Conversion != null)
+                DeleteImportCache();
         } else {
             // inform user that the only valid filters are .zip and .dfmod
             CleanupImportProgress();
@@ -976,15 +1035,22 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         }
     }
 
-    private List<ImportableModFile> GetImportableModFiles(string[] modFiles, string modsFolderPath, float startPercent, float endPercent)
+    // Finds the mod files that can load on this platform. Mods built for desktop are converted to a copy,
+    // unless the same mod's Android build is also there. Only one desktop build of each mod is converted,
+    // preferring the Windows one, which mod authors most often test.
+    private IEnumerator FindImportableModFiles(string[] modFiles, string modsFolderPath, List<ImportableModFile> importableMods, float startPercent, float endPercent)
     {
-        List<ImportableModFile> importableMods = new List<ImportableModFile>();
-        if (modFiles.Length == 0)
-            return importableMods;
-
+        List<KeyValuePair<string, int>> desktopModFiles = new List<KeyValuePair<string, int>>();
         for (int i = 0; i < modFiles.Length; i++)
         {
             string file = modFiles[i];
+            int platform;
+            if (ConvertedModInfo.ConversionSupported && DesktopModConverter.TryGetPlatform(file, out platform) && platform != DesktopModConverter.AndroidPlatform)
+            {
+                desktopModFiles.Add(new KeyValuePair<string, int>(file, platform));
+                continue;
+            }
+
             // Unity cannot load an update for validation while the installed AssetBundle
             // with the same identity is already loaded. The installed copy has already
             // passed platform validation, so allow its same-named replacement.
@@ -1004,7 +1070,44 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             SetImportProgress(percent, "Checking mods...");
         }
 
-        return importableMods;
+        string convertedFolderPath = Path.Combine(Application.temporaryCachePath, "ImportedMods", "Converted");
+        desktopModFiles = desktopModFiles.OrderBy(pair => DesktopModConverter.GetPlatformName(pair.Value) == "Windows" ? 0 : 1).ToList();
+        for (int i = 0; i < desktopModFiles.Count; i++)
+        {
+            string file = desktopModFiles[i].Key;
+            string fileName = Path.GetFileName(file);
+            if (importableMods.Any(mod => string.Equals(mod.FileName, fileName, StringComparison.OrdinalIgnoreCase)))
+            {
+                Debug.Log($"Skipping desktop mod file because another build of it is being imported: {file}");
+                continue;
+            }
+
+            SetImportProgress(endPercent, "Converting desktop mod...");
+            string convertedFile = Path.Combine(convertedFolderPath, i.ToString(), fileName);
+            Task<DesktopModConverter.Result> conversion = Task.Run(() => DesktopModConverter.Convert(file, convertedFile));
+            while (!conversion.IsCompleted)
+                yield return null;
+
+            if (conversion.IsFaulted || conversion.Result == null)
+            {
+                Debug.LogWarning($"Failed to convert desktop mod file {file}: {conversion.Exception?.GetBaseException().Message}");
+                continue;
+            }
+
+            if (!IsInstalledModUpdate(convertedFile, modsFolderPath) && !IsLoadableModFile(convertedFile))
+            {
+                Debug.LogWarning($"Skipping desktop mod file that still can't load after converting: {file}");
+                continue;
+            }
+
+            Debug.Log($"Converted {fileName} from {DesktopModConverter.GetPlatformName(conversion.Result.OriginalPlatform)} (shaders: {conversion.Result.HasShaders})");
+            importableMods.Add(new ImportableModFile()
+            {
+                SourcePath = convertedFile,
+                FileName = fileName,
+                Conversion = conversion.Result,
+            });
+        }
     }
 
     private static bool IsInstalledModUpdate(string filePath, string modsFolderPath)
@@ -1390,6 +1493,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
                 {
                     ModManager.Instance.UnloadMod(modTitle, true);
                     File.Delete(modPath);
+                    ConvertedModInfo.Delete(modPath);
                     RefreshButton_OnMouseClick(null, Vector2.zero);
                     AndroidUtils.RestartAndroid();
                 }

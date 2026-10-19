@@ -610,8 +610,9 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
                         continue;
                 }
 
+                // Unity refuses mods built for desktop, such as ones copied into the mods folder by hand, until they're converted
                 AssetBundle ab;
-                if (!LoadModAssetBundle(modFilePath, out ab))
+                if (!LoadModAssetBundle(modFilePath, out ab) && !(ConvertedModInfo.TryConvertInPlace(modFilePath) && LoadModAssetBundle(modFilePath, out ab)))
                     continue;
                 Mod mod = new Mod(modFileNames[i], DirPath, ab);
 

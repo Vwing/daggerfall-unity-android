@@ -44,6 +44,19 @@ namespace DaggerfallWorkshop.Game
         public bool isRunning = false;
         public bool isSneaking = false;
 
+        // Upstream's properties, which precompiled mods such as Free Rein still use.
+        // Upstream's ToggleRun made the Run key a toggle while autorunning, which is what ToggleAutorun does here
+        public bool ToggleRun
+        {
+            get { return InputManager.Instance.ToggleAutorun; }
+            set { InputManager.Instance.ToggleAutorun = value; }
+        }
+        public bool ToggleSneak
+        {
+            get { return DaggerfallUnity.Settings.ToggleSneak; }
+            set { DaggerfallUnity.Settings.ToggleSneak = value; }
+        }
+
         public bool updateWalkSpeed;
         public bool updateRunSpeed;
         private float previousBaseWalkSpeed;

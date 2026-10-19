@@ -19,6 +19,10 @@ scriptsLooseWorks,          works here - not on IL2CPP yet
 scriptsLooseWorksInfo,      This mod's scripts are loose C# source files. They work in this version but IL2CPP versions of Daggerfall Unity can't run them. Ask the mod author for an update if you want to use it in an IL2CPP version. Authors can fix this by rebuilding the mod with the Mod Builder's Precompiled option.
 scriptsMissing,             missing - needs author update
 scriptsMissingInfo,         This mod's scripts are missing from its files. Its scripted features won't work in any version of Daggerfall Unity. Ask the mod author for an update. Authors can fix this by rebuilding the mod with the Mod Builder's Precompiled option.
+scriptsConverted,           converted
+scriptsConvertedInfo,       This mod was made for the {0} version of Daggerfall Unity and was converted automatically to load on Android. It has no shaders so its graphics should work as normal. Ask the mod author for an Android version if anything doesn't work.
+scriptsConvertedIssues,     converted - may have issues
+scriptsConvertedIssuesInfo, This mod was made for the {0} version of Daggerfall Unity and was converted automatically to load on Android. Its shaders were built only for {0}. The game swaps in its own version of any shader it also has but shaders made for the mod can show up missing or pink or stop parts of it from working. Ask the mod author for an Android version if something looks wrong or doesn't work.
 
 emptyTitle,                 <title>
 missingTitle,               <Unknown>

@@ -840,7 +840,7 @@ namespace DaggerfallWorkshop.Utility
 
                     // Get model data
                     ModelData modelData;
-                    dfUnity.MeshReader.GetModelData(obj.ModelIdNum, out modelData);
+                    bool hasModelData = dfUnity.MeshReader.GetModelData(obj.ModelIdNum, out modelData);
 
                     // Does this model have doors?
                     StaticDoor[] staticDoors = null;
@@ -874,6 +874,12 @@ namespace DaggerfallWorkshop.Utility
                         // Find doors
                         if (staticDoors != null && staticDoors.Length > 0)
                             CustomDoor.InitDoors(go, staticDoors, buildingKey, out dontCreateStaticDoors);
+                    }
+                    else if (!hasModelData)
+                    {
+                        // e.g. a mod's block uses a model from another mod that isn't installed
+                        Debug.LogError($"Could not load model '{obj.ModelIdNum}' in block '{blockData.Name}'");
+                        continue;
                     }
                     else if (combiner == null || IsCityGate(obj.ModelIdNum) || IsBulletinBoard(obj.ModelIdNum) || PlayerActivate.HasCustomActivation(obj.ModelIdNum))
                         AddStandaloneModel(dfUnity, ref modelData, modelMatrix, parent);
@@ -909,7 +915,7 @@ namespace DaggerfallWorkshop.Utility
 
                 // Get model data
                 ModelData modelData;
-                dfUnity.MeshReader.GetModelData(obj.ModelIdNum, out modelData);
+                bool hasModelData = dfUnity.MeshReader.GetModelData(obj.ModelIdNum, out modelData);
 
                 // Does this model have doors?
                 if (modelData.Doors != null)
@@ -918,6 +924,13 @@ namespace DaggerfallWorkshop.Utility
                 // Import custom GameObject
                 if (MeshReplacement.ImportCustomGameobject(obj.ModelIdNum, parent, modelMatrix) != null)
                     continue;
+
+                if (!hasModelData)
+                {
+                    // e.g. a mod's block uses a model from another mod that isn't installed
+                    Debug.LogError($"Could not load model '{obj.ModelIdNum}' in block '{blockData.Name}'");
+                    continue;
+                }
 
                 // Use Daggerfall Model
                 // Add or combine

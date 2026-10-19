@@ -191,6 +191,25 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
         }
 
         /// <summary>
+        /// Set if the mod file was built for another platform and converted to load here by <see cref="DesktopModConverter"/>.
+        /// </summary>
+        public ConvertedModInfo ConvertedInfo { get; private set; }
+
+        public bool IsConverted
+        {
+            get { return ConvertedInfo != null; }
+        }
+
+        /// <summary>
+        /// True if the mod was converted from another platform and has shaders, which only have programs for that platform.
+        /// The game swaps in its own shaders where it has one of the same name, so only the mod's custom shaders stay broken.
+        /// </summary>
+        public bool ConvertedMayHaveIssues
+        {
+            get { return ConvertedInfo != null && ConvertedInfo.hasShaders; }
+        }
+
+        /// <summary>
         /// If not null, this callback is invoked when settings are changed or when raised with <see cref="LoadSettings()"/>.
         /// </summary>
         public Action<ModSettings.ModSettings, ModSettingsChange> LoadSettingsCallback { internal get; set; }
@@ -254,6 +273,16 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
 
             this.FileName = name;
             this.DirPath = dirPath;
+            this.ConvertedInfo = ConvertedModInfo.Load(Path.Combine(dirPath, name + ModManager.MODEXTENSION));
+            if (ConvertedMayHaveIssues)
+            {
+                ConvertedModShaders.FindGameShaders();
+                Debug.LogWarning($"Mod {Title} was converted from {ConvertedInfo.OriginalPlatformName} and has shaders, which may not render on Android.");
+            }
+            else if (IsConverted)
+            {
+                Debug.Log($"Mod {Title} was converted from {ConvertedInfo.OriginalPlatformName}.");
+            }
             this.LoadSourceCodeFromModBundle();
             this.HasSettings = ModSettings.ModSettingsData.HasSettings(this);
 #if DEBUG
@@ -387,7 +416,7 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
                     }
 
                     LoadedAsset la = new LoadedAsset();
-                    la.Obj = AssetBundle.LoadAsset(assetname);
+                    la.Obj = ReplaceConvertedShaders(AssetBundle.LoadAsset(assetname));
 
                     if (la.Obj == null)
                     {
@@ -446,7 +475,7 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
                     continue;
                 }
 
-                AddAsset(assetname, request.asset);
+                AddAsset(assetname, ReplaceConvertedShaders(request.asset));
             }
             if (unloadBundle)
                 UnloadAssetBundle(false);
@@ -598,7 +627,7 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
                 if (!AssetBundle)
                     LoadAssetBundle();
 
-                asset = AssetBundle.LoadAsset<T>(assetName);
+                asset = ReplaceConvertedShaders(AssetBundle.LoadAsset<T>(assetName));
             }
 
             return asset;
@@ -719,7 +748,7 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
 
                 if (AssetBundle.Contains(assetName))
                 {
-                    la.Obj = AssetBundle.LoadAsset<T>(assetName);
+                    la.Obj = ReplaceConvertedShaders(AssetBundle.LoadAsset<T>(assetName));
 
                     if (la.Obj != null)
                     {
@@ -1145,6 +1174,14 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
                 modLoaders.Add(options);
 
             }
+        }
+
+        private T ReplaceConvertedShaders<T>(T asset) where T : UnityEngine.Object
+        {
+            if (asset == null || !ConvertedMayHaveIssues)
+                return asset;
+
+            return ConvertedModShaders.Replace(asset, Title) as T;
         }
 
         private bool AddAsset(string assetName, UnityEngine.Object asset)

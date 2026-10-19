@@ -281,6 +281,14 @@ namespace DaggerfallWorkshop.Game
                     return "missing - needs author update";
                 case "scriptsMissingInfo":
                     return "This mod's scripts are missing from its files. Its scripted features won't work in any version of Daggerfall Unity. Ask the mod author for an update. Authors can fix this by rebuilding the mod with the Mod Builder's Precompiled option.";
+                case "scriptsConverted":
+                    return "converted";
+                case "scriptsConvertedInfo":
+                    return "This mod was made for the {0} version of Daggerfall Unity and was converted automatically to load on Android. It has no shaders so its graphics should work as normal. Ask the mod author for an Android version if anything doesn't work.";
+                case "scriptsConvertedIssues":
+                    return "converted - may have issues";
+                case "scriptsConvertedIssuesInfo":
+                    return "This mod was made for the {0} version of Daggerfall Unity and was converted automatically to load on Android. Its shaders were built only for {0}. The game swaps in its own version of any shader it also has but shaders made for the mod can show up missing or pink or stop parts of it from working. Ask the mod author for an Android version if something looks wrong or doesn't work.";
                 default:
                     return "<TextError-NotFound>";
             }
