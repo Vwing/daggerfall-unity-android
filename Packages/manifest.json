@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.code-philosophy.hybridclr": "file:../../hybridclr_unity",
+    "com.code-philosophy.hybridclr": "https://github.com/Vwing/hybridclr_unity.git#6cadd24d101f4cbd00cd80190106f6621132d24d",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.addressables": "1.22.3",
     "com.unity.burst": "1.8.29",

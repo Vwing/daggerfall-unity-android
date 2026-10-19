@@ -1,10 +1,11 @@
 {
   "dependencies": {
     "com.code-philosophy.hybridclr": {
-      "version": "file:../../hybridclr_unity",
+      "version": "https://github.com/Vwing/hybridclr_unity.git#6cadd24d101f4cbd00cd80190106f6621132d24d",
       "depth": 0,
-      "source": "local",
-      "dependencies": {}
+      "source": "git",
+      "dependencies": {},
+      "hash": "6cadd24d101f4cbd00cd80190106f6621132d24d"
     },
     "com.unity.2d.sprite": {
       "version": "1.0.0",

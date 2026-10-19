@@ -178,6 +178,19 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
         }
 
         /// <summary>
+        /// True if this build of the game can't load the mod's scripts: its code is missing, or it contains C# source
+        /// and this is an IL2CPP build, which can't compile at runtime. Mono builds and the editor can compile source.
+        /// </summary>
+        public bool CannotLoadScripts
+        {
+#if ENABLE_IL2CPP && !UNITY_EDITOR
+            get { return HasSourceCode || IsMissingCode; }
+#else
+            get { return IsMissingCode; }
+#endif
+        }
+
+        /// <summary>
         /// If not null, this callback is invoked when settings are changed or when raised with <see cref="LoadSettings()"/>.
         /// </summary>
         public Action<ModSettings.ModSettings, ModSettingsChange> LoadSettingsCallback { internal get; set; }
@@ -959,10 +972,12 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
                 IsMissingCode = !HasSourceCode && !HasPrecompiledCode && ModInfo.Files != null &&
                     ModInfo.Files.Any(x => x.EndsWith(".cs", StringComparison.OrdinalIgnoreCase));
 
-                if (HasSourceCode)
+                if (HasSourceCode && CannotLoadScripts)
+                    Debug.LogError($"Mod {Title} contains C# source, which IL2CPP builds can't compile; its scripts won't load until it's rebuilt with the Mod Builder's Precompiled option.");
+                else if (HasSourceCode)
                     Debug.LogWarning($"Mod {Title} contains C# source instead of precompiled code; IL2CPP builds can't load it until it's rebuilt with the Mod Builder's Precompiled option.");
                 else if (IsMissingCode)
-                    Debug.LogWarning($"Mod {Title} lists C# files but contains no code; it has to be rebuilt to work.");
+                    Debug.LogError($"Mod {Title} lists C# files but contains no code; its scripts won't load until it's rebuilt.");
 
                 return true;
             }

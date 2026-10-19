@@ -25,7 +25,8 @@ public static class HybridCLRSpikeBuild
     const string SideBySideOutputPath = "Builds/DFU-HybridCLR.apk";
     const string UpdateApplicationId = "net.dfworkshop.dfu";
     const string UpdateOutputPath = "Builds/DFU-HybridCLR-As-Update.apk";
-    const string MetadataResourcesDir = "Assets/Android/HybridCLR/Resources/" + HybridCLRMetadataLoader.ResourcesFolder;
+    const string MetadataResourcesRoot = "Assets/Android/HybridCLR/Resources";
+    const string MetadataResourcesDir = MetadataResourcesRoot + "/" + HybridCLRMetadataLoader.ResourcesFolder;
 
     [MenuItem("Daggerfall Tools/Android/HybridCLR Spike/Install From Local Clones")]
     public static void Install()
@@ -92,22 +93,29 @@ public static class HybridCLRSpikeBuild
         // Generates il2cpp defines, method bridges and the stripped AOT assemblies used for supplementary metadata
         PrebuildCommand.GenerateAll();
         CopyAOTMetadata();
-
-        AddressableAssetSettings.BuildPlayerContent(out var addressablesResult);
-        if (!string.IsNullOrEmpty(addressablesResult.Error))
-            throw new Exception($"Addressables build failed: {addressablesResult.Error}");
-
-        var options = new BuildPlayerOptions
+        try
         {
-            scenes = EditorBuildSettings.scenes.Where(scene => scene.enabled).Select(scene => scene.path).ToArray(),
-            locationPathName = outputPath,
-            target = BuildTarget.Android,
-            options = BuildOptions.None,
-        };
-        BuildReport report = BuildPipeline.BuildPlayer(options);
-        if (report.summary.result != BuildResult.Succeeded)
-            throw new Exception($"Player build {report.summary.result} with {report.summary.totalErrors} errors");
-        Debug.Log($"[HybridCLRSpikeBuild] Built {outputPath} ({report.summary.totalSize / (1024 * 1024)} MB)");
+            AddressableAssetSettings.BuildPlayerContent(out var addressablesResult);
+            if (!string.IsNullOrEmpty(addressablesResult.Error))
+                throw new Exception($"Addressables build failed: {addressablesResult.Error}");
+
+            var options = new BuildPlayerOptions
+            {
+                scenes = EditorBuildSettings.scenes.Where(scene => scene.enabled).Select(scene => scene.path).ToArray(),
+                locationPathName = outputPath,
+                target = BuildTarget.Android,
+                options = BuildOptions.None,
+            };
+            BuildReport report = BuildPipeline.BuildPlayer(options);
+            if (report.summary.result != BuildResult.Succeeded)
+                throw new Exception($"Player build {report.summary.result} with {report.summary.totalErrors} errors");
+            Debug.Log($"[HybridCLRSpikeBuild] Built {outputPath} ({report.summary.totalSize / (1024 * 1024)} MB)");
+        }
+        finally
+        {
+            // Anything left in a Resources folder ships in every later build, Mono ones included
+            AssetDatabase.DeleteAsset(MetadataResourcesRoot);
+        }
     }
 
     static void CopyAOTMetadata()

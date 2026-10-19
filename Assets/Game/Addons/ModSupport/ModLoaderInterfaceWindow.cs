@@ -37,6 +37,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         public ModInfo modInfo;
         public bool enabled;
         public bool needsRebuild;
+        public bool cannotLoadScripts;
     }
 
     class LooseStreamingAssetFile
@@ -95,6 +96,8 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
     readonly Color disabledModTextColor = new Color(0.35f, 0.35f, 0.35f, 1);
     readonly Color needsRebuildTextColor = new Color(0.95f, 0.55f, 0.15f, 1);
     readonly Color disabledNeedsRebuildTextColor = new Color(0.5f, 0.3f, 0.1f, 1);
+    readonly Color cannotLoadScriptsTextColor = Color.red;
+    readonly Color disabledCannotLoadScriptsTextColor = new Color(0.5f, 0, 0, 1);
     readonly Color disabledButtonBackground = new Color(0.35f, 0.35f, 0.35f, 0.4f);
 
     Stage currentStage = Stage.None;
@@ -386,9 +389,12 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             modsett.modInfo = mods[i].ModInfo;
             modsett.enabled = mods[i].Enabled;
             modsett.needsRebuild = mods[i].NeedsPrecompiledRebuild;
+            modsett.cannotLoadScripts = mods[i].CannotLoadScripts;
             modSettings[i] = modsett;
             modList.AddItem(modsett.modInfo.ModTitle, out ListBox.ListItem item);
             item.textColor = GetModListTextColor(modsett);
+            // DFU's default red-orange here would look like the colour for mods whose scripts can't load
+            item.highlightedSelectedTextColor = selectedTextColor;
         }
 
         if (modList.SelectedIndex < 0 || modList.SelectedIndex >= modList.Count)
@@ -400,16 +406,28 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
 
     Color GetModListTextColor(ModSettings ms)
     {
+        if (ms.cannotLoadScripts)
+            return ms.enabled ? cannotLoadScriptsTextColor : disabledCannotLoadScriptsTextColor;
         if (ms.needsRebuild)
             return ms.enabled ? needsRebuildTextColor : disabledNeedsRebuildTextColor;
 
         return ms.enabled ? unselectedTextColor : disabledModTextColor;
     }
 
+    Color GetScriptsTextColor(Mod mod)
+    {
+        if (mod.CannotLoadScripts)
+            return cannotLoadScriptsTextColor;
+        if (mod.NeedsPrecompiledRebuild)
+            return needsRebuildTextColor;
+
+        return DaggerfallUI.DaggerfallDefaultTextColor;
+    }
+
     static string GetScriptsText(Mod mod)
     {
         if (mod.HasSourceCode)
-            return "C# source, needs rebuild";
+            return mod.CannotLoadScripts ? "C# source, needs rebuild" : "C# source, rebuild for IL2CPP";
         if (mod.IsMissingCode)
             return "missing, needs rebuild";
         if (mod.HasPrecompiledCode)
@@ -451,7 +469,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         modDFTFUVersionLabel.TextColor = mod.IsGameVersionSatisfied() == false ? Color.red : DaggerfallUI.DaggerfallDefaultTextColor;
 
         modScriptsLabel.Text += GetScriptsText(mod);
-        modScriptsLabel.TextColor = mod.NeedsPrecompiledRebuild ? needsRebuildTextColor : DaggerfallUI.DaggerfallDefaultTextColor;
+        modScriptsLabel.TextColor = GetScriptsTextColor(mod);
 
 #if UNITY_EDITOR
         if (mod.IsVirtual)
