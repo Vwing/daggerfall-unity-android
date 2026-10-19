@@ -10,6 +10,15 @@ modVersion,                 Version
 modAuthor,                  Author
 modAuthorContact,           Contact
 modDFTFUVersion,            DFUnity Version
+modScripts,                 Scripts
+scriptsNone,                none
+scriptsPrecompiled,         precompiled
+scriptsLoose,               loose - needs author update
+scriptsLooseInfo,           This mod's scripts are loose C# source files that IL2CPP versions of Daggerfall Unity can't run. Its scripted features won't work in this version but may still work in a Mono version. Ask the mod author for an update. Authors can fix this by rebuilding the mod with the Mod Builder's Precompiled option.
+scriptsLooseWorks,          works here - not on IL2CPP yet
+scriptsLooseWorksInfo,      This mod's scripts are loose C# source files. They work in this version but IL2CPP versions of Daggerfall Unity can't run them. Ask the mod author for an update if you want to use it in an IL2CPP version. Authors can fix this by rebuilding the mod with the Mod Builder's Precompiled option.
+scriptsMissing,             missing - needs author update
+scriptsMissingInfo,         This mod's scripts are missing from its files. Its scripted features won't work in any version of Daggerfall Unity. Ask the mod author for an update. Authors can fix this by rebuilding the mod with the Mod Builder's Precompiled option.
 
 emptyTitle,                 <title>
 missingTitle,               <Unknown>

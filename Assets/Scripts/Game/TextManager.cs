@@ -263,6 +263,24 @@ namespace DaggerfallWorkshop.Game
                     return "Uninstall the mod";
                 case "removeModConfirmation":
                     return "Are you sure you want to remove {0}? This will restart the app.";
+                case "modScripts":
+                    return "Scripts";
+                case "scriptsNone":
+                    return "none";
+                case "scriptsPrecompiled":
+                    return "precompiled";
+                case "scriptsLoose":
+                    return "loose - needs author update";
+                case "scriptsLooseInfo":
+                    return "This mod's scripts are loose C# source files that IL2CPP versions of Daggerfall Unity can't run. Its scripted features won't work in this version but may still work in a Mono version. Ask the mod author for an update. Authors can fix this by rebuilding the mod with the Mod Builder's Precompiled option.";
+                case "scriptsLooseWorks":
+                    return "works here - not on IL2CPP yet";
+                case "scriptsLooseWorksInfo":
+                    return "This mod's scripts are loose C# source files. They work in this version but IL2CPP versions of Daggerfall Unity can't run them. Ask the mod author for an update if you want to use it in an IL2CPP version. Authors can fix this by rebuilding the mod with the Mod Builder's Precompiled option.";
+                case "scriptsMissing":
+                    return "missing - needs author update";
+                case "scriptsMissingInfo":
+                    return "This mod's scripts are missing from its files. Its scripted features won't work in any version of Daggerfall Unity. Ask the mod author for an update. Authors can fix this by rebuilding the mod with the Mod Builder's Precompiled option.";
                 default:
                     return "<TextError-NotFound>";
             }

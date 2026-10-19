@@ -263,6 +263,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
 
         modScriptsLabel.Position = new Vector2(5, 80);
         modScriptsLabel.MaxCharacters = 40;
+        modScriptsLabel.OnMouseClick += ModScriptsLabel_OnMouseClick;
         ModPanel.Components.Add(modScriptsLabel);
 
         showModDescriptionButton.Position = new Vector2(5, 95);
@@ -427,13 +428,24 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
     static string GetScriptsText(Mod mod)
     {
         if (mod.HasSourceCode)
-            return mod.CannotLoadScripts ? "C# source, needs rebuild" : "C# source, rebuild for IL2CPP";
+            return ModManager.GetText(mod.CannotLoadScripts ? "scriptsLoose" : "scriptsLooseWorks");
         if (mod.IsMissingCode)
-            return "missing, needs rebuild";
+            return ModManager.GetText("scriptsMissing");
         if (mod.HasPrecompiledCode)
-            return "precompiled";
+            return ModManager.GetText("scriptsPrecompiled");
 
-        return "none";
+        return ModManager.GetText("scriptsNone");
+    }
+
+    // Longer explanation shown when the scripts status is tapped, or null if there's nothing to explain
+    static string GetScriptsInfo(Mod mod)
+    {
+        if (mod.HasSourceCode)
+            return ModManager.GetText(mod.CannotLoadScripts ? "scriptsLooseInfo" : "scriptsLooseWorksInfo");
+        if (mod.IsMissingCode)
+            return ModManager.GetText("scriptsMissingInfo");
+
+        return null;
     }
 
     void UpdateModPanel()
@@ -444,7 +456,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         modAuthorLabel.Text         = string.Format("{0}: ", ModManager.GetText("modAuthor"));
         modAuthorContactLabel.Text  = string.Format("{0}: ", ModManager.GetText("modAuthorContact"));
         modDFTFUVersionLabel.Text   = string.Format("{0}: ", ModManager.GetText("modDFTFUVersion"));
-        modScriptsLabel.Text        = "Scripts: ";
+        modScriptsLabel.Text        = string.Format("{0}: ", ModManager.GetText("modScripts"));
 
         if (modSettings.Length < 1 || currentSelection < 0)
         {
@@ -1328,6 +1340,24 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         string[] modDescription = (mod.TryLocalize("Mod", "Description") ?? mod.ModInfo.ModDescription).Split('\n');
         ModDescriptionMessageBox.SetText(modDescription);
         uiManager.PushWindow(ModDescriptionMessageBox);
+    }
+
+    void ModScriptsLabel_OnMouseClick(BaseScreenComponent sender, Vector2 position)
+    {
+        if (modSettings == null || modSettings.Length < 1 || currentSelection < 0 || modSettings[currentSelection].modInfo == null)
+            return;
+
+        Mod mod = ModManager.Instance.GetMod(modSettings[currentSelection].modInfo.ModTitle);
+        string scriptsInfo = mod != null ? GetScriptsInfo(mod) : null;
+        if (scriptsInfo == null)
+            return;
+
+        var messageBox = new DaggerfallMessageBox(uiManager, this, true);
+        messageBox.AllowCancel = true;
+        messageBox.ClickAnywhereToClose = true;
+        messageBox.ParentPanel.BackgroundTexture = null;
+        messageBox.SetText(scriptsInfo);
+        uiManager.PushWindow(messageBox);
     }
 
     void ModSettingsButton_OnMouseClick(BaseScreenComponent sender, Vector2 position)
