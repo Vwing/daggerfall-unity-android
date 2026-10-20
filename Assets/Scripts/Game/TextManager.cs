@@ -277,6 +277,14 @@ namespace DaggerfallWorkshop.Game
                     return "works here - not on IL2CPP yet";
                 case "scriptsLooseWorksInfo":
                     return "This mod's scripts are loose C# source files. They work in this version but IL2CPP versions of Daggerfall Unity can't run them. Ask the mod author for an update if you want to use it in an IL2CPP version. Authors can fix this by rebuilding the mod with the Mod Builder's Precompiled option.";
+                case "scriptsLooseCompiles":
+                    return "loose - compiles here";
+                case "scriptsLooseCompilesInfo":
+                    return "This mod's scripts are loose C# source files. This version of Daggerfall Unity compiles them on the device when the game starts with the mod enabled. The first start with it takes longer while they compile and the result is kept for later starts. Ask the mod author for an update if its scripted features don't work. Authors can skip the compiling by rebuilding the mod with the Mod Builder's Precompiled option.";
+                case "scriptsLooseFailed":
+                    return "loose - failed to compile";
+                case "scriptsLooseFailedInfo":
+                    return "This mod's scripts are loose C# source files. This version of Daggerfall Unity compiles them on the device but this mod's scripts failed to compile so its scripted features won't work. The game's log has the errors. Ask the mod author for an update. Authors can fix this by rebuilding the mod with the Mod Builder's Precompiled option.";
                 case "scriptsMissing":
                     return "missing - needs author update";
                 case "scriptsMissingInfo":
@@ -285,10 +293,12 @@ namespace DaggerfallWorkshop.Game
                     return "converted";
                 case "scriptsConvertedInfo":
                     return "This mod was made for the {0} version of Daggerfall Unity and was converted automatically to load on Android. It has no shaders so its graphics should work as normal. Ask the mod author for an Android version if anything doesn't work.";
+                case "scriptsConvertedShadersInfo":
+                    return "This mod was made for the {0} version of Daggerfall Unity and was converted automatically to load on Android. Its shaders were converted from {0} OpenGL to Android OpenGL ES and the game swaps in its own version of any shader it also has. Ask the mod author for an Android version if anything looks wrong or doesn't work.";
                 case "scriptsConvertedIssues":
                     return "converted - may have issues";
                 case "scriptsConvertedIssuesInfo":
-                    return "This mod was made for the {0} version of Daggerfall Unity and was converted automatically to load on Android. Its shaders were built only for {0}. The game swaps in its own version of any shader it also has but shaders made for the mod can show up missing or pink or stop parts of it from working. Ask the mod author for an Android version if something looks wrong or doesn't work.";
+                    return "This mod was made for the {0} version of Daggerfall Unity and was converted automatically to load on Android. Some of its shaders were built only for {0} with no OpenGL version to convert. The game swaps in its own version or a similar shader for those but they can show up missing or pink or stop parts of the mod from working. Ask the mod author for an Android version if something looks wrong or doesn't work.";
                 default:
                     return "<TextError-NotFound>";
             }

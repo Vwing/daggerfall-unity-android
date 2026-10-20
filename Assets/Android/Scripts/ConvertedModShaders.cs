@@ -4,8 +4,10 @@ using UnityEngine;
 namespace DaggerfallWorkshop
 {
     /// <summary>
-    /// Desktop bundles only carry desktop shader programs, which Android can't run. As assets of a converted mod load,
-    /// this swaps each of the mod's shaders for the game's own shader of the same name, where the game has one.
+    /// Desktop bundles only carry desktop shader programs, which Android can't run, and <see cref="DesktopModConverter"/>
+    /// can only convert the OpenGL ones. As assets of a converted mod load, this swaps each of the mod's shaders for the
+    /// game's own shader of the same name, where the game has one, and a shader with no Android programs for the game's
+    /// shader that's most like it.
     /// </summary>
     public static class ConvertedModShaders
     {
@@ -36,7 +38,11 @@ namespace DaggerfallWorkshop
             "Mobile/Diffuse",
         };
 
+        // Words in shader names that say how they draw, to choose between similar shaders
+        static readonly string[] shaderNameWords = { "Transparent", "Cutout", "Additive", "Particle", "Unlit", "Billboard", "Sprite", "UI" };
+
         static Dictionary<string, Shader> gameShaders;
+        static readonly Dictionary<string, Shader> similarShaders = new Dictionary<string, Shader>();
         static readonly HashSet<string> loggedShaderNames = new HashSet<string>();
 
         /// <summary>
@@ -91,7 +97,8 @@ namespace DaggerfallWorkshop
                 material.shader = shader;
         }
 
-        // Gets the game's shader with the same name as one from a mod, or null if it's already the game's or the game has none
+        // Gets the game's shader with the same name as one from a mod, or a similar one if the mod's has no Android programs,
+        // or null if it's already the game's or should stay as it is
         static Shader GetGameShader(Shader modShader, string modTitle)
         {
             if (modShader == null)
@@ -111,15 +118,82 @@ namespace DaggerfallWorkshop
             if (shader == modShader)
                 return null;
 
+            bool similar = false;
+            if (shader == null && !modShader.isSupported)
+            {
+                if (!similarShaders.TryGetValue(name, out shader))
+                {
+                    shader = GetSimilarGameShader(modShader);
+                    similarShaders[name] = shader;
+                }
+                similar = shader != null;
+            }
+
             if (loggedShaderNames.Add(name))
             {
-                if (shader != null)
+                if (similar)
+                    Debug.LogWarning($"Converted mod {modTitle} uses shader {name}, which has no Android version; using the game's {shader.name} instead, so its graphics may look different.");
+                else if (shader != null)
                     Debug.Log($"Converted mod {modTitle} uses shader {name}; using the game's version (mod's version supported: {modShader.isSupported}).");
                 else if (!modShader.isSupported)
                     Debug.LogWarning($"Converted mod {modTitle} uses shader {name}, which has no Android version; its graphics may be missing or pink.");
             }
 
             return shader;
+        }
+
+        // Finds the common game shader with the most of a mod shader's properties, so its materials keep their textures and
+        // colors, preferring one that draws in the same render queue and has the same words in its name.
+        // Returns null if none has any of its properties.
+        static Shader GetSimilarGameShader(Shader modShader)
+        {
+            var properties = new HashSet<string>();
+            int propertyCount = modShader.GetPropertyCount();
+            for (int i = 0; i < propertyCount; i++)
+                properties.Add(modShader.GetPropertyName(i));
+
+            Shader best = null;
+            int bestScore = 0;
+            foreach (string candidateName in commonShaderNames)
+            {
+                Shader candidate;
+                if (!gameShaders.TryGetValue(candidateName, out candidate) || candidate == null)
+                    continue;
+
+                int matches = 0;
+                int candidateCount = candidate.GetPropertyCount();
+                for (int i = 0; i < candidateCount; i++)
+                {
+                    if (properties.Contains(candidate.GetPropertyName(i)))
+                        matches++;
+                }
+                if (matches == 0)
+                    continue;
+
+                int score = matches * 2;
+                if (GetQueueKind(candidate.renderQueue) == GetQueueKind(modShader.renderQueue))
+                    score += 3;
+                foreach (string word in shaderNameWords)
+                {
+                    if (modShader.name.Contains(word) == candidateName.Contains(word))
+                        score++;
+                }
+
+                if (score > bestScore)
+                {
+                    best = candidate;
+                    bestScore = score;
+                }
+            }
+
+            return best;
+        }
+
+        // Opaque, alpha tested or transparent
+        static int GetQueueKind(int renderQueue)
+        {
+            return renderQueue >= (int)UnityEngine.Rendering.RenderQueue.Transparent ? 2 :
+                renderQueue >= (int)UnityEngine.Rendering.RenderQueue.AlphaTest ? 1 : 0;
         }
     }
 }

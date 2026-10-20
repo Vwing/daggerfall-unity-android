@@ -155,7 +155,7 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
 
         /// <summary>
         /// True if the assetbundle contains C# source (.cs.txt) that must be compiled at runtime.
-        /// Runtime compilation needs a Mono build, so IL2CPP builds can only load precompiled (.dll.bytes) code.
+        /// Mono builds compile it with the Mono compiler and IL2CPP builds with <see cref="ModSourceCompiler"/>.
         /// </summary>
         public bool HasSourceCode { get; private set; }
 
@@ -170,25 +170,49 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
         public bool IsMissingCode { get; private set; }
 
         /// <summary>
-        /// True if this mod has to be rebuilt with the Mod Builder's Precompiled option to load on IL2CPP builds.
+        /// True if this mod has to be rebuilt with the Mod Builder's Precompiled option to load on IL2CPP builds that
+        /// can't compile source. Builds that can, like this one if it's IL2CPP, only need that if its code is missing.
         /// </summary>
         public bool NeedsPrecompiledRebuild
         {
+#if ENABLE_IL2CPP && !UNITY_EDITOR
+            get { return IsMissingCode; }
+#else
             get { return HasSourceCode || IsMissingCode; }
+#endif
         }
 
         /// <summary>
-        /// True if this build of the game can't load the mod's scripts: its code is missing, or it contains C# source
-        /// and this is an IL2CPP build, which can't compile at runtime. Mono builds and the editor can compile source.
+        /// True if this build of the game can't load the mod's scripts: its code is missing, or this is an IL2CPP build
+        /// and its C# source failed to compile on the device. Mono builds and the editor compile source as the game starts.
         /// </summary>
         public bool CannotLoadScripts
         {
 #if ENABLE_IL2CPP && !UNITY_EDITOR
-            get { return HasSourceCode || IsMissingCode; }
+            get { return IsMissingCode || HasSourceCode && SourceCompileFailed; }
 #else
             get { return IsMissingCode; }
 #endif
         }
+
+        /// <summary>
+        /// True if this is an IL2CPP build and the mod's C# source failed to compile on the device, this time the game
+        /// started with the mod enabled or the last.
+        /// </summary>
+        public bool SourceCompileFailed
+        {
+            get
+            {
+                if (sourceCompileFailed == null)
+                {
+                    sourceCompileFailed = HasSourceCode && ModSourceCompiler.IsSupported &&
+                        ModSourceCompiler.GetStatus(this, GetSourceTexts()) == ModSourceCompiler.Status.Failed;
+                }
+                return sourceCompileFailed.Value;
+            }
+        }
+
+        bool? sourceCompileFailed;
 
         /// <summary>
         /// Set if the mod file was built for another platform and converted to load here by <see cref="DesktopModConverter"/>.
@@ -201,10 +225,19 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
         }
 
         /// <summary>
-        /// True if the mod was converted from another platform and has shaders, which only have programs for that platform.
-        /// The game swaps in its own shaders where it has one of the same name, so only the mod's custom shaders stay broken.
+        /// True if the mod was converted from another platform and has shaders that only have programs for that platform,
+        /// as their OpenGL programs were all that could be converted. The game swaps in its own shader of the same name or
+        /// one like it for those, which may not draw them right.
         /// </summary>
         public bool ConvertedMayHaveIssues
+        {
+            get { return ConvertedInfo != null && ConvertedInfo.HasUnconvertedShaders; }
+        }
+
+        /// <summary>
+        /// True if the mod was converted from another platform and has shaders, whether or not they were all converted.
+        /// </summary>
+        public bool ConvertedHasShaders
         {
             get { return ConvertedInfo != null && ConvertedInfo.hasShaders; }
         }
@@ -274,10 +307,13 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
             this.FileName = name;
             this.DirPath = dirPath;
             this.ConvertedInfo = ConvertedModInfo.Load(Path.Combine(dirPath, name + ModManager.MODEXTENSION));
-            if (ConvertedMayHaveIssues)
+            if (ConvertedHasShaders)
             {
                 ConvertedModShaders.FindGameShaders();
-                Debug.LogWarning($"Mod {Title} was converted from {ConvertedInfo.OriginalPlatformName} and has shaders, which may not render on Android.");
+                if (ConvertedMayHaveIssues)
+                    Debug.LogWarning($"Mod {Title} was converted from {ConvertedInfo.OriginalPlatformName} and has shaders with no OpenGL programs to convert, which may not render on Android.");
+                else
+                    Debug.Log($"Mod {Title} was converted from {ConvertedInfo.OriginalPlatformName}, with {ConvertedInfo.convertedShaders} shaders converted to OpenGL ES.");
             }
             else if (IsConverted)
             {
@@ -1002,9 +1038,9 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
                     ModInfo.Files.Any(x => x.EndsWith(".cs", StringComparison.OrdinalIgnoreCase));
 
                 if (HasSourceCode && CannotLoadScripts)
-                    Debug.LogError($"Mod {Title} contains C# source, which IL2CPP builds can't compile; its scripts won't load until it's rebuilt with the Mod Builder's Precompiled option.");
+                    Debug.LogError($"Mod {Title} contains C# source, which failed to compile on this device; its scripts won't load until it's fixed or rebuilt with the Mod Builder's Precompiled option.");
                 else if (HasSourceCode)
-                    Debug.LogWarning($"Mod {Title} contains C# source instead of precompiled code; IL2CPP builds can't load it until it's rebuilt with the Mod Builder's Precompiled option.");
+                    Debug.LogWarning($"Mod {Title} contains C# source instead of precompiled code, which is compiled as the game starts.");
                 else if (IsMissingCode)
                     Debug.LogError($"Mod {Title} lists C# files but contains no code; its scripts won't load until it's rebuilt.");
 
@@ -1037,10 +1073,12 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
                 {
                     if (sources[i].isPreCompiled)
                     {
-                        assembly = Assembly.Load(sources[i].sourceTxt.bytes);
+                        byte[] image = ModAssemblyPatcher.Patch(sources[i].sourceTxt.bytes, Title);
+                        assembly = Assembly.Load(image);
                         if (assembly != null)
                         {
                             assemblies.Add(assembly);
+                            ModSourceCompiler.AddModAssembly(assembly.GetName().Name, image);
                             Debug.Log($"[{Title}] Loaded precompiled assembly {assembly.GetName().Name}");
                         }
                     }
@@ -1052,9 +1090,20 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
 
                 if (stringSource.Count > 0)
                 {
-                    assembly = ModManager.CompileFromSourceAssets(stringSource.ToArray(), $"{this.ModInfo.ModTitle} {this.ModInfo.ModVersion}");
+#if ENABLE_IL2CPP && !UNITY_EDITOR
+                    byte[] image = ModSourceCompiler.GetOrCompile(this, stringSource);
+                    sourceCompileFailed = image == null;
+                    if (image != null)
+                    {
+                        assembly = Assembly.Load(image);
+                        assemblies.Add(assembly);
+                        ModSourceCompiler.AddModAssembly(assembly.GetName().Name, image);
+                    }
+#else
+                    assembly = ModManager.CompileFromSourceAssets(stringSource.Select(ModAssemblyPatcher.PatchSource).ToArray(), $"{this.ModInfo.ModTitle} {this.ModInfo.ModVersion}");
                     if (assembly != null)
                         assemblies.Add(assembly);
+#endif
                 }
 
                 return assemblies;
@@ -1176,9 +1225,15 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
             }
         }
 
+        // The source files' text, as compiled
+        private List<string> GetSourceTexts()
+        {
+            return sources.Where(x => !x.isPreCompiled).Select(x => x.sourceTxt.ToString()).ToList();
+        }
+
         private T ReplaceConvertedShaders<T>(T asset) where T : UnityEngine.Object
         {
-            if (asset == null || !ConvertedMayHaveIssues)
+            if (asset == null || !ConvertedHasShaders)
                 return asset;
 
             return ConvertedModShaders.Replace(asset, Title) as T;

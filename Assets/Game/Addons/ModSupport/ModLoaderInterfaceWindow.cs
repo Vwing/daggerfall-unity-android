@@ -80,13 +80,21 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             marker.TextColor = TextColor;
             marker.ShadowColor = ShadowColor;
             marker.ShadowPosition = ShadowPosition;
-            marker.Position = new Vector2(Position.x - marker.TextWidth, Position.y);
+            // A pixel clear of the title, as capitals like B and D have swashes that reach back to the marker
+            marker.Position = new Vector2(Position.x - marker.TextWidth - 1, Position.y);
             marker.Draw();
         }
     }
 
     // Marks converted mods in the list and in their Scripts status
     const string convertedMarker = "*";
+
+    // StreamingAssets folders that mods install loose files to
+    static readonly string[] standardStreamingAssetFolderNames =
+    {
+        "BIOGs", "Books", "Factions", "Fonts", "GameFiles", "Movies", "Presets", "QuestPacks", "Quests", "Sound", "SoundFonts",
+        "SpellIcons", "Tables", "Text", "Textures", "WorldData", "FlatReplacements",
+    };
 
     #region Fields
 
@@ -432,7 +440,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             modsett.convertedMayHaveIssues = mods[i].ConvertedMayHaveIssues;
             modSettings[i] = modsett;
             modList.AddItem(new ModListLabel(modList.Font, modsett.modInfo.ModTitle, mods[i].IsConverted ? convertedMarker : null), out ListBox.ListItem item);
-            item.textColor = GetModListTextColor(modsett);
+            SetModListTextColor(item, modsett);
             // DFU's default red-orange here would look like the colour for mods whose scripts can't load
             item.highlightedSelectedTextColor = selectedTextColor;
         }
@@ -442,6 +450,14 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             modList.SelectedIndex = 0;
         }
         mods = null;
+    }
+
+    // A touch leaves the last row touched highlighted, so highlighting only brightens a row's colour rather than
+    // using DFU's orange, which would look like the colour for mods that need an update
+    void SetModListTextColor(ListBox.ListItem item, ModSettings ms)
+    {
+        item.textColor = GetModListTextColor(ms);
+        item.highlightedTextColor = Color.Lerp(item.textColor, Color.white, 0.3f);
     }
 
     Color GetModListTextColor(ModSettings ms)
@@ -467,7 +483,11 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
     static string GetScriptsText(Mod mod)
     {
         if (mod.HasSourceCode)
-            return ModManager.GetText(mod.CannotLoadScripts ? "scriptsLoose" : "scriptsLooseWorks");
+        {
+            string key = ModSourceCompiler.IsSupported ? (mod.CannotLoadScripts ? "scriptsLooseFailed" : "scriptsLooseCompiles") :
+                mod.CannotLoadScripts ? "scriptsLoose" : "scriptsLooseWorks";
+            return (mod.IsConverted ? convertedMarker : string.Empty) + ModManager.GetText(key);
+        }
         if (mod.IsMissingCode)
             return ModManager.GetText("scriptsMissing");
         if (mod.ConvertedMayHaveIssues)
@@ -481,7 +501,9 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
     static string GetScriptsInfo(Mod mod)
     {
         string info = null;
-        if (mod.HasSourceCode)
+        if (mod.HasSourceCode && ModSourceCompiler.IsSupported)
+            info = ModManager.GetText(mod.CannotLoadScripts ? "scriptsLooseFailedInfo" : "scriptsLooseCompilesInfo");
+        else if (mod.HasSourceCode)
             info = ModManager.GetText(mod.CannotLoadScripts ? "scriptsLooseInfo" : "scriptsLooseWorksInfo");
         else if (mod.IsMissingCode)
             info = ModManager.GetText("scriptsMissingInfo");
@@ -489,8 +511,9 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         if (!mod.IsConverted)
             return info;
 
-        string convertedInfo = string.Format(ModManager.GetText(mod.ConvertedMayHaveIssues ? "scriptsConvertedIssuesInfo" : "scriptsConvertedInfo"),
-            mod.ConvertedInfo.OriginalPlatformName);
+        string convertedKey = mod.ConvertedMayHaveIssues ? "scriptsConvertedIssuesInfo" :
+            mod.ConvertedHasShaders ? "scriptsConvertedShadersInfo" : "scriptsConvertedInfo";
+        string convertedInfo = string.Format(ModManager.GetText(convertedKey), mod.ConvertedInfo.OriginalPlatformName);
         return info != null ? info + " " + convertedInfo : convertedInfo;
     }
 
@@ -808,7 +831,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         for (int i = 0; i < modSettings.Length; i++)
         {
             modSettings[i].enabled = true;
-            modList.GetItem(i).textColor = GetModListTextColor(modSettings[i]);
+            SetModListTextColor(modList.GetItem(i), modSettings[i]);
         }
         UpdateModPanel();
     }
@@ -821,7 +844,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         for (int i = 0; i < modSettings.Length; i++)
         {
             modSettings[i].enabled = false;
-            modList.GetItem(i).textColor = GetModListTextColor(modSettings[i]);
+            SetModListTextColor(modList.GetItem(i), modSettings[i]);
         }
 
         UpdateModPanel();
@@ -947,6 +970,11 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
                     SetImportProgress(progress * 35f, "Unzipping...");
                 }));
 
+            // Mod collections can hold each mod's own zip, which can hold more zips
+            IEnumerator innerZips = UnzipInnerZips(cachePath);
+            while (innerZips.MoveNext())
+                yield return innerZips.Current;
+
             // Find any .dfmod files within the unzipped path that can load on this platform.
             SetImportProgress(35f, "Checking mods...");
             yield return null;
@@ -1035,6 +1063,50 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         }
     }
 
+    // Extracts each zip among the extracted files to a folder named after it, then any zips those held, a few levels deep.
+    // A zip that can't be extracted is skipped, so the rest of a collection still imports.
+    private IEnumerator UnzipInnerZips(string cachePath)
+    {
+        for (int pass = 0; pass < 4; pass++)
+        {
+            string[] zipFiles = Directory.GetFiles(cachePath, "*.zip", SearchOption.AllDirectories);
+            if (zipFiles.Length == 0)
+                yield break;
+
+            Array.Sort(zipFiles, StringComparer.Ordinal);
+            foreach (string zipFile in zipFiles)
+            {
+                SetImportProgress(35f, "Unzipping " + Path.GetFileName(zipFile) + "...");
+                yield return null;
+
+                string folder = Path.Combine(Path.GetDirectoryName(zipFile), Path.GetFileNameWithoutExtension(zipFile));
+                for (int i = 2; Directory.Exists(folder) || File.Exists(folder); i++)
+                    folder = Path.Combine(Path.GetDirectoryName(zipFile), $"{Path.GetFileNameWithoutExtension(zipFile)} ({i})");
+
+                IEnumerator unzip = DaggerfallWorkshop.Utility.ZipFileUtils.UnzipFileAsync(zipFile, folder);
+                while (true)
+                {
+                    bool moveNext;
+                    try
+                    {
+                        moveNext = unzip.MoveNext();
+                    }
+                    catch (Exception ex) when (!(ex is UnauthorizedAccessException))
+                    {
+                        Debug.LogWarning($"Skipping zip that couldn't be extracted: {zipFile}: {ex.Message}");
+                        break;
+                    }
+
+                    if (!moveNext)
+                        break;
+                    yield return unzip.Current;
+                }
+
+                File.Delete(zipFile);
+            }
+        }
+    }
+
     // Finds the mod files that can load on this platform. Mods built for desktop are converted to a copy,
     // unless the same mod's Android build is also there. Only one desktop build of each mod is converted,
     // preferring the Windows one, which mod authors most often test.
@@ -1100,7 +1172,8 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
                 continue;
             }
 
-            Debug.Log($"Converted {fileName} from {DesktopModConverter.GetPlatformName(conversion.Result.OriginalPlatform)} (shaders: {conversion.Result.HasShaders})");
+            Debug.Log($"Converted {fileName} from {DesktopModConverter.GetPlatformName(conversion.Result.OriginalPlatform)} " +
+                $"(shaders converted: {conversion.Result.ConvertedShaders}, unconverted: {conversion.Result.UnconvertedShaders})");
             importableMods.Add(new ImportableModFile()
             {
                 SourcePath = convertedFile,
@@ -1152,16 +1225,20 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         if (!Directory.Exists(extractedPath) || !Directory.Exists(streamingAssetsPath))
             return files;
 
-        HashSet<string> streamingAssetFolderNames = new HashSet<string>();
+        // Folders the game or mods read loose files from, whether or not this device has them yet, matched
+        // ignoring case and installed with the case the game looks for
+        Dictionary<string, string> streamingAssetFolderNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string folderName in standardStreamingAssetFolderNames)
+            streamingAssetFolderNames[folderName] = folderName;
         foreach (string directory in Directory.GetDirectories(streamingAssetsPath))
         {
             string folderName = Path.GetFileName(directory);
-            if (folderName != "Mods")
-                streamingAssetFolderNames.Add(folderName);
+            if (!string.Equals(folderName, "Mods", StringComparison.OrdinalIgnoreCase) && !streamingAssetFolderNames.ContainsKey(folderName))
+                streamingAssetFolderNames[folderName] = folderName;
         }
 
         List<string> matchingDirectories = Directory.GetDirectories(extractedPath, "*", SearchOption.AllDirectories)
-            .Where(directory => streamingAssetFolderNames.Contains(Path.GetFileName(directory)))
+            .Where(directory => streamingAssetFolderNames.ContainsKey(Path.GetFileName(directory)))
             .OrderBy(directory => directory.Length)
             .ToList();
 
@@ -1175,7 +1252,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
         HashSet<string> destinationPaths = new HashSet<string>();
         foreach (string root in roots)
         {
-            string streamingAssetsFolderName = Path.GetFileName(root);
+            string streamingAssetsFolderName = streamingAssetFolderNames[Path.GetFileName(root)];
             foreach (string sourceFile in Directory.GetFiles(root, "*", SearchOption.AllDirectories))
             {
                 string relativePath = Path.Combine(streamingAssetsFolderName, GetRelativePath(root, sourceFile));
@@ -1513,7 +1590,7 @@ public class ModLoaderInterfaceWindow : DaggerfallPopupWindow
             return;
 
         modSettings[modList.SelectedIndex].enabled = modEnabledCheckBox.IsChecked;
-        modList.SelectedValue.textColor = GetModListTextColor(modSettings[modList.SelectedIndex]);
+        SetModListTextColor(modList.SelectedValue, modSettings[modList.SelectedIndex]);
         UpdateModPanel();
     }
 

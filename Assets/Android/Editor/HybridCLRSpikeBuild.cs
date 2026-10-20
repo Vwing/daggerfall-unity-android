@@ -27,6 +27,13 @@ public static class HybridCLRSpikeBuild
     const string UpdateOutputPath = "Builds/DFU-HybridCLR-As-Update.apk";
     const string MetadataResourcesRoot = "Assets/Android/HybridCLR/Resources";
     const string MetadataResourcesDir = MetadataResourcesRoot + "/" + HybridCLRMetadataLoader.ResourcesFolder;
+    const string ReferencesResourcesDir = MetadataResourcesRoot + "/" + ModSourceCompiler.ReferencesResourcesFolder;
+
+    // Stripped assemblies that mods' source shouldn't compile against: the compilers and tools the game uses itself
+    static readonly string[] ExcludedReferencePrefixes =
+    {
+        "Microsoft.CodeAnalysis", "System.Collections.Immutable", "System.Reflection.Metadata", "dnlib", "mcs", "HybridCLR.Runtime",
+    };
 
     [MenuItem("Daggerfall Tools/Android/HybridCLR Spike/Install From Local Clones")]
     public static void Install()
@@ -128,6 +135,18 @@ public static class HybridCLRSpikeBuild
             if (!File.Exists(source))
                 throw new FileNotFoundException($"Stripped AOT assembly missing: {source}");
             File.Copy(source, Path.Combine(MetadataResourcesDir, assemblyName + ".dll.bytes"), true);
+        }
+
+        // ModSourceCompiler compiles mods' source against these and the metadata assemblies, as the Mono compiler
+        // compiles against every assembly the game has loaded
+        Directory.CreateDirectory(ReferencesResourcesDir);
+        foreach (string source in Directory.GetFiles(strippedDir, "*.dll"))
+        {
+            string assemblyName = Path.GetFileNameWithoutExtension(source);
+            if (HybridCLRMetadataLoader.AssemblyNames.Contains(assemblyName) ||
+                ExcludedReferencePrefixes.Any(prefix => assemblyName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+                continue;
+            File.Copy(source, Path.Combine(ReferencesResourcesDir, assemblyName + ".dll.bytes"), true);
         }
         AssetDatabase.Refresh();
     }

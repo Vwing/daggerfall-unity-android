@@ -29,4 +29,11 @@
     <assembly fullname="Unity.Postprocessing.Runtime" preserve="all" />
     <assembly fullname="Unity.ResourceManager" preserve="all" />
     <assembly fullname="Newtonsoft.Json" preserve="all" />
+
+    <!-- ModSourceCompiler and ModAssemblyPatcher: Roslyn compiles mods' C# source on IL2CPP builds, dnlib patches mod assemblies -->
+    <assembly fullname="Microsoft.CodeAnalysis" preserve="all" ignoreIfMissing="1" />
+    <assembly fullname="Microsoft.CodeAnalysis.CSharp" preserve="all" ignoreIfMissing="1" />
+    <assembly fullname="System.Collections.Immutable" preserve="all" ignoreIfMissing="1" />
+    <assembly fullname="System.Reflection.Metadata" preserve="all" ignoreIfMissing="1" />
+    <assembly fullname="dnlib" preserve="all" ignoreIfMissing="1" />
 </linker>

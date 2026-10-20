@@ -15,6 +15,8 @@ namespace DaggerfallWorkshop
 
         public int originalPlatform;
         public bool hasShaders;
+        public int convertedShaders;        // shaders given OpenGL ES programs made from their desktop OpenGL ones
+        public int unconvertedShaders;      // shaders left with only desktop programs
         public long fileSize;       // size of the converted mod file, so a replacement isn't mistaken for it
 
         /// <summary>
@@ -28,6 +30,14 @@ namespace DaggerfallWorkshop
         public string OriginalPlatformName
         {
             get { return DesktopModConverter.GetPlatformName(originalPlatform); }
+        }
+
+        /// <summary>
+        /// True if some of the mod's shaders have no Android programs, which includes mods converted before shaders were.
+        /// </summary>
+        public bool HasUnconvertedShaders
+        {
+            get { return hasShaders && (unconvertedShaders > 0 || convertedShaders == 0); }
         }
 
         /// <summary>
@@ -71,6 +81,8 @@ namespace DaggerfallWorkshop
             {
                 originalPlatform = result.OriginalPlatform,
                 hasShaders = result.HasShaders,
+                convertedShaders = result.ConvertedShaders,
+                unconvertedShaders = result.UnconvertedShaders,
                 fileSize = new FileInfo(modFilePath).Length,
             };
             File.WriteAllText(modFilePath + FileSuffix, JsonUtility.ToJson(info, true));
@@ -100,7 +112,7 @@ namespace DaggerfallWorkshop
                     return false;
 
                 Save(modFilePath, result);
-                Debug.LogWarning($"Converted {Path.GetFileName(modFilePath)} from {DesktopModConverter.GetPlatformName(result.OriginalPlatform)} to Android (shaders: {result.HasShaders})");
+                Debug.LogWarning($"Converted {Path.GetFileName(modFilePath)} from {DesktopModConverter.GetPlatformName(result.OriginalPlatform)} to Android (shaders converted: {result.ConvertedShaders}, unconverted: {result.UnconvertedShaders})");
                 return true;
             }
             catch (Exception ex)

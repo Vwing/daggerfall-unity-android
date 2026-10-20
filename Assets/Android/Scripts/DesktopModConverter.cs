@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace DaggerfallWorkshop
@@ -9,10 +10,12 @@ namespace DaggerfallWorkshop
     /// Converts mod assetbundles built for another platform, usually desktop, so that Unity will load them on Android.
     /// Unity refuses any bundle whose serialized files name another build target, but text, code, textures and meshes
     /// load fine once that one field says Android. Shaders are the exception: a desktop bundle only carries desktop
-    /// shader programs, so the result says whether the bundle contains any, compute shaders included.
+    /// shader programs. Desktop builds of DFU include OpenGL Core programs, so the shaders and compute shaders of a
+    /// bundle are rewritten with OpenGL ES versions of those (see DesktopModConverter.Shaders.cs), and the result
+    /// counts the ones that had none to convert.
     /// Plain C# with no Unity calls, so it can run on a worker thread.
     /// </summary>
-    public static class DesktopModConverter
+    public static partial class DesktopModConverter
     {
         /// <summary>
         /// UnityEditor.BuildTarget.Android, as stored in serialized files.
@@ -30,6 +33,16 @@ namespace DaggerfallWorkshop
             /// True if the bundle contains shaders or compute shaders, or if its type table couldn't be read.
             /// </summary>
             public bool HasShaders;
+
+            /// <summary>
+            /// Shaders and compute shaders given OpenGL ES programs made from their desktop OpenGL ones.
+            /// </summary>
+            public int ConvertedShaders;
+
+            /// <summary>
+            /// Shaders and compute shaders left with only desktop programs, which Android can't run.
+            /// </summary>
+            public int UnconvertedShaders;
         }
 
         const string Signature = "UnityFS";
@@ -82,13 +95,17 @@ namespace DaggerfallWorkshop
         public static Result Convert(string sourcePath, string destinationPath, int targetPlatform = AndroidPlatform)
         {
             string tempPath = destinationPath + ".converting";
+            string blocksPath = destinationPath + ".blocks";
             Result result = null;
             try
             {
                 using (var archive = new Archive(sourcePath))
                 {
                     var patches = new List<KeyValuePair<long, byte[]>>();
+                    var rewrittenFiles = new Dictionary<Node, byte[]>();
                     bool hasShaders = false;
+                    int convertedShaders = 0;
+                    int unconvertedShaders = 0;
                     foreach (Node node in archive.Nodes)
                     {
                         if ((node.Flags & SerializedFileNodeFlag) == 0)
@@ -101,17 +118,37 @@ namespace DaggerfallWorkshop
 
                         if (result == null)
                             result = new Result { OriginalPlatform = file.Platform };
+
+                        if (file.HasShaders == true)
+                        {
+                            ShaderConversion conversion = ConvertShaders(archive.ReadData(node.Offset, (int)node.Size), targetPlatform);
+                            if (conversion != null)
+                            {
+                                convertedShaders += conversion.Converted;
+                                unconvertedShaders += conversion.Unconverted;
+                                if (conversion.File != null)
+                                {
+                                    rewrittenFiles[node] = conversion.File;
+                                    continue;
+                                }
+                            }
+                        }
+
                         patches.Add(new KeyValuePair<long, byte[]>(file.PlatformOffset, file.Encode(targetPlatform)));
                     }
 
                     if (result == null)
                         return null;
                     result.HasShaders = hasShaders;
+                    result.ConvertedShaders = convertedShaders;
+                    result.UnconvertedShaders = unconvertedShaders;
 
                     Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(tempPath)));
                     using (var output = new FileStream(tempPath, FileMode.Create, FileAccess.ReadWrite))
                     {
-                        if (archive.HasLzmaBlocks)
+                        if (rewrittenFiles.Count > 0)
+                            archive.WriteRewritten(output, rewrittenFiles, patches, blocksPath);
+                        else if (archive.HasLzmaBlocks)
                             archive.WriteDecompressed(output, patches);
                         else
                             archive.WritePatchedBlocks(output, patches);
@@ -128,6 +165,8 @@ namespace DaggerfallWorkshop
             {
                 if (File.Exists(tempPath))
                     File.Delete(tempPath);
+                if (File.Exists(blocksPath))
+                    File.Delete(blocksPath);
             }
         }
 
@@ -258,6 +297,253 @@ namespace DaggerfallWorkshop
             }
 
             return found;
+        }
+
+        /// <summary>
+        /// A serialized file read in full, so that some of its types and objects can be replaced and the file written again.
+        /// Reads file versions 17 and later (Unity 2017.3 on), see UnityPy's SerializedFile, SerializedType and ObjectReader.
+        /// </summary>
+        class SerializedFileData
+        {
+            public uint Version;
+            public bool BigEndian;
+            public string UnityVersion;
+            public readonly List<TypeEntry> Types = new List<TypeEntry>();
+            public readonly List<ObjectEntry> Objects = new List<ObjectEntry>();
+
+            byte[] data;
+            byte[] reserved;
+            long unknown;               // last field of the version 22 header
+            long dataOffset;
+            bool enableTypeTree;
+            readonly List<KeyValuePair<int, long>> scripts = new List<KeyValuePair<int, long>>();
+            byte[] tail;                // externals, reference types and user information, which hold nothing to align
+
+            public bool HasTypeTrees
+            {
+                get { return enableTypeTree; }
+            }
+
+            public class TypeEntry
+            {
+                public int ClassId;
+                public byte[] Raw;          // the whole entry as it was read
+                public int TreeOffset;      // where its type tree starts in Raw, or -1 if the file has none
+                public byte[] Replacement;  // written instead of Raw if set
+            }
+
+            public class ObjectEntry
+            {
+                public long PathId;
+                public long ByteStart;
+                public uint ByteSize;
+                public int TypeIndex;
+                public byte[] Replacement;  // written instead of the object's data if set
+            }
+
+            public static SerializedFileData Read(byte[] data)
+            {
+                var file = new SerializedFileData { data = data };
+                var header = new DataReader(data, true);
+                header.ReadUInt32();                                // metadata size
+                header.ReadUInt32();                                // file size
+                file.Version = header.ReadUInt32();
+                file.dataOffset = header.ReadUInt32();
+                if (file.Version < 17)
+                    throw new NotSupportedException($"Serialized file version {file.Version} is too old to rewrite");
+
+                file.BigEndian = header.ReadByte() != 0;
+                file.reserved = header.ReadBytes(3);
+                if (file.Version >= 22)
+                {
+                    header.ReadUInt32();                            // metadata size
+                    header.ReadInt64();                             // file size
+                    file.dataOffset = header.ReadInt64();
+                    file.unknown = header.ReadInt64();
+                }
+
+                var reader = new DataReader(data, file.BigEndian) { Position = header.Position };
+                file.UnityVersion = reader.ReadCString();
+                reader.ReadInt32();                                 // build target, replaced when written
+                file.enableTypeTree = reader.ReadByte() != 0;
+                int typeCount = reader.ReadInt32();
+                for (int i = 0; i < typeCount; i++)
+                    file.Types.Add(ReadTypeEntry(reader, file.Version, file.enableTypeTree, false));
+
+                int objectCount = reader.ReadInt32();
+                for (int i = 0; i < objectCount; i++)
+                {
+                    reader.Align(4);
+                    file.Objects.Add(new ObjectEntry
+                    {
+                        PathId = reader.ReadInt64(),
+                        ByteStart = file.Version >= 22 ? reader.ReadInt64() : reader.ReadUInt32(),
+                        ByteSize = reader.ReadUInt32(),
+                        TypeIndex = reader.ReadInt32(),
+                    });
+                }
+
+                int scriptCount = reader.ReadInt32();
+                for (int i = 0; i < scriptCount; i++)
+                {
+                    int fileIndex = reader.ReadInt32();
+                    reader.Align(4);
+                    file.scripts.Add(new KeyValuePair<int, long>(fileIndex, reader.ReadInt64()));
+                }
+
+                int tailStart = reader.Position;
+                int externalCount = reader.ReadInt32();
+                for (int i = 0; i < externalCount; i++)
+                {
+                    reader.ReadCString();                           // empty
+                    reader.Skip(16 + 4);                            // guid, type
+                    reader.ReadCString();                           // path
+                }
+                if (file.Version >= 20)
+                {
+                    int refTypeCount = reader.ReadInt32();
+                    for (int i = 0; i < refTypeCount; i++)
+                        ReadTypeEntry(reader, file.Version, file.enableTypeTree, true);
+                }
+                reader.ReadCString();                               // user information
+                file.tail = reader.Slice(tailStart, reader.Position);
+                return file;
+            }
+
+            static TypeEntry ReadTypeEntry(DataReader reader, uint version, bool enableTypeTree, bool isRefType)
+            {
+                int start = reader.Position;
+                var entry = new TypeEntry { ClassId = reader.ReadInt32(), TreeOffset = -1 };
+                reader.Skip(1);                                     // is stripped type
+                short scriptTypeIndex = (short)reader.ReadUInt16();
+                if (isRefType && scriptTypeIndex >= 0 || entry.ClassId == MonoBehaviourClassId)
+                    reader.Skip(16);                                // script id
+                reader.Skip(16);                                    // old type hash
+                if (enableTypeTree)
+                {
+                    entry.TreeOffset = reader.Position - start;
+                    int nodeCount = reader.ReadInt32();
+                    int stringBufferSize = reader.ReadInt32();
+                    reader.Skip(nodeCount * (version >= 19 ? 32 : 24) + stringBufferSize);
+                    if (version >= 21)
+                    {
+                        if (isRefType)
+                        {
+                            reader.ReadCString();                   // class name
+                            reader.ReadCString();                   // namespace
+                            reader.ReadCString();                   // assembly name
+                        }
+                        else
+                        {
+                            reader.Skip(reader.ReadInt32() * 4);    // type dependencies
+                        }
+                    }
+                }
+
+                entry.Raw = reader.Slice(start, reader.Position);
+                return entry;
+            }
+
+            /// <summary>
+            /// Gets an object's data as stored in the file.
+            /// </summary>
+            public byte[] GetObjectData(ObjectEntry entry)
+            {
+                var bytes = new byte[entry.ByteSize];
+                Buffer.BlockCopy(data, (int)(dataOffset + entry.ByteStart), bytes, 0, bytes.Length);
+                return bytes;
+            }
+
+            /// <summary>
+            /// Writes the file with its replacements, retargeted to platform.
+            /// </summary>
+            public byte[] Write(int platform)
+            {
+                // Objects keep the order they were stored in, each aligned to 8 bytes as Unity writes them
+                var objectData = new DataBuilder(BigEndian);
+                var starts = new long[Objects.Count];
+                var sizes = new uint[Objects.Count];
+                foreach (int i in Enumerable.Range(0, Objects.Count).OrderBy(i => Objects[i].ByteStart))
+                {
+                    objectData.Align(8);
+                    ObjectEntry entry = Objects[i];
+                    starts[i] = objectData.Length;
+                    if (entry.Replacement != null)
+                    {
+                        objectData.Write(entry.Replacement);
+                        sizes[i] = (uint)entry.Replacement.Length;
+                    }
+                    else
+                    {
+                        objectData.Write(data, (int)(dataOffset + entry.ByteStart), (int)entry.ByteSize);
+                        sizes[i] = entry.ByteSize;
+                    }
+                }
+
+                // The header's size is a multiple of 4, so aligning within the metadata aligns within the file
+                var metadata = new DataBuilder(BigEndian);
+                metadata.WriteCString(UnityVersion);
+                metadata.Write(platform);
+                metadata.Write((byte)(enableTypeTree ? 1 : 0));
+                metadata.Write(Types.Count);
+                foreach (TypeEntry entry in Types)
+                    metadata.Write(entry.Replacement ?? entry.Raw);
+                metadata.Write(Objects.Count);
+                for (int i = 0; i < Objects.Count; i++)
+                {
+                    metadata.Align(4);
+                    metadata.Write(Objects[i].PathId);
+                    if (Version >= 22)
+                        metadata.Write(starts[i]);
+                    else
+                        metadata.Write((uint)starts[i]);
+                    metadata.Write(sizes[i]);
+                    metadata.Write(Objects[i].TypeIndex);
+                }
+                metadata.Write(scripts.Count);
+                foreach (KeyValuePair<int, long> script in scripts)
+                {
+                    metadata.Write(script.Key);
+                    metadata.Align(4);
+                    metadata.Write(script.Value);
+                }
+                metadata.Write(tail);
+
+                int headerSize = Version >= 22 ? 48 : 20;
+                long newDataOffset = Align16(headerSize + metadata.Length);
+                long fileSize = newDataOffset + objectData.Length;
+                var header = new DataBuilder(true);
+                if (Version >= 22)
+                {
+                    header.Write(0u);
+                    header.Write(0u);
+                    header.Write(Version);
+                    header.Write(0u);
+                }
+                else
+                {
+                    header.Write((uint)metadata.Length);
+                    header.Write((uint)fileSize);
+                    header.Write(Version);
+                    header.Write((uint)newDataOffset);
+                }
+                header.Write((byte)(BigEndian ? 1 : 0));
+                header.Write(reserved);
+                if (Version >= 22)
+                {
+                    header.Write((uint)metadata.Length);
+                    header.Write(fileSize);
+                    header.Write(newDataOffset);
+                    header.Write(unknown);
+                }
+
+                var output = new DataBuilder(true);
+                output.Write(header.ToArray());
+                output.Write(metadata.ToArray());
+                output.Align(16);
+                output.Write(objectData.ToArray());
+                return output.ToArray();
+            }
         }
 
         #endregion
@@ -551,8 +837,122 @@ namespace DaggerfallWorkshop
                 output.Position = end;
             }
 
-            // Writes the header and an uncompressed blocks info for outputBlocks around the block data written by writeData
+            /// <summary>
+            /// Writes the bundle with some of its files replaced and patches applied to the rest. Replacing a file moves
+            /// the ones after it, so every block is written again, LZ4-compressed. The blocks go through a temporary file
+            /// at blocksPath first, since the blocks info that lists them comes before them.
+            /// </summary>
+            public void WriteRewritten(FileStream output, Dictionary<Node, byte[]> replacements, List<KeyValuePair<long, byte[]>> patches, string blocksPath)
+            {
+                List<Node> ordered = Nodes.OrderBy(node => node.Offset).ToList();
+                var newNodes = new Dictionary<Node, Node>();
+                long offset = 0;
+                foreach (Node node in ordered)
+                {
+                    byte[] replacement;
+                    long size = replacements.TryGetValue(node, out replacement) ? replacement.Length : node.Size;
+                    newNodes[node] = new Node { Offset = offset, Size = size, Flags = node.Flags, Path = node.Path };
+                    offset += size;
+                }
+
+                var outputBlocks = new List<Block>();
+                using (var blocksFile = new FileStream(blocksPath, FileMode.Create, FileAccess.ReadWrite))
+                {
+                    var writer = new BlockWriter(blocksFile, outputBlocks);
+                    long position = 0;
+                    int nodeIndex = 0;
+                    var written = new HashSet<Node>();
+                    ReadAllData((data, start, count) =>
+                    {
+                        while (count > 0)
+                        {
+                            while (nodeIndex < ordered.Count && ordered[nodeIndex].Offset + ordered[nodeIndex].Size <= position)
+                                nodeIndex++;
+                            if (nodeIndex == ordered.Count)
+                                return;                         // data after the last file
+
+                            Node node = ordered[nodeIndex];
+                            int length;
+                            if (position < node.Offset)
+                            {
+                                length = (int)Math.Min(count, node.Offset - position);    // a gap between files
+                            }
+                            else
+                            {
+                                length = (int)Math.Min(count, node.Offset + node.Size - position);
+                                byte[] replacement;
+                                if (replacements.TryGetValue(node, out replacement))
+                                {
+                                    if (written.Add(node))
+                                        writer.Write(replacement, 0, replacement.Length);
+                                }
+                                else
+                                {
+                                    ApplyPatches(data, start, length, position, patches);
+                                    writer.Write(data, start, length);
+                                }
+                            }
+
+                            position += length;
+                            start += length;
+                            count -= length;
+                        }
+                    });
+                    foreach (KeyValuePair<Node, byte[]> replacement in replacements)
+                    {
+                        if (written.Add(replacement.Key))
+                            writer.Write(replacement.Value, 0, replacement.Value.Length);
+                    }
+                    writer.Flush();
+
+                    WriteArchive(output, outputBlocks.ToArray(), Nodes.Select(node => newNodes[node]).ToList(), () =>
+                    {
+                        blocksFile.Position = 0;
+                        CopyBytes(blocksFile, output, blocksFile.Length, new byte[0x10000]);
+                    });
+                }
+            }
+
+            // Passes all of the bundle's uncompressed data to sink in order, one block at a time
+            void ReadAllData(Action<byte[], int, int> sink)
+            {
+                for (int i = 0; i < blocks.Length; i++)
+                {
+                    stream.Position = blocks[i].FileOffset;
+                    if (blocks[i].Compression == CompressionLzma)
+                    {
+                        long written = new LzmaDecoder(new BoundedReader(stream, blocks[i].CompressedSize)).Decode(new SinkStream(sink), blocks[i].UncompressedSize);
+                        if (written != blocks[i].UncompressedSize)
+                            throw new InvalidDataException("LZMA block is shorter than expected");
+                    }
+                    else
+                    {
+                        byte[] data = Decompress(ReadExactly(stream, (int)blocks[i].CompressedSize), (int)blocks[i].UncompressedSize, blocks[i].Compression);
+                        sink(data, 0, data.Length);
+                    }
+                }
+            }
+
+            static void ApplyPatches(byte[] data, int start, int count, long dataPosition, List<KeyValuePair<long, byte[]>> patches)
+            {
+                foreach (KeyValuePair<long, byte[]> patch in patches)
+                {
+                    for (int j = 0; j < patch.Value.Length; j++)
+                    {
+                        long index = patch.Key + j - dataPosition;
+                        if (index >= 0 && index < count)
+                            data[start + index] = patch.Value[j];
+                    }
+                }
+            }
+
             void WriteArchive(FileStream output, Block[] outputBlocks, Action writeData)
+            {
+                WriteArchive(output, outputBlocks, Nodes, writeData);
+            }
+
+            // Writes the header and an uncompressed blocks info for outputBlocks and nodes around the block data written by writeData
+            void WriteArchive(FileStream output, Block[] outputBlocks, List<Node> nodes, Action writeData)
             {
                 var blocksInfo = new MemoryStream();
                 var writer = new DataWriter(blocksInfo);
@@ -564,8 +964,8 @@ namespace DaggerfallWorkshop
                     writer.Write(block.CompressedSize);
                     writer.Write(block.Flags);
                 }
-                writer.Write(Nodes.Count);
-                foreach (Node node in Nodes)
+                writer.Write(nodes.Count);
+                foreach (Node node in nodes)
                 {
                     writer.Write(node.Offset);
                     writer.Write(node.Size);
@@ -600,6 +1000,88 @@ namespace DaggerfallWorkshop
                 output.Position = sizePosition;
                 writer.Write(end);
                 output.Position = end;
+            }
+        }
+
+        /// <summary>
+        /// Cuts the data written to it into blocks of UncompressedBlockSize, stored LZ4-compressed unless that doesn't help.
+        /// </summary>
+        class BlockWriter
+        {
+            readonly Stream output;
+            readonly List<Block> blocks;
+            readonly byte[] buffer = new byte[UncompressedBlockSize];
+            int length;
+
+            public BlockWriter(Stream output, List<Block> blocks)
+            {
+                this.output = output;
+                this.blocks = blocks;
+            }
+
+            public void Write(byte[] data, int start, int count)
+            {
+                while (count > 0)
+                {
+                    int n = Math.Min(count, buffer.Length - length);
+                    Buffer.BlockCopy(data, start, buffer, length, n);
+                    length += n;
+                    start += n;
+                    count -= n;
+                    if (length == buffer.Length)
+                        Flush();
+                }
+            }
+
+            public void Flush()
+            {
+                if (length == 0)
+                    return;
+
+                byte[] compressed = Lz4Encode(buffer, length);
+                var block = new Block { UncompressedSize = (uint)length };
+                if (compressed.Length < length)
+                {
+                    output.Write(compressed, 0, compressed.Length);
+                    block.CompressedSize = (uint)compressed.Length;
+                    block.Flags = CompressionLz4;
+                }
+                else
+                {
+                    output.Write(buffer, 0, length);
+                    block.CompressedSize = (uint)length;
+                }
+                blocks.Add(block);
+                length = 0;
+            }
+        }
+
+        // A write-only stream that hands what's written to it to a callback
+        class SinkStream : Stream
+        {
+            readonly Action<byte[], int, int> sink;
+
+            public SinkStream(Action<byte[], int, int> sink)
+            {
+                this.sink = sink;
+            }
+
+            public override bool CanRead { get { return false; } }
+            public override bool CanSeek { get { return false; } }
+            public override bool CanWrite { get { return true; } }
+            public override long Length { get { throw new NotSupportedException(); } }
+            public override long Position { get { throw new NotSupportedException(); } set { throw new NotSupportedException(); } }
+            public override void Flush() { }
+            public override int Read(byte[] buffer, int offset, int count) { throw new NotSupportedException(); }
+            public override long Seek(long offset, SeekOrigin origin) { throw new NotSupportedException(); }
+            public override void SetLength(long value) { throw new NotSupportedException(); }
+
+            public override void Write(byte[] buffer, int offset, int count)
+            {
+                // The LZMA decoder reuses its window, so hand over a copy the sink can patch
+                var copy = new byte[count];
+                Buffer.BlockCopy(buffer, offset, copy, 0, count);
+                sink(copy, 0, count);
             }
         }
 
@@ -701,6 +1183,81 @@ namespace DaggerfallWorkshop
             if (dst != uncompressedSize)
                 throw new InvalidDataException("LZ4 block is shorter than expected");
             return output;
+        }
+
+        /// <summary>
+        /// Compresses the first length bytes of source as one LZ4 block, greedily matching 4-byte sequences.
+        /// Follows the LZ4 block format's end rules: the last 5 bytes are literals and no match starts in the last 12.
+        /// </summary>
+        static byte[] Lz4Encode(byte[] source, int length)
+        {
+            const int MinMatch = 4;
+            const int HashBits = 16;
+            const int MaxDistance = 0xFFFF;
+            var output = new MemoryStream(length + length / 255 + 16);
+            var table = new int[1 << HashBits];             // last position + 1 of each hashed sequence
+            int anchor = 0;
+            int position = 0;
+            int matchLimit = length - 5;
+            int startLimit = length - 12;
+            int misses = 0;
+            while (position < startLimit)
+            {
+                uint sequence = (uint)(source[position] | source[position + 1] << 8 | source[position + 2] << 16 | source[position + 3] << 24);
+                int hash = (int)((sequence * 2654435761u) >> (32 - HashBits));
+                int candidate = table[hash] - 1;
+                table[hash] = position + 1;
+                if (candidate < 0 || position - candidate > MaxDistance ||
+                    source[candidate] != source[position] || source[candidate + 1] != source[position + 1] ||
+                    source[candidate + 2] != source[position + 2] || source[candidate + 3] != source[position + 3])
+                {
+                    // Skip ahead faster through data that doesn't compress, as LZ4's reference encoder does
+                    position += 1 + (misses++ >> 6);
+                    continue;
+                }
+
+                misses = 0;
+                int matchLength = MinMatch;
+                while (position + matchLength < matchLimit && source[candidate + matchLength] == source[position + matchLength])
+                    matchLength++;
+
+                WriteLz4Sequence(output, source, anchor, position - anchor, position - candidate, matchLength);
+                position += matchLength;
+                anchor = position;
+            }
+
+            WriteLz4Sequence(output, source, anchor, length - anchor, 0, 0);
+            return output.ToArray();
+        }
+
+        // Writes a token, literals and, unless matchLength is 0 (the last sequence), a match
+        static void WriteLz4Sequence(MemoryStream output, byte[] source, int literalStart, int literalLength, int distance, int matchLength)
+        {
+            int matchCode = matchLength == 0 ? 0 : matchLength - 4;
+            output.WriteByte((byte)((Math.Min(literalLength, 15) << 4) | Math.Min(matchCode, 15)));
+            WriteLz4Length(output, literalLength);
+            output.Write(source, literalStart, literalLength);
+            if (matchLength == 0)
+                return;
+
+            output.WriteByte((byte)distance);
+            output.WriteByte((byte)(distance >> 8));
+            WriteLz4Length(output, matchCode);
+        }
+
+        // Writes the part of a length that doesn't fit in its 4 bits of the token
+        static void WriteLz4Length(MemoryStream output, int length)
+        {
+            if (length < 15)
+                return;
+
+            length -= 15;
+            while (length >= 255)
+            {
+                output.WriteByte(255);
+                length -= 255;
+            }
+            output.WriteByte((byte)length);
         }
 
         #endregion
@@ -1089,7 +1646,12 @@ namespace DaggerfallWorkshop
             readonly byte[] data;
             readonly bool bigEndian;
 
-            public int Position { get; private set; }
+            public int Position { get; set; }
+
+            public int Length
+            {
+                get { return data.Length; }
+            }
 
             public DataReader(byte[] data, bool bigEndian)
             {
@@ -1109,24 +1671,62 @@ namespace DaggerfallWorkshop
                 Position += count;
             }
 
+            // Skips to a multiple of alignment from the start of the data
+            public void Align(int alignment)
+            {
+                int padding = (alignment - Position % alignment) % alignment;
+                Skip(Math.Min(padding, data.Length - Position));
+            }
+
             public ushort ReadUInt16()
             {
-                return (ushort)ReadBytes(2);
+                return (ushort)ReadValue(2);
             }
 
             public int ReadInt32()
             {
-                return (int)ReadBytes(4);
+                return (int)ReadValue(4);
             }
 
             public uint ReadUInt32()
             {
-                return (uint)ReadBytes(4);
+                return (uint)ReadValue(4);
             }
 
             public long ReadInt64()
             {
-                return (long)ReadBytes(8);
+                return (long)ReadValue(8);
+            }
+
+            public ulong ReadUInt64()
+            {
+                return ReadValue(8);
+            }
+
+            public float ReadSingle()
+            {
+                return BitConverter.ToSingle(BitConverter.GetBytes((uint)ReadValue(4)), 0);
+            }
+
+            public double ReadDouble()
+            {
+                return BitConverter.Int64BitsToDouble((long)ReadValue(8));
+            }
+
+            public byte[] ReadBytes(int count)
+            {
+                Require(count);
+                byte[] bytes = Slice(Position, Position + count);
+                Position += count;
+                return bytes;
+            }
+
+            // A copy of the data from start up to end
+            public byte[] Slice(int start, int end)
+            {
+                var bytes = new byte[end - start];
+                Buffer.BlockCopy(data, start, bytes, 0, bytes.Length);
+                return bytes;
             }
 
             public string ReadCString()
@@ -1139,7 +1739,18 @@ namespace DaggerfallWorkshop
                 return value;
             }
 
-            ulong ReadBytes(int count)
+            // A string as Unity serializes it: its length, its UTF-8 bytes, then padding to 4 bytes
+            public string ReadAlignedString()
+            {
+                int length = ReadInt32();
+                Require(length);
+                string value = Encoding.UTF8.GetString(data, Position, length);
+                Position += length;
+                Align(4);
+                return value;
+            }
+
+            ulong ReadValue(int count)
             {
                 Require(count);
                 ulong value = 0;
@@ -1155,7 +1766,101 @@ namespace DaggerfallWorkshop
             void Require(int count)
             {
                 if (count < 0 || Position + count > data.Length)
-                    throw new InvalidDataException("Read past the end of the assetbundle header");
+                    throw new InvalidDataException("Read past the end of the data");
+            }
+        }
+
+        // Writes values with either endianness to a growing buffer
+        class DataBuilder
+        {
+            readonly MemoryStream stream = new MemoryStream();
+            readonly bool bigEndian;
+
+            public DataBuilder(bool bigEndian)
+            {
+                this.bigEndian = bigEndian;
+            }
+
+            public int Length
+            {
+                get { return (int)stream.Length; }
+            }
+
+            public byte[] ToArray()
+            {
+                return stream.ToArray();
+            }
+
+            public void Write(byte[] bytes)
+            {
+                stream.Write(bytes, 0, bytes.Length);
+            }
+
+            public void Write(byte[] bytes, int start, int count)
+            {
+                stream.Write(bytes, start, count);
+            }
+
+            public void Write(byte value)
+            {
+                stream.WriteByte(value);
+            }
+
+            public void Write(ushort value)
+            {
+                WriteValue(value, 2);
+            }
+
+            public void Write(int value)
+            {
+                WriteValue((uint)value, 4);
+            }
+
+            public void Write(uint value)
+            {
+                WriteValue(value, 4);
+            }
+
+            public void Write(long value)
+            {
+                WriteValue((ulong)value, 8);
+            }
+
+            public void Write(float value)
+            {
+                WriteValue(BitConverter.ToUInt32(BitConverter.GetBytes(value), 0), 4);
+            }
+
+            public void Write(double value)
+            {
+                WriteValue((ulong)BitConverter.DoubleToInt64Bits(value), 8);
+            }
+
+            public void WriteCString(string value)
+            {
+                Write(Encoding.UTF8.GetBytes(value));
+                stream.WriteByte(0);
+            }
+
+            public void WriteAlignedString(string value)
+            {
+                byte[] bytes = Encoding.UTF8.GetBytes(value);
+                Write(bytes.Length);
+                Write(bytes);
+                Align(4);
+            }
+
+            // Pads with zeros to a multiple of alignment from the start
+            public void Align(int alignment)
+            {
+                while (stream.Length % alignment != 0)
+                    stream.WriteByte(0);
+            }
+
+            void WriteValue(ulong value, int count)
+            {
+                for (int i = 0; i < count; i++)
+                    stream.WriteByte((byte)(value >> (8 * (bigEndian ? count - 1 - i : i))));
             }
         }
 
