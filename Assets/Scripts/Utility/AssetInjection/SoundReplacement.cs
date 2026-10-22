@@ -9,9 +9,9 @@
 // Notes:
 //
 
-using System.Collections;
 using System.IO;
 using UnityEngine;
+using UnityEngine.Networking;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
 
 namespace DaggerfallWorkshop.Utility.AssetInjection
@@ -86,16 +86,35 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
                 string path = Path.Combine(soundPath, name + extension);
                 if (File.Exists(path))
                 {
-                    WWW www = new WWW("file://" + path); // TODO: Replace with UnityWebRequest
-                    if (streaming) {
-                        audioClip = www.GetAudioClip(true, true);
-                    }
-                    else
+                    // WWW.GetAudioClip() taken before the download finished gave an empty clip on Android, so every
+                    // loose sound played silence. Like upstream (#2782), wait for the file instead.
+                    string url = "file://" + path;
+                    AudioType audioType = GetAudioTypeFromExtension(extension);
+
+                    UnityWebRequest request = UnityWebRequestMultimedia.GetAudioClip(url, audioType);
+                    DownloadHandlerAudioClip downloadHandler = request.downloadHandler as DownloadHandlerAudioClip;
+                    if (downloadHandler != null)
                     {
-                        audioClip = www.GetAudioClip();
-                        DaggerfallUnity.Instance.StartCoroutine(LoadAudioData(www, audioClip));
+                        downloadHandler.streamAudio = streaming;
+
+                        request.SendWebRequest();
+
+                        // Synchronous waiting otherwise the whole architecture has to be redone
+                        while (!request.isDone) { }
+                        audioClip = request.result == UnityWebRequest.Result.Success ? downloadHandler.audioClip : null;
+
+                        if (audioClip && (streaming || audioClip.samples > 0))
+                        {
+                            // A streamed song may still read from its request, so only a fully loaded sound lets it go
+                            if (!streaming)
+                                request.Dispose();
+                            return true;
+                        }
                     }
-                    return true;
+
+                    // Fall back to mods or the game's own sound rather than play silence
+                    Debug.LogErrorFormat("Failed to load audioclip {0}: {1}", path, request.error);
+                    request.Dispose();
                 }
 
                 // Seek from mods
@@ -143,17 +162,22 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
             return false;
         }
 
-        /// <summary>
-        /// Load audio data from WWW in background.
-        /// </summary>
-        private static IEnumerator LoadAudioData(WWW www, AudioClip clip) // TODO: Replace with UnityWebRequest
+        private static AudioType GetAudioTypeFromExtension(string extension)
         {
-            yield return www;
-
-            if (clip.loadState == AudioDataLoadState.Failed)
-                Debug.LogErrorFormat("Failed to load audioclip: {0}", www.error);
-
-            www.Dispose();
+            switch (extension.ToLowerInvariant())
+            {
+                case ".wav":
+                    return AudioType.WAV;
+                case ".mp3":
+                    return AudioType.MPEG;
+                case ".ogg":
+                    return AudioType.OGGVORBIS;
+                case ".aif":
+                case ".aiff":
+                    return AudioType.AIFF;
+                default:
+                    return AudioType.UNKNOWN;
+            }
         }
 
         #endregion

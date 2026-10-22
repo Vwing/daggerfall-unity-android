@@ -58,6 +58,11 @@ public final class FolderPicker
             return;
         }
 
+        // Since Android 11 other apps can't reach Android/data, so folders in the data folder open through its provider
+        if (DataFolderProvider.openFolder(activity, path)) {
+            return;
+        }
+
         disableFileUriExposureDeath();
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setDataAndType(Uri.fromFile(new File(path)), "resource/folder");

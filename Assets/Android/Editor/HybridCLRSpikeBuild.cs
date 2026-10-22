@@ -16,7 +16,7 @@ using UnityEngine;
 /// Entry points for the HybridCLR spike. Installs HybridCLR from the reviewed clones next to the project,
 /// then builds an ARM64 APK either under a separate package name so it can be installed beside the release build,
 /// or under the release package name so it installs over the release build and keeps the user's data.
-/// Batch mode: Unity.exe -batchmode -quit -projectPath . -executeMethod HybridCLRSpikeBuild.Install (then .Build or .BuildAsUpdate)
+/// Batch mode: Unity.exe -batchmode -quit -projectPath . -executeMethod HybridCLRSpikeBuild.Install (then .Build, .BuildAsUpdate or .BuildAsUpdateDevelopment)
 /// </summary>
 public static class HybridCLRSpikeBuild
 {
@@ -25,6 +25,7 @@ public static class HybridCLRSpikeBuild
     const string SideBySideOutputPath = "Builds/DFU-HybridCLR.apk";
     const string UpdateApplicationId = "net.dfworkshop.dfu";
     const string UpdateOutputPath = "Builds/DFU-HybridCLR-As-Update.apk";
+    const string UpdateDevelopmentOutputPath = "Builds/DFU-HybridCLR-As-Update-Dev.apk";
     const string MetadataResourcesRoot = "Assets/Android/HybridCLR/Resources";
     const string MetadataResourcesDir = MetadataResourcesRoot + "/" + HybridCLRMetadataLoader.ResourcesFolder;
     const string ReferencesResourcesDir = MetadataResourcesRoot + "/" + ModSourceCompiler.ReferencesResourcesFolder;
@@ -81,7 +82,14 @@ public static class HybridCLRSpikeBuild
         BuildApk(UpdateApplicationId, VersionInfo.DaggerfallUnityProductName, UpdateOutputPath);
     }
 
-    static void BuildApk(string applicationId, string productName, string outputPath)
+    // The same as a development build, so the profiler can measure what mods cost on a device
+    [MenuItem("Daggerfall Tools/Android/HybridCLR Spike/Build Development APK As Update")]
+    public static void BuildAsUpdateDevelopment()
+    {
+        BuildApk(UpdateApplicationId, VersionInfo.DaggerfallUnityProductName, UpdateDevelopmentOutputPath, true);
+    }
+
+    static void BuildApk(string applicationId, string productName, string outputPath, bool development = false)
     {
         if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android)
             EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Android, BuildTarget.Android);
@@ -91,7 +99,8 @@ public static class HybridCLRSpikeBuild
         PlayerSettings.bundleVersion = VersionInfo.DaggerfallUnityForAndroidVersion;
         PlayerSettings.SetScriptingBackend(BuildTargetGroup.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
-        EditorUserBuildSettings.development = false;
+        // Set before generating, so the stripped AOT assemblies match the player being built
+        EditorUserBuildSettings.development = development;
         EditorUserBuildSettings.buildAppBundle = false;
         EditorUserBuildSettings.exportAsGoogleAndroidProject = false;
         Debug.Log($"[HybridCLRSpikeBuild] Managed stripping level: {PlayerSettings.GetManagedStrippingLevel(BuildTargetGroup.Android)}");
@@ -111,7 +120,7 @@ public static class HybridCLRSpikeBuild
                 scenes = EditorBuildSettings.scenes.Where(scene => scene.enabled).Select(scene => scene.path).ToArray(),
                 locationPathName = outputPath,
                 target = BuildTarget.Android,
-                options = BuildOptions.None,
+                options = development ? BuildOptions.Development : BuildOptions.None,
             };
             BuildReport report = BuildPipeline.BuildPlayer(options);
             if (report.summary.result != BuildResult.Succeeded)

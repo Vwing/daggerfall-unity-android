@@ -688,7 +688,11 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 return;
 
             // Attempt to open path
+#if UNITY_ANDROID
+            AndroidUtils.OpenFolder(path);
+#else
             System.Diagnostics.Process.Start(path);
+#endif
         }
 
         #endregion

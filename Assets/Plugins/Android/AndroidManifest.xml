@@ -23,5 +23,32 @@
             <!-- Unity's startup storage permission request is replaced by AndroidUtils.RequestLegacyStoragePermission -->
             <meta-data android:name="unityplayer.SkipPermissionsDialog" android:value="true" />
         </activity>
+        <!-- Shows the data folder in the Files app and in other apps' file pickers -->
+        <provider
+            android:name="com.dfworkshop.daggerfallunityandroid.DataFolderProvider"
+            android:authorities="${applicationId}.documents"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
+        <!-- Offered by the Files app for text files in the data folder only -->
+        <activity
+            android:name="com.dfworkshop.daggerfallunityandroid.TextFileEditorActivity"
+            android:theme="@android:style/Theme.DeviceDefault"
+            android:exported="true"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|density|fontScale"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.EDIT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" android:host="${applicationId}.documents" />
+                <data android:mimeType="text/*" />
+                <data android:mimeType="application/json" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>
